@@ -25,8 +25,8 @@ import (
 	"fmt"
 	"os"
 
-	cp "github.com/gardener/machine-controller-manager-provider-sampleprovider/pkg/provider"
-	"github.com/gardener/machine-controller-manager-provider-sampleprovider/pkg/spi"
+	cp "github.com/aoepeople/machine-controller-manager-provider-stackit/pkg/provider"
+	"github.com/aoepeople/machine-controller-manager-provider-stackit/pkg/spi"
 	_ "github.com/gardener/machine-controller-manager/pkg/util/client/metrics/prometheus" // for client metric registration
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/app"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/app/options"

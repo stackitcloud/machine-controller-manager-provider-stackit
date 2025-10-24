@@ -1,4 +1,4 @@
-module github.com/gardener/machine-controller-manager-provider-sampleprovider
+module github.com/aoepeople/machine-controller-manager-provider-stackit
 
 go 1.13
 
