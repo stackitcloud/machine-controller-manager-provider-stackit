@@ -1,19 +1,25 @@
-#############      builder                                  #############
-FROM golang:1.13.5 AS builder
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Gardener contributors
+# SPDX-License-Identifier: Apache-2.0
 
-WORKDIR /go/src/github.com/aoepeople/machine-controller-manager-provider-stackit
+#############      builder                                  #############
+FROM golang:1.25.3 AS builder
+
+WORKDIR /workspace
 COPY . .
 
-RUN .ci/build
+# Build binary
+RUN ./scripts/build.sh
 
 #############      base                                     #############
-FROM alpine:3.11.2 as base
+FROM alpine:3.20 AS base
 
-RUN apk add --update bash curl tzdata
+RUN apk add --no-cache bash curl tzdata ca-certificates
 WORKDIR /
 
-#############      machine-controller               #############
+#############      machine-controller                       #############
 FROM base AS machine-controller
 
-COPY --from=builder /go/src/github.com/aoepeople/machine-controller-manager-provider-stackit/bin/rel/machine-controller /machine-controller
+COPY --from=builder /workspace/build/machine-controller /machine-controller
+
+USER 65532:65532
 ENTRYPOINT ["/machine-controller"]

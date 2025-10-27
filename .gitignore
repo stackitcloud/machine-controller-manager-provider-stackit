@@ -1,5 +1,4 @@
 /args
-/bin
 /.kube-secrets
 /tmp/*
 /dev
@@ -15,3 +14,19 @@ main
 
 # Output of the go coverage tool
 *coverprofile.out*
+*.out
+
+# Build artifacts
+build/
+
+# Hermit
+.hermit/
+
+# Vendir
+.vendir-tmp*/
+vendir.lock.yml
+
+# Localdev
+.craig
+CLAUDE.md
+.claude

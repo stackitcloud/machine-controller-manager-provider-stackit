@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Gardener contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Dockerfile for building binary inside Docker (exports to host)
+
+FROM golang:1.25.3 AS builder
+WORKDIR /workspace
+COPY . .
+RUN ./scripts/build.sh
+
+FROM scratch AS export
+COPY --from=builder /workspace/build/machine-controller /machine-controller
