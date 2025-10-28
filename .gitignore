@@ -2,7 +2,6 @@
 /.kube-secrets
 /tmp/*
 /dev
-/test
 /logs
 
 .vscode

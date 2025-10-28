@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../default
+  - https://github.com/stackit-controllers-k8s/stackit-api-mockservers//config/apis/iaas?ref=main
+
+patches:
+  - path: deployment-patches.yaml
+    target:
+      kind: Deployment
+      name: machine-controller-manager
+  # Patch iaas mock server to stackitcloud namespace
+  - target:
+      kind: Deployment
+      name: iaas
+    patch: |-
+      - op: replace
+        path: /metadata/namespace
+        value: stackitcloud
+  - target:
+      kind: Service
+      name: iaas
+    patch: |-
+      - op: replace
+        path: /metadata/namespace
+        value: stackitcloud

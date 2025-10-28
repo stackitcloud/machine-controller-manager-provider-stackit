@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: machine-controller-manager
+spec:
+  template:
+    spec:
+      containers:
+        - name: machine-controller
+          imagePullPolicy: Never
+          env:
+            # E2E environment variables pointing to mock IAAS API
+            - name: STACKIT_API_ENDPOINT
+              value: "http://iaas.stackitcloud.svc.cluster.local"
+            - name: STACKIT_PROJECT_ID
+              value: "mock-project-id"
+            - name: STACKIT_NO_AUTH
+              value: "true"

@@ -21,6 +21,10 @@ IMAGE_TAG := `cat VERSION`
 KIND_CLUSTER_NAME := env_var_or_default('KIND_CLUSTER_NAME', 'mcm-provider-stackit')
 KIND_CLUSTER_VERSION := env_var_or_default('KIND_CLUSTER_VERSION', 'v1.31.2')
 
+# E2E test cluster settings (separate from dev cluster)
+KIND_E2E_CLUSTER_NAME := env_var_or_default('KIND_E2E_CLUSTER_NAME', 'mcm-provider-stackit-e2e')
+KIND_E2E_CLUSTER_VERSION := env_var_or_default('KIND_E2E_CLUSTER_VERSION', 'v1.31.2')
+
 # ==============================================================================
 # Build
 # ==============================================================================
@@ -57,7 +61,7 @@ clean:
     @echo "✓ Clean complete"
 
 # ==============================================================================
-# Development
+# Development + Dev Cluster Management
 # ==============================================================================
 
 # Run the machine controller locally
@@ -81,44 +85,80 @@ start:
         --machine-safety-orphan-vms-period=30m \
         --v=3
 
-# ==============================================================================
-# Kind Cluster Helpers
-# ==============================================================================
-
-# Create kind cluster if it doesn't exist
-[group('kind')]
-kind-create-cluster:
+# Create dev cluster if it doesn't exist
+[group('dev')]
+dev-create-cluster:
     #!/usr/bin/env bash
     set -euo pipefail
     if kind get clusters 2>/dev/null | grep -qx "{{ KIND_CLUSTER_NAME }}"; then
-      echo "kind cluster '{{ KIND_CLUSTER_NAME }}' already exists; skipping create"
+      echo "Dev cluster '{{ KIND_CLUSTER_NAME }}' already exists; skipping create"
     else
-      echo "Creating kind cluster '{{ KIND_CLUSTER_NAME }}'..."
+      echo "Creating dev cluster '{{ KIND_CLUSTER_NAME }}'..."
       kind create cluster --name "{{ KIND_CLUSTER_NAME }}" --image "docker.io/kindest/node:{{ KIND_CLUSTER_VERSION }}"
     fi
 
-# Delete kind cluster if it exists
-[group('kind')]
-kind-delete-cluster:
+# Delete dev cluster if it exists
+[group('dev')]
+dev-delete-cluster:
     #!/usr/bin/env bash
     set -euo pipefail
     if kind get clusters 2>/dev/null | grep -qx "{{ KIND_CLUSTER_NAME }}"; then
-      echo "Deleting kind cluster '{{ KIND_CLUSTER_NAME }}'..."
+      echo "Deleting dev cluster '{{ KIND_CLUSTER_NAME }}'..."
       kind delete cluster --name "{{ KIND_CLUSTER_NAME }}"
     else
-      echo "kind cluster '{{ KIND_CLUSTER_NAME }}' does not exist; nothing to delete"
+      echo "Dev cluster '{{ KIND_CLUSTER_NAME }}' does not exist; nothing to delete"
     fi
+    rm -rf dev/
 
-# Load Docker image into kind cluster
-[group('kind')]
-kind-load-image:
-    @echo "Loading image {{ IMAGE_REPOSITORY }}:{{ IMAGE_TAG }} into kind cluster..."
+# Load Docker image into dev cluster
+[group('dev')]
+dev-load-image:
+    @echo "Loading image {{ IMAGE_REPOSITORY }}:{{ IMAGE_TAG }} into dev cluster..."
     kind load docker-image "{{ IMAGE_REPOSITORY }}:{{ IMAGE_TAG }}" --name "{{ KIND_CLUSTER_NAME }}"
 
-# Export kind cluster kubeconfig (sets kubectl context)
-[group('kind')]
-kind-kubeconfig:
+# Export dev cluster kubeconfig (sets kubectl context)
+[group('dev')]
+dev-kubeconfig:
     kind export kubeconfig --name {{ KIND_CLUSTER_NAME }}
+
+# Install MCM CRDs into the kind cluster
+[group('dev')]
+install-crds:
+    @echo "Installing MCM CRDs..."
+    kubectl apply -k config/crd/
+
+# Save kind cluster kubeconfig to dev directory
+[group('dev')]
+save-kubeconfig:
+    @echo "Saving kubeconfig to {{ TARGET_KUBECONFIG }}..."
+    @mkdir -p dev
+    kind get kubeconfig --name {{ KIND_CLUSTER_NAME }} > {{ TARGET_KUBECONFIG }}
+
+# Set up local development environment with kind cluster
+[group('dev')]
+dev: docker-build \
+     dev-create-cluster \
+     save-kubeconfig \
+     dev-load-image \
+     dev-deploy
+    @echo ""
+    @echo "✓ Development environment ready!"
+    @echo ""
+    @echo "  Dev cluster: {{ KIND_CLUSTER_NAME }}"
+    @echo "  Kubeconfig: {{ TARGET_KUBECONFIG }}"
+    @echo "  Image loaded: {{ IMAGE_REPOSITORY }}:{{ IMAGE_TAG }}"
+    @echo ""
+    @echo "Check deployment status:"
+    @echo "  kubectl get pods -n default"
+    @echo ""
+    @echo "For local debugging, run 'just start' instead of deploying to cluster"
+    @echo ""
+
+# Deploy MCM provider to development cluster
+[group('dev')]
+dev-deploy:
+    @echo "Deploying MCM provider (development overlay)..."
+    kubectl apply -k config/overlays/development
 
 # ==============================================================================
 # Dependencies
@@ -137,44 +177,55 @@ update-deps:
     GO111MODULE=on go mod tidy
 
 # ==============================================================================
-# Local Development with Kind
+# E2E Test Cluster Management
 # ==============================================================================
 
-# Install MCM CRDs into the kind cluster
-[group('dev')]
-install-crds:
-    @echo "Installing MCM CRDs..."
-    kubectl apply -k config/crd/
+# Create e2e test cluster if it doesn't exist
+[group('test')]
+e2e-create-cluster:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if kind get clusters 2>/dev/null | grep -qx "{{ KIND_E2E_CLUSTER_NAME }}"; then
+      echo "E2E cluster '{{ KIND_E2E_CLUSTER_NAME }}' already exists; skipping create"
+    else
+      echo "Creating E2E cluster '{{ KIND_E2E_CLUSTER_NAME }}'..."
+      kind create cluster --name "{{ KIND_E2E_CLUSTER_NAME }}" --image "docker.io/kindest/node:{{ KIND_E2E_CLUSTER_VERSION }}"
+    fi
 
-# Save kind cluster kubeconfig to dev directory
-[group('dev')]
-save-kubeconfig:
-    @echo "Saving kubeconfig to {{ TARGET_KUBECONFIG }}..."
-    @mkdir -p dev
-    kind get kubeconfig --name {{ KIND_CLUSTER_NAME }} > {{ TARGET_KUBECONFIG }}
+# Delete e2e test cluster if it exists
+[group('test')]
+e2e-delete-cluster:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if kind get clusters 2>/dev/null | grep -qx "{{ KIND_E2E_CLUSTER_NAME }}"; then
+      echo "Deleting E2E cluster '{{ KIND_E2E_CLUSTER_NAME }}'..."
+      kind delete cluster --name "{{ KIND_E2E_CLUSTER_NAME }}"
+    else
+      echo "E2E cluster '{{ KIND_E2E_CLUSTER_NAME }}' does not exist; nothing to delete"
+    fi
 
-# Set up local development environment with kind cluster
-[group('dev')]
-dev: docker-build \
-     kind-create-cluster \
-     save-kubeconfig \
-     install-crds \
-     kind-load-image
-    @echo ""
-    @echo "✓ Development environment ready!"
-    @echo ""
-    @echo "  Kind cluster: {{ KIND_CLUSTER_NAME }}"
-    @echo "  Kubeconfig: {{ TARGET_KUBECONFIG }}"
-    @echo "  Image loaded: {{ IMAGE_REPOSITORY }}:{{ IMAGE_TAG }}"
-    @echo ""
-    @echo "Next steps:"
-    @echo "  1. Deploy sample resources from kubernetes/ directory"
-    @echo "  2. Run 'just start' to start the provider controller"
-    @echo ""
+# Load Docker image into e2e test cluster
+[group('test')]
+e2e-load-image:
+    @echo "Loading image {{ IMAGE_REPOSITORY }}:{{ IMAGE_TAG }} into E2E cluster..."
+    kind load docker-image "{{ IMAGE_REPOSITORY }}:{{ IMAGE_TAG }}" --name "{{ KIND_E2E_CLUSTER_NAME }}"
 
-# Clean up the local development environment
-[group('dev')]
-dev-clean: kind-delete-cluster
-    @echo "Cleaning up dev directory..."
-    rm -rf dev/
-    @echo "✓ Development environment cleaned up"
+# Run e2e tests in isolated kind cluster
+[group('test')]
+test-e2e: docker-build e2e-create-cluster e2e-load-image && e2e-delete-cluster
+    @echo "Running e2e tests in isolated cluster {{ KIND_E2E_CLUSTER_NAME }}..."
+    KIND_CLUSTER_NAME={{ KIND_E2E_CLUSTER_NAME }} go test ./test/e2e/... -v -ginkgo.v -timeout=15m
+
+# Run e2e tests and preserve cluster for debugging
+[group('test')]
+test-e2e-preserve: docker-build e2e-create-cluster e2e-load-image
+    @echo "Running e2e tests (cluster will be preserved)..."
+    KIND_CLUSTER_NAME={{ KIND_E2E_CLUSTER_NAME }} SKIP_CLUSTER_CLEANUP=true go test ./test/e2e/... -v -ginkgo.v -timeout=15m
+    @echo ""
+    @echo "E2E cluster '{{ KIND_E2E_CLUSTER_NAME }}' preserved for debugging."
+    @echo "Run 'just e2e-delete-cluster' to clean up."
+
+# Export dev cluster kubeconfig (sets kubectl context)
+[group('test')]
+e2e-kubeconfig:
+    kind export kubeconfig --name {{ KIND_E2E_CLUSTER_NAME }}
