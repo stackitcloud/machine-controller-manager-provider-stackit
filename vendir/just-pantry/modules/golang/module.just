@@ -12,7 +12,6 @@
 import '../../lib/module.just'
 import 'vars.just'
 
-# Display Go environment information
 [group('golang')]
 [no-cd]
 info:
