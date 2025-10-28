@@ -17,6 +17,7 @@ limitations under the License.
 package e2e
 
 import (
+	"bytes"
 	"os/exec"
 	"strings"
 	"time"
@@ -102,11 +103,84 @@ spec:
 		})
 	})
 
-	Context("Machine lifecycle (placeholder)", func() {
-		// TODO: Implement once provider CreateMachine/DeleteMachine are implemented
-		PIt("should create a Machine and call IAAS API", func() {
-			// This test will create a MachineClass and Machine CR
-			// and verify that the provider attempts to create a VM via mock IAAS API
+	Context("Machine lifecycle", func() {
+		It("should create a Machine and call IAAS API", func() {
+			var (
+				cmd    *exec.Cmd
+				err    error
+				output []byte
+			)
+
+			By("creating a Secret with projectId")
+			secretYAML := `
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-secret
+  namespace: default
+type: Opaque
+stringData:
+  projectId: test-project-123
+`
+			cmd = exec.Command("kubectl", "apply", "-f", "-")
+			cmd.Stdin = bytes.NewBufferString(secretYAML)
+			output, err = cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred(), "Failed to create secret: %s", string(output))
+
+			By("creating a MachineClass with minimal ProviderSpec")
+			machineClassYAML := `
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: MachineClass
+metadata:
+  name: test-machineclass
+  namespace: default
+providerSpec:
+  machineType: "c1.2"
+  imageId: "550e8400-e29b-41d4-a716-446655440000"
+secretRef:
+  name: test-secret
+  namespace: default
+provider: STACKIT
+`
+			cmd = exec.Command("kubectl", "apply", "-f", "-")
+			cmd.Stdin = bytes.NewBufferString(machineClassYAML)
+			output, err = cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred(), "Failed to create MachineClass: %s", string(output))
+
+			By("creating a Machine CR")
+			machineYAML := `
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: Machine
+metadata:
+  name: test-machine
+  namespace: default
+spec:
+  class:
+    kind: MachineClass
+    name: test-machineclass
+`
+			cmd = exec.Command("kubectl", "apply", "-f", "-")
+			cmd.Stdin = bytes.NewBufferString(machineYAML)
+			output, err = cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred(), "Failed to create Machine: %s", string(output))
+
+			By("waiting for Machine to have ProviderID set")
+			Eventually(func() string {
+				cmd = exec.Command("kubectl", "get", "machine", "test-machine", "-n", "default", "-o", "jsonpath={.spec.providerID}")
+				output, _ = cmd.CombinedOutput()
+				return string(output)
+			}, "60s", "2s").Should(ContainSubstring("stackit://"), "Machine should have ProviderID set")
+
+			By("verifying Machine exists and has correct ProviderID format")
+			cmd = exec.Command("kubectl", "get", "machine", "test-machine", "-n", "default", "-o", "json")
+			output, err = cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(output)).To(ContainSubstring("stackit://test-project-123/"))
+
+			By("cleaning up test resources")
+			exec.Command("kubectl", "delete", "machine", "test-machine", "-n", "default", "--ignore-not-found=true").Run()
+			exec.Command("kubectl", "delete", "machineclass", "test-machineclass", "-n", "default", "--ignore-not-found=true").Run()
+			exec.Command("kubectl", "delete", "secret", "test-secret", "-n", "default", "--ignore-not-found=true").Run()
 		})
 
 		PIt("should delete a Machine and call IAAS API", func() {

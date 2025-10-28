@@ -7,7 +7,9 @@ package provider
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/aoepeople/machine-controller-manager-provider-stackit/pkg/provider/apis/validation"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/codes"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/status"
@@ -54,7 +56,47 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	klog.V(2).Infof("Machine creation request has been recieved for %q", req.Machine.Name)
 	defer klog.V(2).Infof("Machine creation request has been processed for %q", req.Machine.Name)
 
-	return &driver.CreateMachineResponse{}, status.Error(codes.Unimplemented, "")
+	// Decode ProviderSpec from MachineClass
+	providerSpec, err := decodeProviderSpec(req.MachineClass)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	// Validate ProviderSpec and Secret
+	validationErrs := validation.ValidateProviderSpecNSecret(providerSpec, req.Secret)
+	if len(validationErrs) > 0 {
+		return nil, status.Error(codes.InvalidArgument, validationErrs[0].Error())
+	}
+
+	// Extract projectId from Secret
+	projectID := string(req.Secret.Data["projectId"])
+
+	// Create server request
+	createReq := &CreateServerRequest{
+		Name:        req.Machine.Name,
+		MachineType: providerSpec.MachineType,
+		ImageID:     providerSpec.ImageID,
+	}
+
+	// Call STACKIT API to create server
+	server, err := p.client.CreateServer(ctx, projectID, createReq)
+	if err != nil {
+		klog.Errorf("Failed to create server for machine %q: %v", req.Machine.Name, err)
+		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to create server: %v", err))
+	}
+
+	// Generate ProviderID in format: stackit://<projectId>/<serverId>
+	providerID := fmt.Sprintf("stackit://%s/%s", projectID, server.ID)
+
+	// NodeName is the machine name (will register with this name in Kubernetes)
+	nodeName := req.Machine.Name
+
+	klog.V(2).Infof("Successfully created server %q with ID %q for machine %q", server.Name, server.ID, req.Machine.Name)
+
+	return &driver.CreateMachineResponse{
+		ProviderID: providerID,
+		NodeName:   nodeName,
+	}, nil
 }
 
 // DeleteMachine handles a machine deletion request

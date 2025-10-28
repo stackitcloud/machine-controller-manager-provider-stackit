@@ -13,12 +13,14 @@ import (
 // Provider is the struct that implements the driver interface
 // It is used to implement the basic driver functionalities
 type Provider struct {
-	SPI spi.SessionProviderInterface
+	SPI    spi.SessionProviderInterface
+	client StackitClient // STACKIT API client (can be mocked for testing)
 }
 
 // NewProvider returns an empty provider object
 func NewProvider(spi spi.SessionProviderInterface) driver.Driver {
 	return &Provider{
-		SPI: spi,
+		SPI:    spi,
+		client: newHTTPStackitClient(), // Initialize HTTP client for STACKIT API
 	}
 }
