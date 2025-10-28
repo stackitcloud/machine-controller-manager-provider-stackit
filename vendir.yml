@@ -9,4 +9,4 @@ directories:
           url: https://github.com/stackit-controllers-k8s/just-pantry.git
         includePaths:
           - lib/**
-          - modules/{golang,kubebuilder}/**
+          - modules/golang/**

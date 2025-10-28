@@ -14,8 +14,12 @@ export CONTROL_KUBECONFIG := env_var_or_default('CONTROL_KUBECONFIG', 'dev/targe
 export TARGET_KUBECONFIG := env_var_or_default('TARGET_KUBECONFIG', 'dev/target-kubeconfig.yaml')
 
 # Build settings
-IMAGE_REPOSITORY := env_var_or_default('IMAGE_REPOSITORY', '<link-to-image-repo>')
+IMAGE_REPOSITORY := env_var_or_default('IMAGE_REPOSITORY', 'localhost/machine-controller-manager-provider-stackit')
 IMAGE_TAG := `cat VERSION`
+
+# Kind cluster settings
+KIND_CLUSTER_NAME := env_var_or_default('KIND_CLUSTER_NAME', 'mcm-provider-stackit')
+KIND_CLUSTER_VERSION := env_var_or_default('KIND_CLUSTER_VERSION', 'v1.31.2')
 
 # ==============================================================================
 # Build
@@ -78,6 +82,45 @@ start:
         --v=3
 
 # ==============================================================================
+# Kind Cluster Helpers
+# ==============================================================================
+
+# Create kind cluster if it doesn't exist
+[group('kind')]
+kind-create-cluster:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if kind get clusters 2>/dev/null | grep -qx "{{ KIND_CLUSTER_NAME }}"; then
+      echo "kind cluster '{{ KIND_CLUSTER_NAME }}' already exists; skipping create"
+    else
+      echo "Creating kind cluster '{{ KIND_CLUSTER_NAME }}'..."
+      kind create cluster --name "{{ KIND_CLUSTER_NAME }}" --image "docker.io/kindest/node:{{ KIND_CLUSTER_VERSION }}"
+    fi
+
+# Delete kind cluster if it exists
+[group('kind')]
+kind-delete-cluster:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if kind get clusters 2>/dev/null | grep -qx "{{ KIND_CLUSTER_NAME }}"; then
+      echo "Deleting kind cluster '{{ KIND_CLUSTER_NAME }}'..."
+      kind delete cluster --name "{{ KIND_CLUSTER_NAME }}"
+    else
+      echo "kind cluster '{{ KIND_CLUSTER_NAME }}' does not exist; nothing to delete"
+    fi
+
+# Load Docker image into kind cluster
+[group('kind')]
+kind-load-image:
+    @echo "Loading image {{ IMAGE_REPOSITORY }}:{{ IMAGE_TAG }} into kind cluster..."
+    kind load docker-image "{{ IMAGE_REPOSITORY }}:{{ IMAGE_TAG }}" --name "{{ KIND_CLUSTER_NAME }}"
+
+# Export kind cluster kubeconfig (sets kubectl context)
+[group('kind')]
+kind-kubeconfig:
+    kind export kubeconfig --name {{ KIND_CLUSTER_NAME }}
+
+# ==============================================================================
 # Dependencies
 # ==============================================================================
 
@@ -92,3 +135,46 @@ update-deps:
     GO111MODULE=on go get -u
     @echo "Running go mod tidy..."
     GO111MODULE=on go mod tidy
+
+# ==============================================================================
+# Local Development with Kind
+# ==============================================================================
+
+# Install MCM CRDs into the kind cluster
+[group('dev')]
+install-crds:
+    @echo "Installing MCM CRDs..."
+    kubectl apply -k config/crd/
+
+# Save kind cluster kubeconfig to dev directory
+[group('dev')]
+save-kubeconfig:
+    @echo "Saving kubeconfig to {{ TARGET_KUBECONFIG }}..."
+    @mkdir -p dev
+    kind get kubeconfig --name {{ KIND_CLUSTER_NAME }} > {{ TARGET_KUBECONFIG }}
+
+# Set up local development environment with kind cluster
+[group('dev')]
+dev: docker-build \
+     kind-create-cluster \
+     save-kubeconfig \
+     install-crds \
+     kind-load-image
+    @echo ""
+    @echo "✓ Development environment ready!"
+    @echo ""
+    @echo "  Kind cluster: {{ KIND_CLUSTER_NAME }}"
+    @echo "  Kubeconfig: {{ TARGET_KUBECONFIG }}"
+    @echo "  Image loaded: {{ IMAGE_REPOSITORY }}:{{ IMAGE_TAG }}"
+    @echo ""
+    @echo "Next steps:"
+    @echo "  1. Deploy sample resources from kubernetes/ directory"
+    @echo "  2. Run 'just start' to start the provider controller"
+    @echo ""
+
+# Clean up the local development environment
+[group('dev')]
+dev-clean: kind-delete-cluster
+    @echo "Cleaning up dev directory..."
+    rm -rf dev/
+    @echo "✓ Development environment cleaned up"
