@@ -263,6 +263,96 @@ var _ = Describe("HTTP Client", func() {
 		})
 	})
 
+	Describe("DeleteServer", func() {
+		Context("with successful API response", func() {
+			It("should delete server successfully", func() {
+				server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					Expect(r.Method).To(Equal("DELETE"))
+					Expect(r.URL.Path).To(Equal("/v1/projects/test-project-123/servers/test-server-456"))
+
+					w.WriteHeader(http.StatusOK)
+				}))
+
+				client = &httpStackitClient{
+					baseURL:    server.URL,
+					httpClient: &http.Client{},
+				}
+
+				err := client.DeleteServer(ctx, projectID, serverID)
+
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("should accept 204 No Content response", func() {
+				server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(http.StatusNoContent)
+				}))
+
+				client = &httpStackitClient{
+					baseURL:    server.URL,
+					httpClient: &http.Client{},
+				}
+
+				err := client.DeleteServer(ctx, projectID, serverID)
+
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("with API errors", func() {
+			It("should return error on 404 Not Found (server already deleted)", func() {
+				server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(http.StatusNotFound)
+					w.Write([]byte(`{"error": "Server not found"}`))
+				}))
+
+				client = &httpStackitClient{
+					baseURL:    server.URL,
+					httpClient: &http.Client{},
+				}
+
+				err := client.DeleteServer(ctx, projectID, serverID)
+
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(Equal("server not found: 404"))
+			})
+
+			It("should return error on 403 Forbidden", func() {
+				server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(http.StatusForbidden)
+					w.Write([]byte(`{"error": "Access denied"}`))
+				}))
+
+				client = &httpStackitClient{
+					baseURL:    server.URL,
+					httpClient: &http.Client{},
+				}
+
+				err := client.DeleteServer(ctx, projectID, serverID)
+
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("API returned error status 403"))
+			})
+
+			It("should return error on 500 Internal Server Error", func() {
+				server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(http.StatusInternalServerError)
+					w.Write([]byte(`{"error": "Internal error"}`))
+				}))
+
+				client = &httpStackitClient{
+					baseURL:    server.URL,
+					httpClient: &http.Client{},
+				}
+
+				err := client.DeleteServer(ctx, projectID, serverID)
+
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("API returned error status 500"))
+			})
+		})
+	})
+
 	Describe("newHTTPStackitClient", func() {
 		It("should use environment variable for base URL", func() {
 			// Save original env

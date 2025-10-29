@@ -187,9 +187,92 @@ spec:
 			exec.Command("kubectl", "delete", "secret", "test-secret", "-n", "default", "--ignore-not-found=true").Run()
 		})
 
-		PIt("should delete a Machine and call IAAS API", func() {
-			// This test will delete a Machine CR
-			// and verify that the provider attempts to delete the VM via mock IAAS API
+		It("should delete a Machine and call IAAS API", func() {
+			var (
+				cmd    *exec.Cmd
+				err    error
+				output []byte
+			)
+
+			By("creating a Secret with projectId")
+			secretYAML := `
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-delete-secret
+  namespace: default
+type: Opaque
+stringData:
+  projectId: "12345678-1234-1234-1234-123456789012"
+  userData: |
+    #cloud-config
+    runcmd:
+      - echo "Machine bootstrapped"
+`
+			cmd = exec.Command("kubectl", "apply", "-f", "-")
+			cmd.Stdin = bytes.NewBufferString(secretYAML)
+			output, err = cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred(), "Failed to create secret: %s", string(output))
+
+			By("creating a MachineClass")
+			machineClassYAML := `
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: MachineClass
+metadata:
+  name: test-delete-machineclass
+  namespace: default
+providerSpec:
+  machineType: "c1.2"
+  imageId: "550e8400-e29b-41d4-a716-446655440000"
+secretRef:
+  name: test-delete-secret
+  namespace: default
+provider: STACKIT
+`
+			cmd = exec.Command("kubectl", "apply", "-f", "-")
+			cmd.Stdin = bytes.NewBufferString(machineClassYAML)
+			output, err = cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred(), "Failed to create MachineClass: %s", string(output))
+
+			By("creating a Machine CR")
+			machineYAML := `
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: Machine
+metadata:
+  name: test-delete-machine
+  namespace: default
+spec:
+  class:
+    kind: MachineClass
+    name: test-delete-machineclass
+`
+			cmd = exec.Command("kubectl", "apply", "-f", "-")
+			cmd.Stdin = bytes.NewBufferString(machineYAML)
+			output, err = cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred(), "Failed to create Machine: %s", string(output))
+
+			By("waiting for Machine to have ProviderID set (via CreateMachine)")
+			Eventually(func() string {
+				cmd = exec.Command("kubectl", "get", "machine", "test-delete-machine", "-n", "default", "-o", "jsonpath={.spec.providerID}")
+				output, _ = cmd.CombinedOutput()
+				return string(output)
+			}, "60s", "2s").Should(ContainSubstring("stackit://"), "Machine should have ProviderID set")
+
+			By("deleting the Machine CR")
+			cmd = exec.Command("kubectl", "delete", "machine", "test-delete-machine", "-n", "default")
+			output, err = cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred(), "Failed to delete Machine: %s", string(output))
+
+			By("verifying Machine is deleted from Kubernetes")
+			Eventually(func() string {
+				cmd = exec.Command("kubectl", "get", "machine", "test-delete-machine", "-n", "default", "--ignore-not-found=true")
+				output, _ = cmd.CombinedOutput()
+				return strings.TrimSpace(string(output))
+			}, "60s", "2s").Should(BeEmpty(), "Machine should be deleted from Kubernetes")
+
+			By("cleaning up test resources")
+			exec.Command("kubectl", "delete", "machineclass", "test-delete-machineclass", "-n", "default", "--ignore-not-found=true").Run()
+			exec.Command("kubectl", "delete", "secret", "test-delete-secret", "-n", "default", "--ignore-not-found=true").Run()
 		})
 
 		It("should report Machine status correctly", func() {

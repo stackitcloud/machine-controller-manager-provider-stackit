@@ -115,9 +115,31 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 	klog.V(2).Infof("Machine deletion request has been recieved for %q", req.Machine.Name)
 	defer klog.V(2).Infof("Machine deletion request has been processed for %q", req.Machine.Name)
 
-	// TODO: Implement actual server deletion in Slice #3
-	// For now, just return success to allow cleanup during testing
-	klog.V(2).Infof("DeleteMachine stub called for %q - actual deletion will be implemented in Slice #3", req.Machine.Name)
+	// Validate ProviderID exists
+	if req.Machine.Spec.ProviderID == "" {
+		return nil, status.Error(codes.InvalidArgument, "ProviderID is required")
+	}
+
+	// Parse ProviderID to extract projectID and serverID
+	projectID, serverID, err := parseProviderID(req.Machine.Spec.ProviderID)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("invalid ProviderID format: %v", err))
+	}
+
+	// Call STACKIT API to delete server
+	err = p.client.DeleteServer(ctx, projectID, serverID)
+	if err != nil {
+		// Check if server was not found (404) - this is OK for idempotency
+		if err.Error() == "server not found: 404" {
+			klog.V(2).Infof("Server %q already deleted for machine %q (idempotent)", serverID, req.Machine.Name)
+			return &driver.DeleteMachineResponse{}, nil
+		}
+		// All other errors are internal errors
+		klog.Errorf("Failed to delete server for machine %q: %v", req.Machine.Name, err)
+		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to delete server: %v", err))
+	}
+
+	klog.V(2).Infof("Successfully deleted server %q for machine %q", serverID, req.Machine.Name)
 
 	return &driver.DeleteMachineResponse{}, nil
 }
@@ -146,9 +168,11 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 	klog.V(2).Infof("Get request has been recieved for %q", req.Machine.Name)
 	defer klog.V(2).Infof("Machine get request has been processed successfully for %q", req.Machine.Name)
 
-	// Validate ProviderID exists
+	// When ProviderID is empty, the machine doesn't exist yet
+	// Return NotFound so MCM knows to call CreateMachine
 	if req.Machine.Spec.ProviderID == "" {
-		return nil, status.Error(codes.InvalidArgument, "ProviderID is required")
+		klog.V(2).Infof("Machine %q has no ProviderID, returning NotFound", req.Machine.Name)
+		return nil, status.Error(codes.NotFound, "machine does not have a ProviderID yet")
 	}
 
 	// Parse ProviderID to extract projectID and serverID

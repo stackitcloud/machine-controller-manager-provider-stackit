@@ -121,3 +121,39 @@ func (c *httpStackitClient) GetServer(ctx context.Context, projectID, serverID s
 
 	return &server, nil
 }
+
+// DeleteServer deletes a server by ID via HTTP API
+func (c *httpStackitClient) DeleteServer(ctx context.Context, projectID, serverID string) error {
+	// Build API path
+	url := fmt.Sprintf("%s/v1/projects/%s/servers/%s", c.baseURL, projectID, serverID)
+
+	// Create HTTP request
+	httpReq, err := http.NewRequestWithContext(ctx, "DELETE", url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create HTTP request: %w", err)
+	}
+
+	// Send request
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("HTTP request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response body (for error messages)
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Check status code
+	if resp.StatusCode == 404 {
+		// Server already deleted - this is OK (idempotent)
+		return fmt.Errorf("server not found: 404")
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("API returned error status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	return nil
+}

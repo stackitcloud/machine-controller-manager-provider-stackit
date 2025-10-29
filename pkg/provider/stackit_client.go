@@ -15,6 +15,8 @@ type StackitClient interface {
 	CreateServer(ctx context.Context, projectID string, req *CreateServerRequest) (*Server, error)
 	// GetServer retrieves a server by ID from STACKIT
 	GetServer(ctx context.Context, projectID, serverID string) (*Server, error)
+	// DeleteServer deletes a server by ID from STACKIT
+	DeleteServer(ctx context.Context, projectID, serverID string) error
 }
 
 // CreateServerRequest represents the request to create a server
