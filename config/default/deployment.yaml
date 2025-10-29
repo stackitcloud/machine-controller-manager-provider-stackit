@@ -24,11 +24,7 @@ spec:
           - --namespace=default
           - --safety-up=2
           - --safety-down=1
-          - --machine-drain-timeout=5m
-          - --machine-health-timeout=10m
-          - --machine-safety-orphan-vms-period=30m
           - --machine-safety-overshooting-period=1m
-          - --node-conditions=ReadonlyFilesystem,KernelDeadlock,DiskPressure
           - --v=3
         livenessProbe:
           failureThreshold: 3
@@ -51,7 +47,7 @@ spec:
           - --machine-health-timeout=10m
           - --machine-safety-orphan-vms-period=30m
           - --node-conditions=ReadonlyFilesystem,KernelDeadlock,DiskPressure
-          - --v=3
+          - --v=4
         livenessProbe:
           failureThreshold: 3
           httpGet:

@@ -111,7 +111,7 @@ spec:
 				output []byte
 			)
 
-			By("creating a Secret with projectId")
+			By("creating a Secret with projectId and userData")
 			secretYAML := `
 apiVersion: v1
 kind: Secret
@@ -120,7 +120,11 @@ metadata:
   namespace: default
 type: Opaque
 stringData:
-  projectId: test-project-123
+  projectId: "12345678-1234-1234-1234-123456789012"
+  userData: |
+    #cloud-config
+    runcmd:
+      - echo "Machine bootstrapped"
 `
 			cmd = exec.Command("kubectl", "apply", "-f", "-")
 			cmd.Stdin = bytes.NewBufferString(secretYAML)
@@ -175,7 +179,7 @@ spec:
 			cmd = exec.Command("kubectl", "get", "machine", "test-machine", "-n", "default", "-o", "json")
 			output, err = cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(string(output)).To(ContainSubstring("stackit://test-project-123/"))
+			Expect(string(output)).To(ContainSubstring("stackit://12345678-1234-1234-1234-123456789012/"))
 
 			By("cleaning up test resources")
 			exec.Command("kubectl", "delete", "machine", "test-machine", "-n", "default", "--ignore-not-found=true").Run()

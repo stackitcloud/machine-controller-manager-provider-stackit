@@ -72,14 +72,20 @@ rules:
     verbs:
       - get
       - list
-  # Permissions for Secrets (provider credentials)
+      - watch
+  # Permissions for Secrets (provider credentials and bootstrap tokens)
   - apiGroups:
       - ""
     resources:
       - secrets
     verbs:
+      - create
+      - delete
       - get
       - list
+      - patch
+      - update
+      - watch
   # Permissions for Events
   - apiGroups:
       - ""
