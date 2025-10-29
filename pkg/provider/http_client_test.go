@@ -270,7 +270,8 @@ var _ = Describe("HTTP Client", func() {
 					Expect(r.Method).To(Equal("DELETE"))
 					Expect(r.URL.Path).To(Equal("/v1/projects/test-project-123/servers/test-server-456"))
 
-					w.WriteHeader(http.StatusOK)
+					// Real STACKIT API returns 204 No Content on successful DELETE
+					w.WriteHeader(http.StatusNoContent)
 				}))
 
 				client = &httpStackitClient{

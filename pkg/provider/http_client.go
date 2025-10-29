@@ -147,13 +147,16 @@ func (c *httpStackitClient) DeleteServer(ctx context.Context, projectID, serverI
 	}
 
 	// Check status code
-	if resp.StatusCode == 404 {
-		// Server already deleted - this is OK (idempotent)
-		return fmt.Errorf("server not found: 404")
-	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("API returned error status %d: %s", resp.StatusCode, string(respBody))
+	// Success: 204 No Content (according to STACKIT API spec)
+	if resp.StatusCode == 204 {
+		return nil
 	}
 
-	return nil
+	// Not Found: Server already deleted - this is OK (idempotent)
+	if resp.StatusCode == 404 {
+		return fmt.Errorf("server not found: 404")
+	}
+
+	// All other status codes are errors
+	return fmt.Errorf("API returned error status %d: %s", resp.StatusCode, string(respBody))
 }

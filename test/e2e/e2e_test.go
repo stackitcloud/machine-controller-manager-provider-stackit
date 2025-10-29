@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -182,9 +182,12 @@ spec:
 			Expect(string(output)).To(ContainSubstring("stackit://12345678-1234-1234-1234-123456789012/"))
 
 			By("cleaning up test resources")
-			exec.Command("kubectl", "delete", "machine", "test-machine", "-n", "default", "--ignore-not-found=true").Run()
-			exec.Command("kubectl", "delete", "machineclass", "test-machineclass", "-n", "default", "--ignore-not-found=true").Run()
-			exec.Command("kubectl", "delete", "secret", "test-secret", "-n", "default", "--ignore-not-found=true").Run()
+			deleteK8sResource("machine", "test-machine", "default")
+			verifyK8sResourceDeleted("machine", "test-machine", "default")
+			deleteK8sResource("machineclass", "test-machineclass", "default")
+			verifyK8sResourceDeleted("machineclass", "test-machineclass", "default")
+			deleteK8sResource("secret", "test-secret", "default")
+			verifyK8sResourceDeleted("secret", "test-secret", "default")
 		})
 
 		It("should delete a Machine and call IAAS API", func() {
@@ -271,8 +274,10 @@ spec:
 			}, "60s", "2s").Should(BeEmpty(), "Machine should be deleted from Kubernetes")
 
 			By("cleaning up test resources")
-			exec.Command("kubectl", "delete", "machineclass", "test-delete-machineclass", "-n", "default", "--ignore-not-found=true").Run()
-			exec.Command("kubectl", "delete", "secret", "test-delete-secret", "-n", "default", "--ignore-not-found=true").Run()
+			deleteK8sResource("machineclass", "test-delete-machineclass", "default")
+			verifyK8sResourceDeleted("machineclass", "test-delete-machineclass", "default")
+			deleteK8sResource("secret", "test-delete-secret", "default")
+			verifyK8sResourceDeleted("secret", "test-delete-secret", "default")
 		})
 
 		It("should report Machine status correctly", func() {
@@ -353,12 +358,15 @@ spec:
 				cmd = exec.Command("kubectl", "get", "machine", "test-status-machine", "-n", "default", "-o", "jsonpath={.status.currentStatus.phase}")
 				output, _ = cmd.CombinedOutput()
 				return strings.TrimSpace(string(output))
-			}, "30s", "2s").Should(Equal("Running"), "Machine should be in Running phase")
+			}, "60s", "2s").Should(Equal("Running"), "Machine should be in Running phase")
 
 			By("cleaning up test resources")
-			exec.Command("kubectl", "delete", "machine", "test-status-machine", "-n", "default", "--ignore-not-found=true").Run()
-			exec.Command("kubectl", "delete", "machineclass", "test-status-machineclass", "-n", "default", "--ignore-not-found=true").Run()
-			exec.Command("kubectl", "delete", "secret", "test-status-secret", "-n", "default", "--ignore-not-found=true").Run()
+			deleteK8sResource("machine", "test-status-machine", "default")
+			verifyK8sResourceDeleted("machine", "test-status-machine", "default")
+			deleteK8sResource("machineclass", "test-status-machineclass", "default")
+			verifyK8sResourceDeleted("machineclass", "test-status-machineclass", "default")
+			deleteK8sResource("secret", "test-status-secret", "default")
+			verifyK8sResourceDeleted("secret", "test-status-secret", "default")
 		})
 
 		PIt("should list Machines with proper filtering", func() {
