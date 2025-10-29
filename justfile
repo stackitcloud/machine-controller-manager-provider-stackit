@@ -161,6 +161,16 @@ dev-deploy:
     kubectl apply -k config/overlays/development
 
 # ==============================================================================
+# Testing
+# ==============================================================================
+
+# Run unit tests (excludes e2e tests which require a cluster)
+# E2E tests should be run explicitly with test-e2e
+[group('test')]
+test:
+    go test $(go list ./... | grep -v /e2e) -coverprofile cover.out
+
+# ==============================================================================
 # Dependencies
 # ==============================================================================
 

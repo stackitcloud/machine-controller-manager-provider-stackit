@@ -192,8 +192,90 @@ spec:
 			// and verify that the provider attempts to delete the VM via mock IAAS API
 		})
 
-		PIt("should report Machine status correctly", func() {
-			// This test will verify GetMachineStatus returns correct VM state
+		It("should report Machine status correctly", func() {
+			var (
+				cmd    *exec.Cmd
+				err    error
+				output []byte
+			)
+
+			By("creating a Secret with projectId")
+			secretYAML := `
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-status-secret
+  namespace: default
+type: Opaque
+stringData:
+  projectId: "12345678-1234-1234-1234-123456789012"
+  userData: |
+    #cloud-config
+    runcmd:
+      - echo "Machine bootstrapped"
+`
+			cmd = exec.Command("kubectl", "apply", "-f", "-")
+			cmd.Stdin = bytes.NewBufferString(secretYAML)
+			output, err = cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred(), "Failed to create secret: %s", string(output))
+
+			By("creating a MachineClass")
+			machineClassYAML := `
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: MachineClass
+metadata:
+  name: test-status-machineclass
+  namespace: default
+providerSpec:
+  machineType: "c1.2"
+  imageId: "550e8400-e29b-41d4-a716-446655440000"
+secretRef:
+  name: test-status-secret
+  namespace: default
+provider: STACKIT
+`
+			cmd = exec.Command("kubectl", "apply", "-f", "-")
+			cmd.Stdin = bytes.NewBufferString(machineClassYAML)
+			output, err = cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred(), "Failed to create MachineClass: %s", string(output))
+
+			By("creating a Machine CR")
+			machineYAML := `
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: Machine
+metadata:
+  name: test-status-machine
+  namespace: default
+spec:
+  class:
+    kind: MachineClass
+    name: test-status-machineclass
+`
+			cmd = exec.Command("kubectl", "apply", "-f", "-")
+			cmd.Stdin = bytes.NewBufferString(machineYAML)
+			output, err = cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred(), "Failed to create Machine: %s", string(output))
+
+			By("waiting for Machine to have ProviderID set (via CreateMachine)")
+			Eventually(func() string {
+				cmd = exec.Command("kubectl", "get", "machine", "test-status-machine", "-n", "default", "-o", "jsonpath={.spec.providerID}")
+				output, _ = cmd.CombinedOutput()
+				return string(output)
+			}, "60s", "2s").Should(ContainSubstring("stackit://"), "Machine should have ProviderID set")
+
+			By("verifying Machine status is reported correctly")
+			// The machine controller should be calling GetMachineStatus periodically
+			// We verify that the Machine CR is in Running phase
+			Eventually(func() string {
+				cmd = exec.Command("kubectl", "get", "machine", "test-status-machine", "-n", "default", "-o", "jsonpath={.status.currentStatus.phase}")
+				output, _ = cmd.CombinedOutput()
+				return strings.TrimSpace(string(output))
+			}, "30s", "2s").Should(Equal("Running"), "Machine should be in Running phase")
+
+			By("cleaning up test resources")
+			exec.Command("kubectl", "delete", "machine", "test-status-machine", "-n", "default", "--ignore-not-found=true").Run()
+			exec.Command("kubectl", "delete", "machineclass", "test-status-machineclass", "-n", "default", "--ignore-not-found=true").Run()
+			exec.Command("kubectl", "delete", "secret", "test-status-secret", "-n", "default", "--ignore-not-found=true").Run()
 		})
 
 		PIt("should list Machines with proper filtering", func() {

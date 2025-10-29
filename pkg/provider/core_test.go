@@ -20,22 +20,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// mockStackitClient is a mock implementation of StackitClient for testing
-type mockStackitClient struct {
-	createServerFunc func(ctx context.Context, projectID string, req *CreateServerRequest) (*Server, error)
-}
-
-func (m *mockStackitClient) CreateServer(ctx context.Context, projectID string, req *CreateServerRequest) (*Server, error) {
-	if m.createServerFunc != nil {
-		return m.createServerFunc(ctx, projectID, req)
-	}
-	return &Server{
-		ID:     "550e8400-e29b-41d4-a716-446655440000",
-		Name:   req.Name,
-		Status: "CREATING",
-	}, nil
-}
-
 var _ = Describe("CreateMachine", func() {
 	var (
 		ctx          context.Context
@@ -192,9 +176,204 @@ var _ = Describe("CreateMachine", func() {
 	})
 })
 
+var _ = Describe("GetMachineStatus", func() {
+	var (
+		ctx          context.Context
+		provider     *Provider
+		mockClient   *mockStackitClient
+		req          *driver.GetMachineStatusRequest
+		secret       *corev1.Secret
+		machineClass *v1alpha1.MachineClass
+		machine      *v1alpha1.Machine
+	)
+
+	BeforeEach(func() {
+		ctx = context.Background()
+		mockClient = &mockStackitClient{}
+		provider = &Provider{
+			client: mockClient,
+		}
+
+		// Create secret with projectId
+		secret = &corev1.Secret{
+			Data: map[string][]byte{
+				"projectId": []byte("test-project-123"),
+			},
+		}
+
+		// Create ProviderSpec
+		providerSpec := &api.ProviderSpec{
+			MachineType: "c1.2",
+			ImageID:     "image-uuid-123",
+		}
+		providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+
+		// Create MachineClass
+		machineClass = &v1alpha1.MachineClass{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "test-machine-class",
+			},
+			ProviderSpec: runtime.RawExtension{
+				Raw: providerSpecRaw,
+			},
+		}
+
+		// Create Machine with ProviderID
+		machine = &v1alpha1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-machine",
+				Namespace: "default",
+			},
+			Spec: v1alpha1.MachineSpec{
+				ProviderID: "stackit://test-project-123/550e8400-e29b-41d4-a716-446655440000",
+			},
+		}
+
+		// Create request
+		req = &driver.GetMachineStatusRequest{
+			Machine:      machine,
+			MachineClass: machineClass,
+			Secret:       secret,
+		}
+	})
+
+	Context("with valid inputs", func() {
+		It("should successfully get machine status when server exists", func() {
+			mockClient.getServerFunc = func(ctx context.Context, projectID, serverID string) (*Server, error) {
+				return &Server{
+					ID:     serverID,
+					Name:   "test-machine",
+					Status: "RUNNING",
+				}, nil
+			}
+
+			resp, err := provider.GetMachineStatus(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp).NotTo(BeNil())
+			Expect(resp.ProviderID).To(Equal("stackit://test-project-123/550e8400-e29b-41d4-a716-446655440000"))
+			Expect(resp.NodeName).To(Equal("test-machine"))
+		})
+
+		It("should call STACKIT API with correct parameters", func() {
+			var capturedProjectID string
+			var capturedServerID string
+
+			mockClient.getServerFunc = func(ctx context.Context, projectID, serverID string) (*Server, error) {
+				capturedProjectID = projectID
+				capturedServerID = serverID
+				return &Server{
+					ID:     serverID,
+					Name:   "test-machine",
+					Status: "RUNNING",
+				}, nil
+			}
+
+			_, err := provider.GetMachineStatus(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(capturedProjectID).To(Equal("test-project-123"))
+			Expect(capturedServerID).To(Equal("550e8400-e29b-41d4-a716-446655440000"))
+		})
+	})
+
+	Context("with missing or invalid ProviderID", func() {
+		It("should return InvalidArgument when ProviderID is missing", func() {
+			machine.Spec.ProviderID = ""
+
+			_, err := provider.GetMachineStatus(ctx, req)
+
+			Expect(err).To(HaveOccurred())
+			statusErr, ok := status.FromError(err)
+			Expect(ok).To(BeTrue())
+			Expect(statusErr.Code()).To(Equal(codes.InvalidArgument))
+		})
+
+		It("should return InvalidArgument when ProviderID has invalid format", func() {
+			machine.Spec.ProviderID = "invalid-format"
+
+			_, err := provider.GetMachineStatus(ctx, req)
+
+			Expect(err).To(HaveOccurred())
+			statusErr, ok := status.FromError(err)
+			Expect(ok).To(BeTrue())
+			Expect(statusErr.Code()).To(Equal(codes.InvalidArgument))
+		})
+
+		It("should return InvalidArgument when ProviderID is missing server ID", func() {
+			machine.Spec.ProviderID = "stackit://test-project-123/"
+
+			_, err := provider.GetMachineStatus(ctx, req)
+
+			Expect(err).To(HaveOccurred())
+			statusErr, ok := status.FromError(err)
+			Expect(ok).To(BeTrue())
+			Expect(statusErr.Code()).To(Equal(codes.InvalidArgument))
+		})
+	})
+
+	Context("when server does not exist", func() {
+		It("should return NotFound when server is not found", func() {
+			mockClient.getServerFunc = func(ctx context.Context, projectID, serverID string) (*Server, error) {
+				return nil, fmt.Errorf("server not found: 404")
+			}
+
+			_, err := provider.GetMachineStatus(ctx, req)
+
+			Expect(err).To(HaveOccurred())
+			statusErr, ok := status.FromError(err)
+			Expect(ok).To(BeTrue())
+			Expect(statusErr.Code()).To(Equal(codes.NotFound))
+		})
+	})
+
+	Context("when STACKIT API fails", func() {
+		It("should return Internal error on API failure", func() {
+			mockClient.getServerFunc = func(ctx context.Context, projectID, serverID string) (*Server, error) {
+				return nil, fmt.Errorf("API connection failed")
+			}
+
+			_, err := provider.GetMachineStatus(ctx, req)
+
+			Expect(err).To(HaveOccurred())
+			statusErr, ok := status.FromError(err)
+			Expect(ok).To(BeTrue())
+			Expect(statusErr.Code()).To(Equal(codes.Internal))
+		})
+	})
+})
+
 // Helper function to encode ProviderSpec
 func encodeProviderSpec(spec *api.ProviderSpec) ([]byte, error) {
 	// For now, use a simple JSON encoding
 	// In real implementation, this would use proper encoding
 	return []byte(fmt.Sprintf(`{"machineType":"%s","imageId":"%s"}`, spec.MachineType, spec.ImageID)), nil
+}
+
+// mockStackitClient is a mock implementation of StackitClient for testing
+type mockStackitClient struct {
+	createServerFunc func(ctx context.Context, projectID string, req *CreateServerRequest) (*Server, error)
+	getServerFunc    func(ctx context.Context, projectID, serverID string) (*Server, error)
+}
+
+func (m *mockStackitClient) CreateServer(ctx context.Context, projectID string, req *CreateServerRequest) (*Server, error) {
+	if m.createServerFunc != nil {
+		return m.createServerFunc(ctx, projectID, req)
+	}
+	return &Server{
+		ID:     "550e8400-e29b-41d4-a716-446655440000",
+		Name:   req.Name,
+		Status: "CREATING",
+	}, nil
+}
+
+func (m *mockStackitClient) GetServer(ctx context.Context, projectID, serverID string) (*Server, error) {
+	if m.getServerFunc != nil {
+		return m.getServerFunc(ctx, projectID, serverID)
+	}
+	return &Server{
+		ID:     serverID,
+		Name:   "test-machine",
+		Status: "RUNNING",
+	}, nil
 }

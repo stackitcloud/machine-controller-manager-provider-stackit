@@ -78,3 +78,46 @@ func (c *httpStackitClient) CreateServer(ctx context.Context, projectID string, 
 
 	return &server, nil
 }
+
+// GetServer retrieves a server by ID via HTTP API
+func (c *httpStackitClient) GetServer(ctx context.Context, projectID, serverID string) (*Server, error) {
+	// Build API path
+	url := fmt.Sprintf("%s/v1/projects/%s/servers/%s", c.baseURL, projectID, serverID)
+
+	// Create HTTP request
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
+	}
+
+	httpReq.Header.Set("Accept", "application/json")
+
+	// Send request
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("HTTP request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response body
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Check status code
+	if resp.StatusCode == 404 {
+		return nil, fmt.Errorf("server not found: 404")
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("API returned error status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	// Parse response
+	var server Server
+	if err := json.Unmarshal(respBody, &server); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	return &server, nil
+}

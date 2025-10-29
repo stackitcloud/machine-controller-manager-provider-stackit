@@ -13,6 +13,8 @@ import (
 type StackitClient interface {
 	// CreateServer creates a new server in STACKIT
 	CreateServer(ctx context.Context, projectID string, req *CreateServerRequest) (*Server, error)
+	// GetServer retrieves a server by ID from STACKIT
+	GetServer(ctx context.Context, projectID, serverID string) (*Server, error)
 }
 
 // CreateServerRequest represents the request to create a server

@@ -146,7 +146,37 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 	klog.V(2).Infof("Get request has been recieved for %q", req.Machine.Name)
 	defer klog.V(2).Infof("Machine get request has been processed successfully for %q", req.Machine.Name)
 
-	return &driver.GetMachineStatusResponse{}, status.Error(codes.Unimplemented, "")
+	// Validate ProviderID exists
+	if req.Machine.Spec.ProviderID == "" {
+		return nil, status.Error(codes.InvalidArgument, "ProviderID is required")
+	}
+
+	// Parse ProviderID to extract projectID and serverID
+	// Expected format: stackit://<projectId>/<serverId>
+	projectID, serverID, err := parseProviderID(req.Machine.Spec.ProviderID)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("invalid ProviderID format: %v", err))
+	}
+
+	// Call STACKIT API to get server status
+	server, err := p.client.GetServer(ctx, projectID, serverID)
+	if err != nil {
+		// Check if server was not found (404)
+		if err.Error() == "server not found: 404" {
+			klog.V(2).Infof("Server %q not found for machine %q", serverID, req.Machine.Name)
+			return nil, status.Error(codes.NotFound, fmt.Sprintf("server %q not found", serverID))
+		}
+		// All other errors are internal errors
+		klog.Errorf("Failed to get server status for machine %q: %v", req.Machine.Name, err)
+		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to get server status: %v", err))
+	}
+
+	klog.V(2).Infof("Retrieved server status for machine %q: status=%s", req.Machine.Name, server.Status)
+
+	return &driver.GetMachineStatusResponse{
+		ProviderID: req.Machine.Spec.ProviderID,
+		NodeName:   req.Machine.Name,
+	}, nil
 }
 
 // ListMachines lists all the machines possibilly created by a providerSpec
@@ -186,7 +216,7 @@ func (p *Provider) GetVolumeIDs(ctx context.Context, req *driver.GetVolumeIDsReq
 }
 
 // GenerateMachineClassForMigration helps in migration of one kind of machineClass CR to another kind.
-// For instance an machineClass custom resource of `AWSMachineClass` to `MachineClass`.
+// For instance a machineClass custom resource of `AWSMachineClass` to `MachineClass`.
 // Implement this functionality only if something like this is desired in your setup.
 // If you don't require this functionality leave is as is. (return Unimplemented)
 //
