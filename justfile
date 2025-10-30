@@ -24,6 +24,7 @@ KIND_CLUSTER_VERSION := env_var_or_default('KIND_CLUSTER_VERSION', 'v1.31.2')
 # E2E test cluster settings (separate from dev cluster)
 KIND_E2E_CLUSTER_NAME := env_var_or_default('KIND_E2E_CLUSTER_NAME', 'mcm-provider-stackit-e2e')
 KIND_E2E_CLUSTER_VERSION := env_var_or_default('KIND_E2E_CLUSTER_VERSION', 'v1.31.2')
+MCM_NAMESPACE := env_var_or_default('MCM_NAMESPACE', 'machine-controller-manager')
 
 # ==============================================================================
 # Build
@@ -224,16 +225,18 @@ e2e-load-image:
 [group('test')]
 test-e2e: docker-build e2e-create-cluster e2e-load-image && e2e-delete-cluster
     @echo "Running e2e tests in isolated cluster {{ KIND_E2E_CLUSTER_NAME }}..."
-    KIND_CLUSTER_NAME={{ KIND_E2E_CLUSTER_NAME }} go test ./test/e2e/... -v -ginkgo.v -timeout=15m
+    KIND_CLUSTER_NAME={{ KIND_E2E_CLUSTER_NAME }} MCM_NAMESPACE={{ MCM_NAMESPACE }} go test ./test/e2e/... -v -ginkgo.v -timeout=15m
 
-# Run e2e tests and preserve cluster for debugging
+# Run e2e tests and preserve cluster and resources for debugging
 [group('test')]
 test-e2e-preserve: docker-build e2e-create-cluster e2e-load-image
-    @echo "Running e2e tests (cluster will be preserved)..."
-    KIND_CLUSTER_NAME={{ KIND_E2E_CLUSTER_NAME }} SKIP_CLUSTER_CLEANUP=true go test ./test/e2e/... -v -ginkgo.v -timeout=15m
+    @echo "Running e2e tests (cluster and resources will be preserved)..."
+    KIND_CLUSTER_NAME={{ KIND_E2E_CLUSTER_NAME }} MCM_NAMESPACE={{ MCM_NAMESPACE }} SKIP_CLUSTER_CLEANUP=true SKIP_RESOURCE_CLEANUP=true go test ./test/e2e/... -v -ginkgo.v -timeout=15m
     @echo ""
-    @echo "E2E cluster '{{ KIND_E2E_CLUSTER_NAME }}' preserved for debugging."
-    @echo "Run 'just e2e-delete-cluster' to clean up."
+    @echo "E2E cluster '{{ KIND_E2E_CLUSTER_NAME }}' and test resources preserved for debugging."
+    @echo "MCM namespace: {{ MCM_NAMESPACE }}"
+    @echo "To inspect resources: kubectl get machines,secrets,machineclasses -n {{ MCM_NAMESPACE }}"
+    @echo "To clean up cluster: just e2e-delete-cluster"
 
 # Export dev cluster kubeconfig (sets kubectl context)
 [group('test')]

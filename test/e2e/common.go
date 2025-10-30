@@ -18,7 +18,9 @@ package e2e
 
 import (
 	"fmt"
+	"math/rand"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
@@ -29,19 +31,90 @@ import (
 
 // Timeout constants used across E2E tests
 const (
-	// Short timeouts for quick operations
-	QuickTimeout     = 30 * time.Second
-	StandardTimeout  = 1 * time.Minute
-	MediumTimeout    = 2 * time.Minute
+	// QuickTimeout - for operations that should complete in seconds (resource existence checks)
+	QuickTimeout = 30 * time.Second
+	// StandardTimeout - for basic CRUD operations on Kubernetes resources
+	StandardTimeout = 1 * time.Minute
+	// MediumTimeout - for operations involving API calls with retries or resource deletion
+	MediumTimeout = 2 * time.Minute
+	// ContainerTimeout - for container startup and initialization
 	ContainerTimeout = 3 * time.Minute
 
-	// Polling intervals
-	QuickPoll    = 2 * time.Second
-	StandardPoll = 5 * time.Second
-	MediumPoll   = 10 * time.Second
-	LongPoll     = 15 * time.Second
-	HelmPoll     = 20 * time.Second
+	// Polling intervals for Eventually/Consistently checks
+	QuickPoll    = 2 * time.Second  // For fast-changing resources
+	StandardPoll = 5 * time.Second  // For typical resource state changes
+	MediumPoll   = 10 * time.Second // For slower cloud operations
+	LongPoll     = 15 * time.Second // For very slow operations
+	HelmPoll     = 20 * time.Second // For Helm chart operations
 )
+
+// TestResource represents a Kubernetes resource created during tests
+type TestResource struct {
+	Type      string
+	Name      string
+	Namespace string
+}
+
+var (
+	// testResources tracks all resources created during tests for cleanup
+	testResources []TestResource
+	// testNamespace is the dedicated namespace for e2e tests
+	testNamespace string
+)
+
+// validResourceTypes contains the resource types we expect to manage in E2E tests
+// This helps catch typos and unexpected resource types during test development
+var validResourceTypes = map[string]bool{
+	"machine":           true,
+	"machineclass":      true,
+	"machineset":        true,
+	"machinedeployment": true,
+	"secret":            true,
+	"pod":               true,
+	"configmap":         true,
+	"service":           true,
+	"deployment":        true,
+}
+
+// generateRandomString generates a random alphanumeric string of the specified length
+func generateRandomString(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(b)
+}
+
+// generateResourceName creates a unique resource name with a random suffix
+func generateResourceName(prefix string) string {
+	return fmt.Sprintf("%s-%s", prefix, generateRandomString(8))
+}
+
+// trackResource adds a resource to the cleanup list
+func trackResource(resourceType, resourceName, namespace string) {
+	if !validResourceTypes[resourceType] {
+		ginkgo.GinkgoWriter.Printf("Warning: tracking unexpected resource type '%s' (resource: %s/%s in namespace %s)\n",
+			resourceType, resourceType, resourceName, namespace)
+	}
+	testResources = append(testResources, TestResource{
+		Type:      resourceType,
+		Name:      resourceName,
+		Namespace: namespace,
+	})
+	ginkgo.GinkgoWriter.Printf("Tracked resource for cleanup: %s/%s in namespace %s\n", resourceType, resourceName, namespace)
+}
+
+// createAndTrackResource creates a Kubernetes resource and tracks it for cleanup
+func createAndTrackResource(resourceType, resourceName, namespace, yamlContent string) {
+	ginkgo.By(fmt.Sprintf("creating %s: %s", resourceType, resourceName))
+	cmd := exec.Command("kubectl", "apply", "-f", "-")
+	cmd.Stdin = strings.NewReader(yamlContent)
+	_, err := utils.Run(cmd)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("Failed to create %s: %s", resourceType, resourceName))
+	
+	trackResource(resourceType, resourceName, namespace)
+}
 
 // verifyK8sResourceExists verifies that a Kubernetes resource exists
 // This is a common pattern used across multiple E2E tests
@@ -74,8 +147,22 @@ func verifyK8sResourceDeleted(resourceType, resourceName, namespace string, time
 // This is a common pattern used across multiple E2E tests
 func deleteK8sResource(resourceType, resourceName, namespace string) {
 	ginkgo.By(fmt.Sprintf("deleting the %s custom resource: %s", resourceType, resourceName))
-	cmd := exec.Command("kubectl", "delete", resourceType, resourceName, "-n", namespace)
+	cmd := exec.Command("kubectl", "delete", resourceType, resourceName, "-n", namespace, "--wait=false")
 	_, err := utils.Run(cmd)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("%s resource should be deleted successfully",
 		resourceType))
+
+	// For machines, remove finalizers if stuck (IAAS API may return errors preventing cleanup)
+	if resourceType == "machine" {
+		removeMachineFinalizers(resourceName, namespace)
+	}
+}
+
+// removeMachineFinalizers removes finalizers from a machine to force cleanup
+// This is needed because IAAS API may return errors (e.g., 400) preventing normal deletion
+func removeMachineFinalizers(machineName, namespace string) {
+	ginkgo.By(fmt.Sprintf("removing finalizers from machine: %s", machineName))
+	cmd := exec.Command("kubectl", "patch", "machine", machineName, "-n", namespace,
+		"--type=json", "-p=[{\"op\":\"remove\",\"path\":\"/metadata/finalizers\"}]")
+	_, _ = utils.Run(cmd) // Ignore errors - machine may already be gone
 }

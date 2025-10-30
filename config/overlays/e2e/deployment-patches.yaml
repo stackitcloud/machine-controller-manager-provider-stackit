@@ -6,8 +6,28 @@ spec:
   template:
     spec:
       containers:
+        # Patch machine-controller-manager container to watch machine-controller-manager namespace
+        - name: machine-controller-manager
+          command:
+            - ./machine-controller-manager
+            - --control-kubeconfig=inClusterConfig
+            - --namespace=machine-controller-manager
+            - --safety-up=2
+            - --safety-down=1
+            - --machine-safety-overshooting-period=1m
+            - --v=3
+        # Patch machine-controller (provider) container
         - name: machine-controller
           imagePullPolicy: Never
+          command:
+            - ./machine-controller
+            - --control-kubeconfig=inClusterConfig
+            - --namespace=machine-controller-manager
+            - --machine-drain-timeout=5m
+            - --machine-health-timeout=10m
+            - --machine-safety-orphan-vms-period=30m
+            - --node-conditions=ReadonlyFilesystem,KernelDeadlock,DiskPressure
+            - --v=4
           env:
             # E2E environment variables pointing to mock IAAS API
             - name: STACKIT_API_ENDPOINT
