@@ -628,10 +628,21 @@ spec:
 				return string(output)
 			}, "60s", "2s").Should(ContainSubstring("stackit://"), "Machine should have ProviderID set")
 
+			// Extract ProviderID and parse server ID for API query
+			By("extracting ProviderID to query STACKIT API")
+			cmd := exec.Command("kubectl", "get", "machine", machineName, "-n", testNamespace, "-o", "jsonpath={.spec.providerID}")
+			output, err := cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred())
+			providerID := strings.TrimSpace(string(output))
+			Expect(providerID).To(MatchRegexp("^stackit://"), "ProviderID should have correct format")
+
+			serverID := extractServerIDFromProviderID(providerID)
+			Expect(serverID).NotTo(BeEmpty(), "Should be able to extract server ID from ProviderID")
+
 			// Get the IAAS mock server pod name to check its logs
 			By("finding the IAAS mock server pod")
-			cmd := exec.Command("kubectl", "get", "pods", "-n", "stackitcloud", "-o", "jsonpath={.items[0].metadata.name}")
-			output, err := cmd.CombinedOutput()
+			cmd = exec.Command("kubectl", "get", "pods", "-n", "stackitcloud", "-o", "jsonpath={.items[0].metadata.name}")
+			output, err = cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred())
 			iaasPodName := strings.TrimSpace(string(output))
 			Expect(iaasPodName).NotTo(BeEmpty(), "IAAS mock pod should exist")
@@ -696,13 +707,24 @@ spec:
 				return strings.TrimSpace(string(output))
 			}, 60*time.Second, 2*time.Second).Should(Equal("Running"))
 
-			// Test that we can reach the mock API
+			// Query the mock API for the specific server to verify labels
+			By("querying mock STACKIT API for server details to verify labels")
+			apiURL := fmt.Sprintf("http://iaas.stackitcloud.svc.cluster.local/v1/projects/12345678-1234-1234-1234-123456789012/servers/%s", serverID)
 			cmd = exec.Command("kubectl", "exec", curlPodName, "-n", testNamespace, "--",
-				"curl", "-s", "-X", "GET", "http://iaas.stackitcloud.svc.cluster.local/v1/projects/12345678-1234-1234-1234-123456789012/servers")
+				"curl", "-s", "-X", "GET", apiURL)
 			output, _ = cmd.CombinedOutput()
-			// Don't fail on curl errors as mock API may return various status codes
-			// We just verify the request can be made
-			By(fmt.Sprintf("Mock API response (status may vary): %s", string(output)))
+			serverResponse := strings.TrimSpace(string(output))
+
+			// The mock API should return a server object with labels
+			By("verifying server response contains label data")
+			Expect(serverResponse).To(ContainSubstring("\"id\":"), "Server response should include server ID field")
+			Expect(serverResponse).To(ContainSubstring("\"labels\":{"), "Server response should include labels field")
+
+			// Note: The mock API currently returns empty labels {}, but the structure is there
+			// In a real STACKIT environment, we would verify:
+			// - User-provided labels: test-propagation, stack-component, etc.
+			// - MCM-generated labels: mcm.gardener.cloud/machineclass, mcm.gardener.cloud/machine
+			// For now, we verify the server exists and has a labels field
 
 			// The key verification is that the Machine was successfully created with a ProviderID,
 			// which means the provider code:
@@ -715,7 +737,7 @@ spec:
 			cmd = exec.Command("kubectl", "get", "machine", machineName, "-n", testNamespace, "-o", "jsonpath={.spec.providerID}")
 			output, err = cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred())
-			providerID := strings.TrimSpace(string(output))
+			providerID = strings.TrimSpace(string(output))
 			Expect(providerID).To(MatchRegexp("^stackit://12345678-1234-1234-1234-123456789012/"), "ProviderID should have correct format indicating successful label propagation")
 
 			// Note: In a production test environment with actual STACKIT API:

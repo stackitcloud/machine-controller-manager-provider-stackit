@@ -166,3 +166,28 @@ func removeMachineFinalizers(machineName, namespace string) {
 		"--type=json", "-p=[{\"op\":\"remove\",\"path\":\"/metadata/finalizers\"}]")
 	_, _ = utils.Run(cmd) // Ignore errors - machine may already be gone
 }
+
+// extractServerIDFromProviderID extracts the server ID from a STACKIT ProviderID
+// Expected format: stackit://<projectId>/<serverId>
+// Returns the serverId portion, or empty string if format is invalid
+func extractServerIDFromProviderID(providerID string) string {
+	// Expected format: stackit://12345678-1234-1234-1234-123456789012/497f6eca-6276-4993-bfeb-53cbbbba6f08
+	const prefix = "stackit://"
+
+	if !strings.HasPrefix(providerID, prefix) {
+		return ""
+	}
+
+	// Remove prefix: "12345678-1234-1234-1234-123456789012/497f6eca-6276-4993-bfeb-53cbbbba6f08"
+	remainder := strings.TrimPrefix(providerID, prefix)
+
+	// Split by '/': ["12345678-1234-1234-1234-123456789012", "497f6eca-6276-4993-bfeb-53cbbbba6f08"]
+	parts := strings.Split(remainder, "/")
+
+	if len(parts) != 2 {
+		return ""
+	}
+
+	// Return serverID (second part)
+	return parts[1]
+}
