@@ -222,21 +222,39 @@ e2e-load-image:
     kind load docker-image "{{ IMAGE_REPOSITORY }}:{{ IMAGE_TAG }}" --name "{{ KIND_E2E_CLUSTER_NAME }}"
 
 # Run e2e tests in isolated kind cluster
+# Usage: just test-e2e [focus]
+# Example: just test-e2e "should create Machine"
 [group('test')]
-test-e2e: docker-build e2e-create-cluster e2e-load-image && e2e-delete-cluster
-    @echo "Running e2e tests in isolated cluster {{ KIND_E2E_CLUSTER_NAME }}..."
-    KIND_CLUSTER_NAME={{ KIND_E2E_CLUSTER_NAME }} MCM_NAMESPACE={{ MCM_NAMESPACE }} go test ./test/e2e/... -v -ginkgo.v -timeout=15m
+test-e2e focus="": docker-build e2e-create-cluster e2e-load-image && e2e-delete-cluster
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "Running e2e tests in isolated cluster {{ KIND_E2E_CLUSTER_NAME }}..."
+    if [ -n "{{ focus }}" ]; then
+        echo "Focus: {{ focus }}"
+        KIND_CLUSTER_NAME={{ KIND_E2E_CLUSTER_NAME }} MCM_NAMESPACE={{ MCM_NAMESPACE }} go test ./test/e2e/... -v -ginkgo.v -ginkgo.focus="{{ focus }}" -timeout=15m
+    else
+        KIND_CLUSTER_NAME={{ KIND_E2E_CLUSTER_NAME }} MCM_NAMESPACE={{ MCM_NAMESPACE }} go test ./test/e2e/... -v -ginkgo.v -timeout=15m
+    fi
 
 # Run e2e tests and preserve cluster and resources for debugging
+# Usage: just test-e2e-preserve [focus]
+# Example: just test-e2e-preserve "negative test"
 [group('test')]
-test-e2e-preserve: docker-build e2e-create-cluster e2e-load-image
-    @echo "Running e2e tests (cluster and resources will be preserved)..."
-    KIND_CLUSTER_NAME={{ KIND_E2E_CLUSTER_NAME }} MCM_NAMESPACE={{ MCM_NAMESPACE }} SKIP_CLUSTER_CLEANUP=true SKIP_RESOURCE_CLEANUP=true go test ./test/e2e/... -v -ginkgo.v -timeout=15m
-    @echo ""
-    @echo "E2E cluster '{{ KIND_E2E_CLUSTER_NAME }}' and test resources preserved for debugging."
-    @echo "MCM namespace: {{ MCM_NAMESPACE }}"
-    @echo "To inspect resources: kubectl get machines,secrets,machineclasses -n {{ MCM_NAMESPACE }}"
-    @echo "To clean up cluster: just e2e-delete-cluster"
+test-e2e-preserve focus="": docker-build e2e-create-cluster e2e-load-image
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "Running e2e tests (cluster and resources will be preserved)..."
+    if [ -n "{{ focus }}" ]; then
+        echo "Focus: {{ focus }}"
+        KIND_CLUSTER_NAME={{ KIND_E2E_CLUSTER_NAME }} MCM_NAMESPACE={{ MCM_NAMESPACE }} SKIP_CLUSTER_CLEANUP=true SKIP_RESOURCE_CLEANUP=true go test ./test/e2e/... -v -ginkgo.v -ginkgo.focus="{{ focus }}" -timeout=15m
+    else
+        KIND_CLUSTER_NAME={{ KIND_E2E_CLUSTER_NAME }} MCM_NAMESPACE={{ MCM_NAMESPACE }} SKIP_CLUSTER_CLEANUP=true SKIP_RESOURCE_CLEANUP=true go test ./test/e2e/... -v -ginkgo.v -timeout=15m
+    fi
+    echo ""
+    echo "E2E cluster '{{ KIND_E2E_CLUSTER_NAME }}' and test resources preserved for debugging."
+    echo "MCM namespace: {{ MCM_NAMESPACE }}"
+    echo "To inspect resources: kubectl get machines,secrets,machineclasses -n {{ MCM_NAMESPACE }}"
+    echo "To clean up cluster: just e2e-delete-cluster"
 
 # Export dev cluster kubeconfig (sets kubectl context)
 [group('test')]
