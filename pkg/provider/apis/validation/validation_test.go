@@ -57,6 +57,27 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 			errors := ValidateProviderSpecNSecret(providerSpec, secret)
 			Expect(errors).To(HaveLen(2))
 		})
+
+		It("should succeed when Labels is nil", func() {
+			providerSpec.Labels = nil
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).To(BeEmpty())
+		})
+
+		It("should succeed when Labels is empty map", func() {
+			providerSpec.Labels = map[string]string{}
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).To(BeEmpty())
+		})
+
+		It("should succeed when Labels has valid key-value pairs", func() {
+			providerSpec.Labels = map[string]string{
+				"environment": "production",
+				"team":        "platform",
+			}
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).To(BeEmpty())
+		})
 	})
 
 	Context("Secret validation", func() {

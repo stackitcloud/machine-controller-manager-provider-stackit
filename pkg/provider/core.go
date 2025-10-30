@@ -71,11 +71,25 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	// Extract projectId from Secret
 	projectID := string(req.Secret.Data["projectId"])
 
+	// Build labels: merge ProviderSpec labels with MCM-specific labels
+	labels := make(map[string]string)
+	// Start with user-provided labels from ProviderSpec
+	if providerSpec.Labels != nil {
+		for k, v := range providerSpec.Labels {
+			labels[k] = v
+		}
+	}
+	// Add MCM-specific labels for server identification and orphan VM detection
+	labels["mcm.gardener.cloud/machine"] = req.Machine.Name
+	labels["mcm.gardener.cloud/machineclass"] = req.MachineClass.Name
+	labels["mcm.gardener.cloud/role"] = "node"
+
 	// Create server request
 	createReq := &CreateServerRequest{
 		Name:        req.Machine.Name,
 		MachineType: providerSpec.MachineType,
 		ImageID:     providerSpec.ImageID,
+		Labels:      labels,
 	}
 
 	// Call STACKIT API to create server
@@ -219,9 +233,49 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesRequest) (*driver.ListMachinesResponse, error) {
 	// Log messages to track start and end of request
 	klog.V(2).Infof("List machines request has been recieved for %q", req.MachineClass.Name)
-	defer klog.V(2).Infof("List machines request has been recieved for %q", req.MachineClass.Name)
+	defer klog.V(2).Infof("List machines request has been processed for %q", req.MachineClass.Name)
 
-	return &driver.ListMachinesResponse{}, status.Error(codes.Unimplemented, "")
+	// Extract projectId from Secret
+	projectID := string(req.Secret.Data["projectId"])
+
+	// Call STACKIT API to list all servers
+	servers, err := p.client.ListServers(ctx, projectID)
+	if err != nil {
+		klog.Errorf("Failed to list servers for MachineClass %q: %v", req.MachineClass.Name, err)
+		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to list servers: %v", err))
+	}
+
+	// Filter servers by MachineClass label
+	// We use the "mcm.gardener.cloud/machineclass" label to identify which servers belong to this MachineClass
+	machineList := make(map[string]string)
+	for _, server := range servers {
+		// Skip servers without labels
+		if server.Labels == nil {
+			continue
+		}
+
+		// Check if server has the matching MachineClass label
+		if machineClassLabel, ok := server.Labels["mcm.gardener.cloud/machineclass"]; ok {
+			if machineClassLabel == req.MachineClass.Name {
+				// Generate ProviderID in format: stackit://<projectId>/<serverId>
+				providerID := fmt.Sprintf("stackit://%s/%s", projectID, server.ID)
+
+				// Get machine name from labels (fallback to server name if not found)
+				machineName := server.Name
+				if machineLabel, ok := server.Labels["mcm.gardener.cloud/machine"]; ok {
+					machineName = machineLabel
+				}
+
+				machineList[providerID] = machineName
+			}
+		}
+	}
+
+	klog.V(2).Infof("Found %d machines for MachineClass %q", len(machineList), req.MachineClass.Name)
+
+	return &driver.ListMachinesResponse{
+		MachineList: machineList,
+	}, nil
 }
 
 // GetVolumeIDs returns a list of Volume IDs for all PV Specs for whom an provider volume was found

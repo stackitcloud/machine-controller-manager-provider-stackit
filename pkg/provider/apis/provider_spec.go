@@ -14,4 +14,9 @@ type ProviderSpec struct {
 	// ImageID is the UUID of the OS image to use for the server
 	// Required field for creating a server.
 	ImageID string `json:"imageId"`
+
+	// Labels are key-value pairs used to tag and identify servers
+	// Used by MCM for mapping servers to MachineClasses and orphan VM detection
+	// Optional field. MCM will automatically add standard labels.
+	Labels map[string]string `json:"labels,omitempty"`
 }
