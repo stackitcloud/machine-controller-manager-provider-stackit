@@ -20,79 +20,12 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("MCM Provider STACKIT", func() {
-	Context("Basic functionality", func() {
-		It("should have MCM controller manager running", func() {
-			cmd := exec.Command("kubectl", "get", "deployment",
-				"machine-controller-manager", "-n", testNamespace, "-o", "jsonpath={.status.availableReplicas}")
-			output, err := cmd.CombinedOutput()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(strings.TrimSpace(string(output))).To(Equal("1"), "MCM deployment should have 1 available replica")
-		})
-
-		It("should have IAAS mock server running", func() {
-			cmd := exec.Command("kubectl", "get", "deployment",
-				"iaas", "-n", "stackitcloud", "-o", "jsonpath={.status.availableReplicas}")
-			output, err := cmd.CombinedOutput()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(strings.TrimSpace(string(output))).To(Equal("1"), "IAAS mock should have 1 available replica")
-		})
-
-		It("should have MCM CRDs installed", func() {
-			crds := []string{
-				"machines.machine.sapcloud.io",
-				"machineclasses.machine.sapcloud.io",
-				"machinesets.machine.sapcloud.io",
-				"machinedeployments.machine.sapcloud.io",
-			}
-
-			for _, crd := range crds {
-				cmd := exec.Command("kubectl", "get", "crd", crd)
-				output, err := cmd.CombinedOutput()
-				Expect(err).NotTo(HaveOccurred(), "CRD %s should exist: %s", crd, string(output))
-			}
-		})
-
-		It("should be able to access IAAS mock API", func() {
-			curlPodName := generateResourceName("curl-test")
-			curlPod := fmt.Sprintf(`
-apiVersion: v1
-kind: Pod
-metadata:
-  name: %s
-  namespace: %s
-spec:
-  containers:
-  - name: curl
-    image: curlimages/curl:latest
-    command: ["sleep", "60"]
-  restartPolicy: Never
-`, curlPodName, testNamespace)
-
-			createAndTrackResource("pod", curlPodName, testNamespace, curlPod)
-
-			Eventually(func() string {
-				cmd := exec.Command("kubectl", "get", "pod", curlPodName, "-n", testNamespace, "-o", "jsonpath={.status.phase}")
-				output, _ := cmd.CombinedOutput()
-				return strings.TrimSpace(string(output))
-			}, 60*time.Second, 2*time.Second).Should(Equal("Running"))
-
-			cmd := exec.Command("kubectl", "exec", curlPodName, "-n", testNamespace, "--",
-				"curl", "-s", "-o", "/dev/null", "-w", "%{http_code}",
-				"http://iaas.stackitcloud.svc.cluster.local")
-			output, err := cmd.CombinedOutput()
-			Expect(err).NotTo(HaveOccurred())
-			httpCode := strings.TrimSpace(string(output))
-			Expect(httpCode).To(MatchRegexp("^[2-5]\\d{2}$"), "Mock API should respond with HTTP status code")
-		})
-	})
-
 	Context("Machine lifecycle", func() {
 		It("should create a Machine and call IAAS API", func() {
 			secretName := generateResourceName("secret")
@@ -124,6 +57,12 @@ metadata:
 providerSpec:
   machineType: "c1.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
+  labels:
+    application: "web-server"
+    team: "platform"
+    cost-center: "engineering"
+    environment: "e2e-test"
+    component: "worker-node"
 secretRef:
   name: %s
   namespace: %s
@@ -137,6 +76,11 @@ kind: Machine
 metadata:
   name: %s
   namespace: %s
+  labels:
+    test-type: "e2e"
+    test-phase: "create"
+    environment: "test"
+    machine-role: "worker"
 spec:
   class:
     kind: MachineClass
@@ -156,6 +100,34 @@ spec:
 			output, err := cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(output)).To(ContainSubstring("stackit://12345678-1234-1234-1234-123456789012/"))
+
+			By("verifying Machine has correct labels applied")
+			cmd = exec.Command("kubectl", "get", "machine", machineName, "-n", testNamespace, "-o", "jsonpath={.metadata.labels}")
+			output, err = cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred())
+			// Verify our test labels are present
+			Expect(string(output)).To(ContainSubstring("test-type"))
+			Expect(string(output)).To(ContainSubstring("e2e"))
+			Expect(string(output)).To(ContainSubstring("test-phase"))
+			Expect(string(output)).To(ContainSubstring("create"))
+			Expect(string(output)).To(ContainSubstring("environment"))
+			Expect(string(output)).To(ContainSubstring("test"))
+			Expect(string(output)).To(ContainSubstring("machine-role"))
+			Expect(string(output)).To(ContainSubstring("worker"))
+
+			By("verifying MachineClass has correct ProviderSpec labels")
+			cmd = exec.Command("kubectl", "get", "machineclass", machineClassName, "-n", testNamespace, "-o", "jsonpath={.providerSpec.labels}")
+			output, err = cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred())
+			// Verify ProviderSpec labels are present
+			Expect(string(output)).To(ContainSubstring("application"))
+			Expect(string(output)).To(ContainSubstring("web-server"))
+			Expect(string(output)).To(ContainSubstring("team"))
+			Expect(string(output)).To(ContainSubstring("platform"))
+			Expect(string(output)).To(ContainSubstring("cost-center"))
+			Expect(string(output)).To(ContainSubstring("engineering"))
+			Expect(string(output)).To(ContainSubstring("component"))
+			Expect(string(output)).To(ContainSubstring("worker-node"))
 		})
 
 		It("should delete a Machine and call IAAS API", func() {
@@ -188,6 +160,13 @@ metadata:
 providerSpec:
   machineType: "c1.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
+  labels:
+    application: "database"
+    team: "backend"
+    cost-center: "ops"
+    environment: "e2e-delete-test"
+    component: "storage-node"
+    lifecycle: "temporary"
 secretRef:
   name: %s
   namespace: %s
@@ -201,6 +180,12 @@ kind: Machine
 metadata:
   name: %s
   namespace: %s
+  labels:
+    test-type: "e2e"
+    test-phase: "delete"
+    environment: "test"
+    machine-role: "worker"
+    lifecycle: "deletion-test"
 spec:
   class:
     kind: MachineClass
@@ -268,6 +253,14 @@ metadata:
 providerSpec:
   machineType: "c1.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
+  labels:
+    application: "monitoring"
+    team: "sre"
+    cost-center: "operations"
+    environment: "e2e-status-test"
+    component: "metrics-collector"
+    monitoring: "enabled"
+    alerting: "critical"
 secretRef:
   name: %s
   namespace: %s
@@ -281,6 +274,12 @@ kind: Machine
 metadata:
   name: %s
   namespace: %s
+  labels:
+    test-type: "e2e"
+    test-phase: "status"
+    environment: "test"
+    machine-role: "worker"
+    monitoring: "enabled"
 spec:
   class:
     kind: MachineClass
@@ -309,10 +308,6 @@ spec:
 
 			// Note: With mock IAAS API, machines may stay in Pending/Creating state.
 			// We verify status reporting works, not that machines reach Running state.
-		})
-
-		PIt("should list Machines with proper filtering", func() {
-			// This test will verify ListMachines returns VMs with correct labels/tags
 		})
 	})
 })

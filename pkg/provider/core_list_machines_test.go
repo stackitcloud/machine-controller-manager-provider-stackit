@@ -1,0 +1,186 @@
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Gardener contributors
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package provider
+
+import (
+	"context"
+	"fmt"
+
+	api "github.com/aoepeople/machine-controller-manager-provider-stackit/pkg/provider/apis"
+	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
+	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
+	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/codes"
+	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/status"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+)
+
+var _ = Describe("ListMachines", func() {
+	var (
+		ctx          context.Context
+		provider     *Provider
+		mockClient   *mockStackitClient
+		req          *driver.ListMachinesRequest
+		secret       *corev1.Secret
+		machineClass *v1alpha1.MachineClass
+	)
+
+	BeforeEach(func() {
+		ctx = context.Background()
+		mockClient = &mockStackitClient{}
+		provider = &Provider{
+			client: mockClient,
+		}
+
+		// Create secret with projectId
+		secret = &corev1.Secret{
+			Data: map[string][]byte{
+				"projectId": []byte("test-project-123"),
+			},
+		}
+
+		// Create ProviderSpec
+		providerSpec := &api.ProviderSpec{
+			MachineType: "c1.2",
+			ImageID:     "image-uuid-123",
+		}
+		providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+
+		// Create MachineClass
+		machineClass = &v1alpha1.MachineClass{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "test-machine-class",
+			},
+			ProviderSpec: runtime.RawExtension{
+				Raw: providerSpecRaw,
+			},
+		}
+
+		// Create request
+		req = &driver.ListMachinesRequest{
+			MachineClass: machineClass,
+			Secret:       secret,
+		}
+	})
+
+	Context("with valid inputs", func() {
+		It("should list machines filtered by MachineClass label", func() {
+			mockClient.listServersFunc = func(ctx context.Context, projectID string) ([]*Server, error) {
+				return []*Server{
+					{
+						ID:   "server-1",
+						Name: "machine-1",
+						Labels: map[string]string{
+							"mcm.gardener.cloud/machineclass": "test-machine-class",
+							"mcm.gardener.cloud/machine":      "machine-1",
+						},
+					},
+					{
+						ID:   "server-2",
+						Name: "machine-2",
+						Labels: map[string]string{
+							"mcm.gardener.cloud/machineclass": "test-machine-class",
+							"mcm.gardener.cloud/machine":      "machine-2",
+						},
+					},
+					{
+						ID:   "server-3",
+						Name: "machine-3",
+						Labels: map[string]string{
+							"mcm.gardener.cloud/machineclass": "other-machine-class",
+							"mcm.gardener.cloud/machine":      "machine-3",
+						},
+					},
+				}, nil
+			}
+
+			resp, err := provider.ListMachines(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp).NotTo(BeNil())
+			Expect(resp.MachineList).To(HaveLen(2))
+			Expect(resp.MachineList).To(HaveKeyWithValue("stackit://test-project-123/server-1", "machine-1"))
+			Expect(resp.MachineList).To(HaveKeyWithValue("stackit://test-project-123/server-2", "machine-2"))
+			Expect(resp.MachineList).NotTo(HaveKey("stackit://test-project-123/server-3"))
+		})
+
+		It("should return empty list when no servers match", func() {
+			mockClient.listServersFunc = func(ctx context.Context, projectID string) ([]*Server, error) {
+				return []*Server{
+					{
+						ID:   "server-1",
+						Name: "machine-1",
+						Labels: map[string]string{
+							"mcm.gardener.cloud/machineclass": "other-machine-class",
+						},
+					},
+				}, nil
+			}
+
+			resp, err := provider.ListMachines(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp).NotTo(BeNil())
+			Expect(resp.MachineList).To(BeEmpty())
+		})
+
+		It("should return empty list when no servers exist", func() {
+			mockClient.listServersFunc = func(ctx context.Context, projectID string) ([]*Server, error) {
+				return []*Server{}, nil
+			}
+
+			resp, err := provider.ListMachines(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp).NotTo(BeNil())
+			Expect(resp.MachineList).To(BeEmpty())
+		})
+
+		It("should handle servers without labels gracefully", func() {
+			mockClient.listServersFunc = func(ctx context.Context, projectID string) ([]*Server, error) {
+				return []*Server{
+					{
+						ID:     "server-1",
+						Name:   "machine-1",
+						Labels: nil, // No labels
+					},
+					{
+						ID:   "server-2",
+						Name: "machine-2",
+						Labels: map[string]string{
+							"mcm.gardener.cloud/machineclass": "test-machine-class",
+							"mcm.gardener.cloud/machine":      "machine-2",
+						},
+					},
+				}, nil
+			}
+
+			resp, err := provider.ListMachines(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp).NotTo(BeNil())
+			Expect(resp.MachineList).To(HaveLen(1))
+			Expect(resp.MachineList).To(HaveKeyWithValue("stackit://test-project-123/server-2", "machine-2"))
+		})
+	})
+
+	Context("when STACKIT API fails", func() {
+		It("should return Internal error on API failure", func() {
+			mockClient.listServersFunc = func(ctx context.Context, projectID string) ([]*Server, error) {
+				return nil, fmt.Errorf("API connection failed")
+			}
+
+			_, err := provider.ListMachines(ctx, req)
+
+			Expect(err).To(HaveOccurred())
+			statusErr, ok := status.FromError(err)
+			Expect(ok).To(BeTrue())
+			Expect(statusErr.Code()).To(Equal(codes.Internal))
+		})
+	})
+})

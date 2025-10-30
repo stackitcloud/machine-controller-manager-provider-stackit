@@ -1,5 +1,5 @@
 # machine-controller-manager-provider-stackit
-[![REUSE status](https://api.reuse.software/badge/github.com/gardener/machine-controller-manager-provider-stackit)](https://api.reuse.software/info/github.com/gardener/machine-controller-manager-provider-stackit)
+[![REUSE status](https://api.reuse.software/badge/github.com/aoepeople/machine-controller-manager-provider-stackit)](https://api.reuse.software/info/github.com/aoepeople/machine-controller-manager-provider-stackit)
 
 Out of tree (controller based) implementation for `STACKIT` as a new provider.
 

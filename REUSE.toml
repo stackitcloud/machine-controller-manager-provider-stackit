@@ -1,7 +1,7 @@
 version = 1
-SPDX-PackageName = "Gardener machine-controller-manager-provider-sampleprovider"
-SPDX-PackageSupplier = "The Gardener project <gardener@googlegroups.com>"
-SPDX-PackageDownloadLocation = "https://github.com/gardener/machine-controller-manager-provider-sampleprovider"
+SPDX-PackageName = "AOEpeople machine-controller-manager-provider-stackit"
+SPDX-PackageSupplier = "AOEpeople <info@aoe.com>"
+SPDX-PackageDownloadLocation = "https://github.com/aoepeople/machine-controller-manager-provider-stackit"
 
 [[annotations]]
 path = "**"

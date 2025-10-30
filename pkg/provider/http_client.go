@@ -160,3 +160,45 @@ func (c *httpStackitClient) DeleteServer(ctx context.Context, projectID, serverI
 	// All other status codes are errors
 	return fmt.Errorf("API returned error status %d: %s", resp.StatusCode, string(respBody))
 }
+
+// ListServers lists all servers in a project via HTTP API
+func (c *httpStackitClient) ListServers(ctx context.Context, projectID string) ([]*Server, error) {
+	// Build API path
+	url := fmt.Sprintf("%s/v1/projects/%s/servers", c.baseURL, projectID)
+
+	// Create HTTP request
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
+	}
+
+	httpReq.Header.Set("Accept", "application/json")
+
+	// Send request
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("HTTP request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response body
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Check status code
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("API returned error status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	// Parse response - the API returns an object with "items" array
+	var listResponse struct {
+		Items []*Server `json:"items"`
+	}
+	if err := json.Unmarshal(respBody, &listResponse); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	return listResponse.Items, nil
+}
