@@ -1,0 +1,51 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - ../../default
+  - https://github.com/stackit-controllers-k8s/stackit-api-mockservers//config/apis/iaas?ref=main
+
+patches:
+  # Patch MCM deployment to machine-controller-manager namespace
+  - target:
+      kind: Deployment
+      name: machine-controller-manager
+    patch: |-
+      - op: replace
+        path: /metadata/namespace
+        value: machine-controller-manager
+  - target:
+      kind: ServiceAccount
+      name: machine-controller-manager
+    patch: |-
+      - op: replace
+        path: /metadata/namespace
+        value: machine-controller-manager
+  - target:
+      kind: ClusterRoleBinding
+      name: machine-controller-manager
+    patch: |-
+      - op: replace
+        path: /subjects/0/namespace
+        value: machine-controller-manager
+  # Apply deployment-specific patches (env vars, commands)
+  - path: deployment-patches.yaml
+    target:
+      kind: Deployment
+      name: machine-controller-manager
+  # Patch iaas mock server to stackitcloud namespace
+  - target:
+      kind: Deployment
+      name: iaas
+    patch: |-
+      - op: replace
+        path: /metadata/namespace
+        value: stackitcloud
+  - target:
+      kind: Service
+      name: iaas
+    patch: |-
+      - op: replace
+        path: /metadata/namespace
+        value: stackitcloud

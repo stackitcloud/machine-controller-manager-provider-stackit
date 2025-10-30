@@ -5,7 +5,13 @@
 package api
 
 // ProviderSpec is the spec to be used while parsing the calls.
+// This is a minimal implementation for Slice #1.
 type ProviderSpec struct {
-	// APIVersion        string                      `json:"apiVersion,omitempty"`
-	// AMI               string                      `json:"ami,omitempty"`
+	// MachineType is the STACKIT server type (e.g., "c1.2", "m1.4")
+	// Required field for creating a server.
+	MachineType string `json:"machineType"`
+
+	// ImageID is the UUID of the OS image to use for the server
+	// Required field for creating a server.
+	ImageID string `json:"imageId"`
 }
