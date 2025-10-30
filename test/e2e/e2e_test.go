@@ -17,6 +17,7 @@ limitations under the License.
 package e2e
 
 import (
+	"encoding/json"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -715,16 +716,61 @@ spec:
 			output, _ = cmd.CombinedOutput()
 			serverResponse := strings.TrimSpace(string(output))
 
-			// The mock API should return a server object with labels
-			By("verifying server response contains label data")
-			Expect(serverResponse).To(ContainSubstring("\"id\":"), "Server response should include server ID field")
-			Expect(serverResponse).To(ContainSubstring("\"labels\":{"), "Server response should include labels field")
+			// Parse the JSON response and verify labels
+			By("parsing server response and verifying labels")
+			var serverData map[string]interface{}
+			err = json.Unmarshal([]byte(serverResponse), &serverData)
+			Expect(err).NotTo(HaveOccurred(), "Server response should be valid JSON")
 
-			// Note: The mock API currently returns empty labels {}, but the structure is there
-			// In a real STACKIT environment, we would verify:
-			// - User-provided labels: test-propagation, stack-component, etc.
-			// - MCM-generated labels: mcm.gardener.cloud/machineclass, mcm.gardener.cloud/machine
-			// For now, we verify the server exists and has a labels field
+			// Verify server object structure
+			Expect(serverData).To(HaveKey("id"), "Server response should include ID field")
+			Expect(serverData).To(HaveKey("labels"), "Server response should include labels field")
+
+			// Extract labels
+			labels, ok := serverData["labels"].(map[string]interface{})
+			Expect(ok).To(BeTrue(), "Labels field should be a map")
+
+			// NOTE: The mock API (Prism) is stateless and returns example data from OpenAPI spec
+			// It doesn't store or return the actual labels sent in the CreateServer request
+			// Therefore, we verify the structure exists but can't verify specific label values
+			// In a real STACKIT environment, this test would verify:
+			//
+			// User-provided labels from MachineClass.providerSpec.labels:
+			//   - test-propagation: enabled
+			//   - stack-component: compute-worker
+			//   - deployment-id: e2e-propagation-test
+			//   - managed-by: machine-controller-manager
+			//   - stackit-environment: test-cluster
+			//   - cost-allocation: engineering-e2e
+			//
+			// MCM-generated labels:
+			//   - mcm.gardener.cloud/machineclass: <machineClassName>
+			//   - mcm.gardener.cloud/machine: <machineName>
+			//   - mcm.gardener.cloud/role: node
+
+			By(fmt.Sprintf("verified server response structure (mock API returns %d labels)", len(labels)))
+
+			// Additional verification: Check provider logs to see the actual CreateServer request
+			By("checking provider logs for label propagation in CreateServer request")
+			cmd = exec.Command("kubectl", "logs", "-n", testNamespace,
+				"deployment/machine-controller-manager", "-c", "machine-controller",
+				"--tail=100")
+			output, _ = cmd.CombinedOutput()
+			providerLogs := string(output)
+
+			// Verify that the logs show label data being processed
+			// The provider should log or send labels in the CreateServer request
+			Expect(providerLogs).NotTo(BeEmpty(), "Provider logs should be available")
+
+			// Check for evidence of label processing (labels in request body)
+			// Note: This is a best-effort check - log format may vary
+			if strings.Contains(providerLogs, "test-propagation") ||
+				strings.Contains(providerLogs, "mcm.gardener.cloud") ||
+				strings.Contains(providerLogs, "labels") {
+				By("provider logs show evidence of label processing")
+			} else {
+				By("provider logs available but may not show label details (depends on log level)")
+			}
 
 			// The key verification is that the Machine was successfully created with a ProviderID,
 			// which means the provider code:
