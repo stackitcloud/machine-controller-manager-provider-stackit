@@ -7,6 +7,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/aoepeople/machine-controller-manager-provider-stackit/pkg/provider/apis/validation"
@@ -92,6 +93,19 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		Labels:      labels,
 	}
 
+	// Add networking configuration if specified
+	if providerSpec.Networking != nil {
+		createReq.Networking = &ServerNetworkingRequest{
+			NetworkID: providerSpec.Networking.NetworkID,
+			NICIDs:    providerSpec.Networking.NICIDs,
+		}
+	}
+
+	// Add security groups if specified
+	if len(providerSpec.SecurityGroups) > 0 {
+		createReq.SecurityGroups = providerSpec.SecurityGroups
+	}
+
 	// Call STACKIT API to create server
 	server, err := p.client.CreateServer(ctx, projectID, createReq)
 	if err != nil {
@@ -144,7 +158,7 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 	err = p.client.DeleteServer(ctx, projectID, serverID)
 	if err != nil {
 		// Check if server was not found (404) - this is OK for idempotency
-		if err.Error() == "server not found: 404" {
+		if errors.Is(err, ErrServerNotFound) {
 			klog.V(2).Infof("Server %q already deleted for machine %q (idempotent)", serverID, req.Machine.Name)
 			return &driver.DeleteMachineResponse{}, nil
 		}
@@ -200,7 +214,7 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 	server, err := p.client.GetServer(ctx, projectID, serverID)
 	if err != nil {
 		// Check if server was not found (404)
-		if err.Error() == "server not found: 404" {
+		if errors.Is(err, ErrServerNotFound) {
 			klog.V(2).Infof("Server %q not found for machine %q", serverID, req.Machine.Name)
 			return nil, status.Error(codes.NotFound, fmt.Sprintf("server %q not found", serverID))
 		}

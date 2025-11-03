@@ -23,10 +23,19 @@ type StackitClient interface {
 
 // CreateServerRequest represents the request to create a server
 type CreateServerRequest struct {
-	Name        string            `json:"name"`
-	MachineType string            `json:"machineType"`
-	ImageID     string            `json:"imageId"`
-	Labels      map[string]string `json:"labels,omitempty"`
+	Name           string                    `json:"name"`
+	MachineType    string                    `json:"machineType"`
+	ImageID        string                    `json:"imageId"`
+	Labels         map[string]string         `json:"labels,omitempty"`
+	Networking     *ServerNetworkingRequest  `json:"networking,omitempty"`
+	SecurityGroups []string                  `json:"securityGroups,omitempty"`
+}
+
+// ServerNetworkingRequest represents the networking configuration for a server
+// Use either NetworkID or NICIDs (mutually exclusive)
+type ServerNetworkingRequest struct {
+	NetworkID string   `json:"networkId,omitempty"`
+	NICIDs    []string `json:"nicIds,omitempty"`
 }
 
 // Server represents a STACKIT server response

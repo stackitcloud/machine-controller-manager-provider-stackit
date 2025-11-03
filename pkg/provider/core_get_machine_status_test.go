@@ -159,7 +159,7 @@ var _ = Describe("GetMachineStatus", func() {
 	Context("when server does not exist", func() {
 		It("should return NotFound when server is not found", func() {
 			mockClient.getServerFunc = func(ctx context.Context, projectID, serverID string) (*Server, error) {
-				return nil, fmt.Errorf("server not found: 404")
+				return nil, fmt.Errorf("%w: status 404", ErrServerNotFound)
 			}
 
 			_, err := provider.GetMachineStatus(ctx, req)

@@ -138,7 +138,7 @@ var _ = Describe("DeleteMachine", func() {
 	Context("when server does not exist (idempotency)", func() {
 		It("should succeed when server is already deleted (NotFound)", func() {
 			mockClient.deleteServerFunc = func(ctx context.Context, projectID, serverID string) error {
-				return fmt.Errorf("server not found: 404")
+				return fmt.Errorf("%w: status 404", ErrServerNotFound)
 			}
 
 			resp, err := provider.DeleteMachine(ctx, req)

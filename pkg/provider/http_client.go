@@ -8,10 +8,17 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+)
+
+// Sentinel errors for common HTTP client errors
+var (
+	// ErrServerNotFound indicates the server was not found (404)
+	ErrServerNotFound = errors.New("server not found")
 )
 
 // httpStackitClient is an HTTP implementation of StackitClient
@@ -57,7 +64,7 @@ func (c *httpStackitClient) CreateServer(ctx context.Context, projectID string, 
 	if err != nil {
 		return nil, fmt.Errorf("HTTP request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Read response body
 	respBody, err := io.ReadAll(resp.Body)
@@ -97,7 +104,7 @@ func (c *httpStackitClient) GetServer(ctx context.Context, projectID, serverID s
 	if err != nil {
 		return nil, fmt.Errorf("HTTP request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Read response body
 	respBody, err := io.ReadAll(resp.Body)
@@ -107,7 +114,7 @@ func (c *httpStackitClient) GetServer(ctx context.Context, projectID, serverID s
 
 	// Check status code
 	if resp.StatusCode == 404 {
-		return nil, fmt.Errorf("server not found: 404")
+		return nil, fmt.Errorf("%w: status 404", ErrServerNotFound)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("API returned error status %d: %s", resp.StatusCode, string(respBody))
@@ -138,7 +145,7 @@ func (c *httpStackitClient) DeleteServer(ctx context.Context, projectID, serverI
 	if err != nil {
 		return fmt.Errorf("HTTP request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Read response body (for error messages)
 	respBody, err := io.ReadAll(resp.Body)
@@ -154,7 +161,7 @@ func (c *httpStackitClient) DeleteServer(ctx context.Context, projectID, serverI
 
 	// Not Found: Server already deleted - this is OK (idempotent)
 	if resp.StatusCode == 404 {
-		return fmt.Errorf("server not found: 404")
+		return fmt.Errorf("%w: status 404", ErrServerNotFound)
 	}
 
 	// All other status codes are errors
@@ -179,7 +186,7 @@ func (c *httpStackitClient) ListServers(ctx context.Context, projectID string) (
 	if err != nil {
 		return nil, fmt.Errorf("HTTP request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Read response body
 	respBody, err := io.ReadAll(resp.Body)

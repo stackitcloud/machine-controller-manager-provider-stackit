@@ -7,6 +7,7 @@ package provider
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	api "github.com/aoepeople/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
@@ -35,45 +36,22 @@ func encodeProviderSpecForResponse(spec *api.ProviderSpec) ([]byte, error) {
 // Expected format: stackit://<projectId>/<serverId>
 func parseProviderID(providerID string) (projectID, serverID string, err error) {
 	const prefix = "stackit://"
-	if len(providerID) < len(prefix) {
-		return "", "", fmt.Errorf("ProviderID too short")
-	}
-	if providerID[:len(prefix)] != prefix {
+
+	if !strings.HasPrefix(providerID, prefix) {
 		return "", "", fmt.Errorf("ProviderID must start with 'stackit://'")
 	}
 
-	// Remove prefix
-	remainder := providerID[len(prefix):]
-	if remainder == "" {
-		return "", "", fmt.Errorf("ProviderID missing project and server IDs")
-	}
+	// Remove prefix and split by '/'
+	remainder := strings.TrimPrefix(providerID, prefix)
+	parts := strings.Split(remainder, "/")
 
-	// Split by '/' - find exactly one separator
-	slashIdx := -1
-	for i, c := range remainder {
-		if c == '/' {
-			if slashIdx >= 0 {
-				// Multiple slashes found
-				return "", "", fmt.Errorf("ProviderID must have format 'stackit://<projectId>/<serverId>'")
-			}
-			slashIdx = i
-		}
-	}
-
-	if slashIdx < 0 {
-		// No slash found
+	if len(parts) != 2 {
 		return "", "", fmt.Errorf("ProviderID must have format 'stackit://<projectId>/<serverId>'")
 	}
 
-	projectID = remainder[:slashIdx]
-	serverID = remainder[slashIdx+1:]
-
-	if projectID == "" {
-		return "", "", fmt.Errorf("projectId cannot be empty")
-	}
-	if serverID == "" {
-		return "", "", fmt.Errorf("serverId cannot be empty")
+	if parts[0] == "" || parts[1] == "" {
+		return "", "", fmt.Errorf("projectId and serverId cannot be empty")
 	}
 
-	return projectID, serverID, nil
+	return parts[0], parts[1], nil
 }

@@ -61,7 +61,7 @@ var _ = BeforeSuite(func() {
 	cmd = exec.Command("kubectl", "apply", "-k", "../../config/overlays/e2e")
 	output, err = cmd.CombinedOutput()
 	if err != nil {
-		fmt.Fprintf(GinkgoWriter, "Failed to deploy: %s\n", string(output))
+		_, _ = fmt.Fprintf(GinkgoWriter, "Failed to deploy: %s\n", string(output))
 	}
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "Failed to deploy MCM provider with mock API")
 
@@ -71,7 +71,7 @@ var _ = BeforeSuite(func() {
 		"deployment/machine-controller-manager", "-n", testNamespace)
 	output, err = cmd.CombinedOutput()
 	if err != nil {
-		fmt.Fprintf(GinkgoWriter, "MCM deployment not ready: %s\n", string(output))
+		_, _ = fmt.Fprintf(GinkgoWriter, "MCM deployment not ready: %s\n", string(output))
 	}
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "MCM deployment did not become ready")
 
@@ -80,7 +80,7 @@ var _ = BeforeSuite(func() {
 		"deployment/iaas", "-n", "stackitcloud")
 	output, err = cmd.CombinedOutput()
 	if err != nil {
-		fmt.Fprintf(GinkgoWriter, "IAAS mock not ready: %s\n", string(output))
+		_, _ = fmt.Fprintf(GinkgoWriter, "IAAS mock not ready: %s\n", string(output))
 	}
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "IAAS mock server did not become ready")
 

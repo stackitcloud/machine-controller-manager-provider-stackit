@@ -1,0 +1,51 @@
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: MachineClass
+metadata:
+  name: test-mc
+  namespace: default
+providerSpec:
+  # Required: STACKIT machine type (e.g., "c1.2", "m1.4", "g1.8")
+  machineType: "c1.2"
+
+  # Required: UUID of the OS image to use
+  imageId: "550e8400-e29b-41d4-a716-446655440000"
+
+  # Optional: User-defined labels for the server
+  # MCM will automatically add standard labels (machine name, class, role)
+  labels:
+    environment: "production"
+    team: "platform"
+
+  # Optional: Networking configuration
+  # Specify either networkId (simple) OR nicIds (advanced), not both
+  networking:
+    # Simple variant: Attach to a single network
+    networkId: "770e8400-e29b-41d4-a716-446655440000"
+    # Advanced variant: Use pre-created NICs (uncomment to use instead of networkId)
+    # nicIds:
+    #   - "880e8400-e29b-41d4-a716-446655440000"
+    #   - "990e8400-e29b-41d4-a716-446655440000"
+
+  # Optional: Security groups to apply to the server
+  # If not specified, the project's default security group will be used
+  securityGroups:
+    - "default"
+    - "web-servers"
+
+secretRef:
+  name: test-secret
+  namespace: default
+
+---
+# Example: Minimal configuration (only required fields)
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: MachineClass
+metadata:
+  name: minimal-mc
+  namespace: default
+providerSpec:
+  machineType: "c1.2"
+  imageId: "550e8400-e29b-41d4-a716-446655440000"
+secretRef:
+  name: test-secret
+  namespace: default
