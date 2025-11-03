@@ -45,7 +45,7 @@ var _ = Describe("HTTP Client", func() {
 					Expect(r.Header.Get("Content-Type")).To(Equal("application/json"))
 
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte(`{
+					_, _ = w.Write([]byte(`{
 						"id": "550e8400-e29b-41d4-a716-446655440000",
 						"name": "test-machine",
 						"status": "CREATING"
@@ -77,7 +77,7 @@ var _ = Describe("HTTP Client", func() {
 				server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					receivedBody, _ = io.ReadAll(r.Body)
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte(`{"id":"123","name":"test","status":"OK"}`))
+					_, _ = w.Write([]byte(`{"id":"123","name":"test","status":"OK"}`))
 				}))
 
 				client = &httpStackitClient{
@@ -104,7 +104,7 @@ var _ = Describe("HTTP Client", func() {
 			It("should return error on 400 Bad Request", func() {
 				server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusBadRequest)
-					w.Write([]byte(`{"error": "Invalid machine type"}`))
+					_, _ = w.Write([]byte(`{"error": "Invalid machine type"}`))
 				}))
 
 				client = &httpStackitClient{
@@ -128,7 +128,7 @@ var _ = Describe("HTTP Client", func() {
 			It("should return error on 500 Internal Server Error", func() {
 				server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusInternalServerError)
-					w.Write([]byte(`{"error": "Internal server error"}`))
+					_, _ = w.Write([]byte(`{"error": "Internal server error"}`))
 				}))
 
 				client = &httpStackitClient{
@@ -152,7 +152,7 @@ var _ = Describe("HTTP Client", func() {
 			It("should return error on invalid JSON response", func() {
 				server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte(`{invalid json}`))
+					_, _ = w.Write([]byte(`{invalid json}`))
 				}))
 
 				client = &httpStackitClient{
@@ -184,7 +184,7 @@ var _ = Describe("HTTP Client", func() {
 					Expect(r.Header.Get("Accept")).To(Equal("application/json"))
 
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte(`{
+					_, _ = w.Write([]byte(`{
 						"id": "test-server-456",
 						"name": "test-machine",
 						"status": "RUNNING"
@@ -210,7 +210,7 @@ var _ = Describe("HTTP Client", func() {
 			It("should return error on 404 Not Found", func() {
 				server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusNotFound)
-					w.Write([]byte(`{"error": "Server not found"}`))
+					_, _ = w.Write([]byte(`{"error": "Server not found"}`))
 				}))
 
 				client = &httpStackitClient{
@@ -228,7 +228,7 @@ var _ = Describe("HTTP Client", func() {
 			It("should return error on 403 Forbidden", func() {
 				server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusForbidden)
-					w.Write([]byte(`{"error": "Access denied"}`))
+					_, _ = w.Write([]byte(`{"error": "Access denied"}`))
 				}))
 
 				client = &httpStackitClient{
@@ -246,7 +246,7 @@ var _ = Describe("HTTP Client", func() {
 			It("should return error on invalid JSON response", func() {
 				server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte(`not valid json`))
+					_, _ = w.Write([]byte(`not valid json`))
 				}))
 
 				client = &httpStackitClient{
@@ -304,7 +304,7 @@ var _ = Describe("HTTP Client", func() {
 			It("should return error on 404 Not Found (server already deleted)", func() {
 				server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusNotFound)
-					w.Write([]byte(`{"error": "Server not found"}`))
+					_, _ = w.Write([]byte(`{"error": "Server not found"}`))
 				}))
 
 				client = &httpStackitClient{
@@ -321,7 +321,7 @@ var _ = Describe("HTTP Client", func() {
 			It("should return error on 403 Forbidden", func() {
 				server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusForbidden)
-					w.Write([]byte(`{"error": "Access denied"}`))
+					_, _ = w.Write([]byte(`{"error": "Access denied"}`))
 				}))
 
 				client = &httpStackitClient{
@@ -338,7 +338,7 @@ var _ = Describe("HTTP Client", func() {
 			It("should return error on 500 Internal Server Error", func() {
 				server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusInternalServerError)
-					w.Write([]byte(`{"error": "Internal error"}`))
+					_, _ = w.Write([]byte(`{"error": "Internal error"}`))
 				}))
 
 				client = &httpStackitClient{
@@ -360,13 +360,13 @@ var _ = Describe("HTTP Client", func() {
 			originalEnv := os.Getenv("STACKIT_API_ENDPOINT")
 			defer func() {
 				if originalEnv != "" {
-					os.Setenv("STACKIT_API_ENDPOINT", originalEnv)
+					_ = os.Setenv("STACKIT_API_ENDPOINT", originalEnv)
 				} else {
-					os.Unsetenv("STACKIT_API_ENDPOINT")
+					_ = os.Unsetenv("STACKIT_API_ENDPOINT")
 				}
 			}()
 
-			os.Setenv("STACKIT_API_ENDPOINT", "https://custom.api.example.com")
+			_ = os.Setenv("STACKIT_API_ENDPOINT", "https://custom.api.example.com")
 			client := newHTTPStackitClient()
 
 			Expect(client.baseURL).To(Equal("https://custom.api.example.com"))
@@ -377,13 +377,13 @@ var _ = Describe("HTTP Client", func() {
 			originalEnv := os.Getenv("STACKIT_API_ENDPOINT")
 			defer func() {
 				if originalEnv != "" {
-					os.Setenv("STACKIT_API_ENDPOINT", originalEnv)
+					_ = os.Setenv("STACKIT_API_ENDPOINT", originalEnv)
 				} else {
-					os.Unsetenv("STACKIT_API_ENDPOINT")
+					_ = os.Unsetenv("STACKIT_API_ENDPOINT")
 				}
 			}()
 
-			os.Unsetenv("STACKIT_API_ENDPOINT")
+			_ = os.Unsetenv("STACKIT_API_ENDPOINT")
 			client := newHTTPStackitClient()
 
 			Expect(client.baseURL).To(Equal("https://api.stackit.cloud"))

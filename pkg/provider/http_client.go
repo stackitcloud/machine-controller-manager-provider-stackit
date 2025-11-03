@@ -57,7 +57,7 @@ func (c *httpStackitClient) CreateServer(ctx context.Context, projectID string, 
 	if err != nil {
 		return nil, fmt.Errorf("HTTP request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Read response body
 	respBody, err := io.ReadAll(resp.Body)
@@ -97,7 +97,7 @@ func (c *httpStackitClient) GetServer(ctx context.Context, projectID, serverID s
 	if err != nil {
 		return nil, fmt.Errorf("HTTP request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Read response body
 	respBody, err := io.ReadAll(resp.Body)
@@ -138,7 +138,7 @@ func (c *httpStackitClient) DeleteServer(ctx context.Context, projectID, serverI
 	if err != nil {
 		return fmt.Errorf("HTTP request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Read response body (for error messages)
 	respBody, err := io.ReadAll(resp.Body)
@@ -179,7 +179,7 @@ func (c *httpStackitClient) ListServers(ctx context.Context, projectID string) (
 	if err != nil {
 		return nil, fmt.Errorf("HTTP request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Read response body
 	respBody, err := io.ReadAll(resp.Body)

@@ -118,6 +118,7 @@ func createAndTrackResource(resourceType, resourceName, namespace, yamlContent s
 
 // verifyK8sResourceExists verifies that a Kubernetes resource exists
 // This is a common pattern used across multiple E2E tests
+// nolint:unused // Reserved for future E2E tests
 func verifyK8sResourceExists(resourceType, resourceName, namespace string) {
 	ginkgo.By(fmt.Sprintf("ensuring %s resource exists: %s", resourceType, resourceName))
 	cmd := exec.Command("kubectl", "get", resourceType, resourceName, "-n", namespace)
@@ -170,6 +171,7 @@ func removeMachineFinalizers(machineName, namespace string) {
 // extractServerIDFromProviderID extracts the server ID from a STACKIT ProviderID
 // Expected format: stackit://<projectId>/<serverId>
 // Returns the serverId portion, or empty string if format is invalid
+// nolint:unused // Reserved for future E2E tests
 func extractServerIDFromProviderID(providerID string) string {
 	// Expected format: stackit://12345678-1234-1234-1234-123456789012/497f6eca-6276-4993-bfeb-53cbbbba6f08
 	const prefix = "stackit://"
