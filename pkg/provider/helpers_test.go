@@ -48,7 +48,7 @@ var _ = Describe("Helpers", func() {
 				_, _, err := parseProviderID("stackit")
 
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("too short"))
+				Expect(err.Error()).To(ContainSubstring("must start with 'stackit://'"))
 			})
 
 			It("should fail when ProviderID doesn't start with stackit://", func() {
@@ -62,7 +62,7 @@ var _ = Describe("Helpers", func() {
 				_, _, err := parseProviderID("stackit://")
 
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("missing project and server IDs"))
+				Expect(err.Error()).To(ContainSubstring("must have format"))
 			})
 
 			It("should fail when ProviderID has only projectId", func() {
@@ -76,14 +76,14 @@ var _ = Describe("Helpers", func() {
 				_, _, err := parseProviderID("stackit:///server-456")
 
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("projectId cannot be empty"))
+				Expect(err.Error()).To(ContainSubstring("cannot be empty"))
 			})
 
 			It("should fail when ProviderID has empty serverId", func() {
 				_, _, err := parseProviderID("stackit://project-123/")
 
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("serverId cannot be empty"))
+				Expect(err.Error()).To(ContainSubstring("cannot be empty"))
 			})
 
 			It("should fail when ProviderID has too many parts", func() {

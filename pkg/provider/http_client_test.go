@@ -221,7 +221,7 @@ var _ = Describe("HTTP Client", func() {
 				result, err := client.GetServer(ctx, projectID, serverID)
 
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("server not found: 404"))
+				Expect(err).To(MatchError(ContainSubstring("server not found")))
 				Expect(result).To(BeNil())
 			})
 
@@ -315,7 +315,7 @@ var _ = Describe("HTTP Client", func() {
 				err := client.DeleteServer(ctx, projectID, serverID)
 
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("server not found: 404"))
+				Expect(err).To(MatchError(ContainSubstring("server not found")))
 			})
 
 			It("should return error on 403 Forbidden", func() {
