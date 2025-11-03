@@ -80,6 +80,112 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 		})
 	})
 
+	Context("Networking validation", func() {
+		It("should succeed with valid NetworkID", func() {
+			providerSpec.Networking = &api.NetworkingSpec{
+				NetworkID: "550e8400-e29b-41d4-a716-446655440000",
+			}
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).To(BeEmpty())
+		})
+
+		It("should succeed with valid NICIDs", func() {
+			providerSpec.Networking = &api.NetworkingSpec{
+				NICIDs: []string{
+					"550e8400-e29b-41d4-a716-446655440000",
+					"660e8400-e29b-41d4-a716-446655440001",
+				},
+			}
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).To(BeEmpty())
+		})
+
+		It("should succeed when Networking is nil", func() {
+			providerSpec.Networking = nil
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).To(BeEmpty())
+		})
+
+		It("should fail when Networking has neither NetworkID nor NICIDs", func() {
+			providerSpec.Networking = &api.NetworkingSpec{}
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).NotTo(BeEmpty())
+			Expect(errors[0].Error()).To(ContainSubstring("must specify either networkId or nicIds"))
+		})
+
+		It("should fail when Networking has both NetworkID and NICIDs", func() {
+			providerSpec.Networking = &api.NetworkingSpec{
+				NetworkID: "550e8400-e29b-41d4-a716-446655440000",
+				NICIDs: []string{
+					"660e8400-e29b-41d4-a716-446655440001",
+				},
+			}
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).NotTo(BeEmpty())
+			Expect(errors[0].Error()).To(ContainSubstring("mutually exclusive"))
+		})
+
+		It("should fail when NetworkID has invalid UUID format", func() {
+			providerSpec.Networking = &api.NetworkingSpec{
+				NetworkID: "invalid-uuid",
+			}
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).NotTo(BeEmpty())
+			Expect(errors[0].Error()).To(ContainSubstring("valid UUID"))
+		})
+
+		It("should fail when NICIDs contains invalid UUID format", func() {
+			providerSpec.Networking = &api.NetworkingSpec{
+				NICIDs: []string{
+					"550e8400-e29b-41d4-a716-446655440000",
+					"invalid-uuid",
+				},
+			}
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).NotTo(BeEmpty())
+			Expect(errors[0].Error()).To(ContainSubstring("valid UUID"))
+		})
+
+		It("should fail when NICIDs contains empty string", func() {
+			providerSpec.Networking = &api.NetworkingSpec{
+				NICIDs: []string{
+					"550e8400-e29b-41d4-a716-446655440000",
+					"",
+				},
+			}
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).NotTo(BeEmpty())
+			Expect(errors[0].Error()).To(ContainSubstring("cannot be empty"))
+		})
+	})
+
+	Context("SecurityGroups validation", func() {
+		It("should succeed with valid SecurityGroups", func() {
+			providerSpec.SecurityGroups = []string{"default", "web-servers"}
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).To(BeEmpty())
+		})
+
+		It("should succeed when SecurityGroups is nil", func() {
+			providerSpec.SecurityGroups = nil
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).To(BeEmpty())
+		})
+
+		It("should succeed when SecurityGroups is empty array", func() {
+			providerSpec.SecurityGroups = []string{}
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).To(BeEmpty())
+		})
+
+		It("should fail when SecurityGroups contains empty string", func() {
+			providerSpec.SecurityGroups = []string{"default", ""}
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).NotTo(BeEmpty())
+			Expect(errors[0].Error()).To(ContainSubstring("cannot be empty"))
+		})
+	})
+
 	Context("Secret validation", func() {
 		It("should fail when secret is nil", func() {
 			errors := ValidateProviderSpecNSecret(providerSpec, nil)

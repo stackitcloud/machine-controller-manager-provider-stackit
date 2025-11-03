@@ -92,6 +92,19 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		Labels:      labels,
 	}
 
+	// Add networking configuration if specified
+	if providerSpec.Networking != nil {
+		createReq.Networking = &ServerNetworkingRequest{
+			NetworkID: providerSpec.Networking.NetworkID,
+			NICIDs:    providerSpec.Networking.NICIDs,
+		}
+	}
+
+	// Add security groups if specified
+	if len(providerSpec.SecurityGroups) > 0 {
+		createReq.SecurityGroups = providerSpec.SecurityGroups
+	}
+
 	// Call STACKIT API to create server
 	server, err := p.client.CreateServer(ctx, projectID, createReq)
 	if err != nil {

@@ -291,8 +291,8 @@ stringData:
 
 ### Phase 1.3 - ProviderSpec Design
 - [ ] Define complete ProviderSpec with all nested types
-- [ ] Create example `kubernetes/machine-class.yaml`
-- [ ] Create example `kubernetes/secret.yaml`
+- [ ] Create example `samples/machine-class.yaml`
+- [ ] Create example `samples/secret.yaml`
 - [ ] Define validation rules for each field
 - [ ] Write validation unit tests (TDD)
 
