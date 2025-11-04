@@ -47,6 +47,13 @@ type ProviderSpec struct {
 	// Optional field. If specified, the public key will be injected into the server for SSH access.
 	// The keypair must already exist in the STACKIT project.
 	KeypairName string `json:"keypairName,omitempty"`
+
+	// AvailabilityZone is the availability zone where the server will be created
+	// Optional field. If not specified:
+	// - If an existing volume is used as boot volume, the server will be created in the same AZ as the volume
+	// - For requests with no volumes, it will be set to the metro availability zone
+	// Example values: "eu01-1", "eu01-2"
+	AvailabilityZone string `json:"availabilityZone,omitempty"`
 }
 
 // NetworkingSpec defines the network configuration for a server

@@ -148,6 +148,11 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		createReq.KeypairName = providerSpec.KeypairName
 	}
 
+	// Add availability zone if specified
+	if providerSpec.AvailabilityZone != "" {
+		createReq.AvailabilityZone = providerSpec.AvailabilityZone
+	}
+
 	// Call STACKIT API to create server
 	server, err := p.client.CreateServer(ctx, projectID, createReq)
 	if err != nil {

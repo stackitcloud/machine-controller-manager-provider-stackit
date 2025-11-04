@@ -176,3 +176,23 @@ providerSpec:
 secretRef:
   name: test-secret
   namespace: default
+
+---
+# Example: Machine with availability zone for high availability
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: MachineClass
+metadata:
+  name: with-az-mc
+  namespace: default
+providerSpec:
+  machineType: "c1.2"
+  imageId: "550e8400-e29b-41d4-a716-446655440000"
+  # AvailabilityZone: Specify the AZ where the server will be created
+  # If not specified:
+  # - Servers with boot volumes will be created in the same AZ as the volume
+  # - Servers without volumes will be created in the metro availability zone
+  # Example values: "eu01-1", "eu01-2"
+  availabilityZone: "eu01-1"
+secretRef:
+  name: test-secret
+  namespace: default

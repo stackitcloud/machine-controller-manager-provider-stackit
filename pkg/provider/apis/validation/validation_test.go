@@ -372,6 +372,34 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 		})
 	})
 
+	Context("AvailabilityZone validation", func() {
+		It("should succeed with valid availabilityZone", func() {
+			providerSpec.AvailabilityZone = "eu01-1"
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).To(BeEmpty())
+		})
+
+		It("should succeed when availabilityZone is empty", func() {
+			providerSpec.AvailabilityZone = ""
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).To(BeEmpty())
+		})
+
+		It("should succeed with various AZ formats", func() {
+			testCases := []string{
+				"eu01-1",
+				"eu01-2",
+				"us-west-1a",
+				"zone-1",
+			}
+			for _, az := range testCases {
+				providerSpec.AvailabilityZone = az
+				errors := ValidateProviderSpecNSecret(providerSpec, secret)
+				Expect(errors).To(BeEmpty(), "AvailabilityZone %q should be valid", az)
+			}
+		})
+	})
+
 	Context("Secret validation", func() {
 		It("should fail when secret is nil", func() {
 			errors := ValidateProviderSpecNSecret(providerSpec, nil)
