@@ -236,3 +236,23 @@ providerSpec:
 secretRef:
   name: test-secret
   namespace: default
+
+---
+# Example: Machine with STACKIT agent for monitoring and management
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: MachineClass
+metadata:
+  name: with-agent-mc
+  namespace: default
+providerSpec:
+  machineType: "c1.2"
+  imageId: "550e8400-e29b-41d4-a716-446655440000"
+  # Agent: Configure the STACKIT agent on the server
+  # The agent provides monitoring and management capabilities
+  # Set provisioned to true to install the agent, false to skip
+  # If not specified, defaults to STACKIT platform default behavior
+  agent:
+    provisioned: true
+secretRef:
+  name: test-secret
+  namespace: default

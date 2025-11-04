@@ -471,6 +471,40 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 		})
 	})
 
+	Context("Agent validation", func() {
+		It("should succeed when agent is nil", func() {
+			providerSpec.Agent = nil
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).To(BeEmpty())
+		})
+
+		It("should succeed with agent provisioned true", func() {
+			provisioned := true
+			providerSpec.Agent = &api.AgentSpec{
+				Provisioned: &provisioned,
+			}
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).To(BeEmpty())
+		})
+
+		It("should succeed with agent provisioned false", func() {
+			provisioned := false
+			providerSpec.Agent = &api.AgentSpec{
+				Provisioned: &provisioned,
+			}
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).To(BeEmpty())
+		})
+
+		It("should succeed with agent provisioned nil", func() {
+			providerSpec.Agent = &api.AgentSpec{
+				Provisioned: nil,
+			}
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).To(BeEmpty())
+		})
+	})
+
 	Context("Secret validation", func() {
 		It("should fail when secret is nil", func() {
 			errors := ValidateProviderSpecNSecret(providerSpec, nil)

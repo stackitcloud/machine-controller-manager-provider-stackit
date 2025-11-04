@@ -116,6 +116,10 @@ func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret)
 		}
 	}
 
+	// Validate Agent
+	// Agent is optional with no specific constraints - just a boolean flag
+	// No validation needed as any value (nil, true, false) is acceptable
+
 	return errors
 }
 

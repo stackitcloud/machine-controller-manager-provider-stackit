@@ -67,6 +67,18 @@ type ProviderSpec struct {
 	// Note: STACKIT API currently limits this to a maximum of 1 service account per server
 	// Example: ["my-service@sa.stackit.cloud"]
 	ServiceAccountMails []string `json:"serviceAccountMails,omitempty"`
+
+	// Agent configures the STACKIT agent on the server
+	// Optional field. The STACKIT agent provides monitoring and management capabilities
+	// If not specified, defaults to the STACKIT platform default behavior
+	Agent *AgentSpec `json:"agent,omitempty"`
+}
+
+// AgentSpec defines the STACKIT agent configuration for a server
+type AgentSpec struct {
+	// Provisioned controls whether the STACKIT agent is installed on the server
+	// Optional field. Set to true to install the agent, false to skip installation
+	Provisioned *bool `json:"provisioned,omitempty"`
 }
 
 // NetworkingSpec defines the network configuration for a server

@@ -632,5 +632,53 @@ var _ = Describe("CreateMachine", func() {
 			Expect(capturedReq).NotTo(BeNil())
 			Expect(capturedReq.ServiceAccountMails).To(BeNil())
 		})
+
+		It("should pass Agent to API when specified", func() {
+			provisioned := true
+			providerSpec := &api.ProviderSpec{
+				MachineType: "c1.2",
+				ImageID:     "image-uuid-123",
+				Agent: &api.AgentSpec{
+					Provisioned: &provisioned,
+				},
+			}
+			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
+
+			var capturedReq *CreateServerRequest
+			mockClient.createServerFunc = func(ctx context.Context, projectID string, req *CreateServerRequest) (*Server, error) {
+				capturedReq = req
+				return &Server{
+					ID:     "test-server-id",
+					Name:   req.Name,
+					Status: "CREATING",
+				}, nil
+			}
+
+			_, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(capturedReq).NotTo(BeNil())
+			Expect(capturedReq.Agent).NotTo(BeNil())
+			Expect(*capturedReq.Agent.Provisioned).To(BeTrue())
+		})
+
+		It("should not send Agent when nil", func() {
+			var capturedReq *CreateServerRequest
+			mockClient.createServerFunc = func(ctx context.Context, projectID string, req *CreateServerRequest) (*Server, error) {
+				capturedReq = req
+				return &Server{
+					ID:     "test-server-id",
+					Name:   req.Name,
+					Status: "CREATING",
+				}, nil
+			}
+
+			_, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(capturedReq).NotTo(BeNil())
+			Expect(capturedReq.Agent).To(BeNil())
+		})
 	})
 })
