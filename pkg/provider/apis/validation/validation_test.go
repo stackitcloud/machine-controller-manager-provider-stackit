@@ -412,6 +412,13 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 			errors := ValidateProviderSpecNSecret(providerSpec, secret)
 			Expect(errors).To(BeEmpty())
 		})
+
+		It("should fail when affinityGroup has invalid UUID format", func() {
+			providerSpec.AffinityGroup = "invalid-uuid-format"
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).NotTo(BeEmpty())
+			Expect(errors[0].Error()).To(ContainSubstring("valid UUID"))
+		})
 	})
 
 	Context("Secret validation", func() {

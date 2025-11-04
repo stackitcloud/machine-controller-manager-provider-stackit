@@ -90,6 +90,13 @@ func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret)
 		}
 	}
 
+	// Validate AffinityGroup
+	if spec.AffinityGroup != "" {
+		if !isValidUUID(spec.AffinityGroup) {
+			errors = append(errors, fmt.Errorf("providerSpec.affinityGroup must be a valid UUID"))
+		}
+	}
+
 	return errors
 }
 
