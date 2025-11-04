@@ -6,6 +6,7 @@ package provider
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 
 	api "github.com/aoepeople/machine-controller-manager-provider-stackit/pkg/provider/apis"
@@ -172,6 +173,122 @@ var _ = Describe("CreateMachine", func() {
 			statusErr, ok := status.FromError(err)
 			Expect(ok).To(BeTrue())
 			Expect(statusErr.Code()).To(Equal(codes.Internal))
+		})
+	})
+
+	Context("with userData", func() {
+		It("should pass userData from ProviderSpec to API", func() {
+			providerSpec := &api.ProviderSpec{
+				MachineType: "c1.2",
+				ImageID:     "image-uuid-123",
+				UserData:    "#cloud-config\nruncmd:\n  - echo 'Hello from ProviderSpec'",
+			}
+			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
+
+			var capturedReq *CreateServerRequest
+			mockClient.createServerFunc = func(ctx context.Context, projectID string, req *CreateServerRequest) (*Server, error) {
+				capturedReq = req
+				return &Server{
+					ID:     "test-server-id",
+					Name:   req.Name,
+					Status: "CREATING",
+				}, nil
+			}
+
+			_, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(capturedReq).NotTo(BeNil())
+			expectedUserData := base64.StdEncoding.EncodeToString([]byte("#cloud-config\nruncmd:\n  - echo 'Hello from ProviderSpec'"))
+			Expect(capturedReq.UserData).To(Equal(expectedUserData))
+		})
+
+		It("should pass userData from Secret to API when ProviderSpec.UserData is empty", func() {
+			secret.Data["userData"] = []byte("#cloud-config\nruncmd:\n  - echo 'Hello from Secret'")
+
+			var capturedReq *CreateServerRequest
+			mockClient.createServerFunc = func(ctx context.Context, projectID string, req *CreateServerRequest) (*Server, error) {
+				capturedReq = req
+				return &Server{
+					ID:     "test-server-id",
+					Name:   req.Name,
+					Status: "CREATING",
+				}, nil
+			}
+
+			_, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(capturedReq).NotTo(BeNil())
+			expectedUserData := base64.StdEncoding.EncodeToString([]byte("#cloud-config\nruncmd:\n  - echo 'Hello from Secret'"))
+			Expect(capturedReq.UserData).To(Equal(expectedUserData))
+		})
+
+		It("should prefer ProviderSpec.UserData over Secret.userData", func() {
+			providerSpec := &api.ProviderSpec{
+				MachineType: "c1.2",
+				ImageID:     "image-uuid-123",
+				UserData:    "#cloud-config from ProviderSpec",
+			}
+			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
+			secret.Data["userData"] = []byte("#cloud-config from Secret")
+
+			var capturedReq *CreateServerRequest
+			mockClient.createServerFunc = func(ctx context.Context, projectID string, req *CreateServerRequest) (*Server, error) {
+				capturedReq = req
+				return &Server{
+					ID:     "test-server-id",
+					Name:   req.Name,
+					Status: "CREATING",
+				}, nil
+			}
+
+			_, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(capturedReq).NotTo(BeNil())
+			expectedUserData := base64.StdEncoding.EncodeToString([]byte("#cloud-config from ProviderSpec"))
+			Expect(capturedReq.UserData).To(Equal(expectedUserData))
+		})
+
+		It("should not send userData when neither ProviderSpec nor Secret have it", func() {
+			var capturedReq *CreateServerRequest
+			mockClient.createServerFunc = func(ctx context.Context, projectID string, req *CreateServerRequest) (*Server, error) {
+				capturedReq = req
+				return &Server{
+					ID:     "test-server-id",
+					Name:   req.Name,
+					Status: "CREATING",
+				}, nil
+			}
+
+			_, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(capturedReq).NotTo(BeNil())
+			Expect(capturedReq.UserData).To(BeEmpty())
+		})
+
+		It("should handle empty userData in Secret gracefully", func() {
+			secret.Data["userData"] = []byte("")
+
+			var capturedReq *CreateServerRequest
+			mockClient.createServerFunc = func(ctx context.Context, projectID string, req *CreateServerRequest) (*Server, error) {
+				capturedReq = req
+				return &Server{
+					ID:     "test-server-id",
+					Name:   req.Name,
+					Status: "CREATING",
+				}, nil
+			}
+
+			_, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(capturedReq).NotTo(BeNil())
+			Expect(capturedReq.UserData).To(BeEmpty())
 		})
 	})
 })

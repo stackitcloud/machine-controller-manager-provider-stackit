@@ -32,6 +32,17 @@ providerSpec:
     - "default"
     - "web-servers"
 
+  # Optional: Cloud-init user data for VM bootstrapping
+  # Can be used to override/customize Secret.userData for this specific MachineClass
+  # If specified, takes precedence over Secret.userData
+  # Note: Secret.userData is typically required by MCM for node bootstrapping
+  # Use this to add MachineClass-specific customizations
+  userData: |
+    #cloud-config
+    runcmd:
+      - echo "Machine bootstrapped via ProviderSpec"
+      - apt-get update
+
 secretRef:
   name: test-secret
   namespace: default
@@ -46,6 +57,35 @@ metadata:
 providerSpec:
   machineType: "c1.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
+secretRef:
+  name: test-secret
+  namespace: default
+
+---
+# Example: Machine with custom cloud-init userData (overrides Secret)
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: MachineClass
+metadata:
+  name: custom-userdata-mc
+  namespace: default
+providerSpec:
+  machineType: "c1.2"
+  imageId: "550e8400-e29b-41d4-a716-446655440000"
+  # UserData in ProviderSpec overrides Secret.userData
+  # Useful for MachineClass-specific bootstrapping (e.g., different software per class)
+  # Make sure this still includes necessary bootstrap commands for node registration!
+  userData: |
+    #cloud-config
+    package_update: true
+    package_upgrade: true
+    packages:
+      - docker.io
+      - kubectl
+    runcmd:
+      - systemctl enable docker
+      - systemctl start docker
+      - echo "Custom initialization complete"
+      # Include MCM bootstrap commands here if overriding Secret.userData
 secretRef:
   name: test-secret
   namespace: default

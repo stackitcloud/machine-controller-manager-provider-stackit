@@ -29,6 +29,7 @@ type CreateServerRequest struct {
 	Labels         map[string]string         `json:"labels,omitempty"`
 	Networking     *ServerNetworkingRequest  `json:"networking,omitempty"`
 	SecurityGroups []string                  `json:"securityGroups,omitempty"`
+	UserData       string                    `json:"userData,omitempty"`
 }
 
 // ServerNetworkingRequest represents the networking configuration for a server

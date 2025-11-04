@@ -6,7 +6,6 @@ package provider
 
 import (
 	"context"
-	"fmt"
 
 	api "github.com/aoepeople/machine-controller-manager-provider-stackit/pkg/provider/apis"
 )
@@ -57,7 +56,5 @@ func (m *mockStackitClient) ListServers(ctx context.Context, projectID string) (
 
 // encodeProviderSpec is a helper function to encode ProviderSpec for tests
 func encodeProviderSpec(spec *api.ProviderSpec) ([]byte, error) {
-	// For now, use a simple JSON encoding
-	// In real implementation, this would use proper encoding
-	return []byte(fmt.Sprintf(`{"machineType":"%s","imageId":"%s"}`, spec.MachineType, spec.ImageID)), nil
+	return encodeProviderSpecForResponse(spec)
 }
