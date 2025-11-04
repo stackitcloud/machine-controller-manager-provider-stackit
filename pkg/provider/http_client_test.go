@@ -28,7 +28,7 @@ var _ = Describe("HTTP Client", func() {
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		projectID = "test-project-123"
+		projectID = "11111111-2222-3333-4444-555555555555"
 		serverID = "test-server-456"
 		token = "test-token-12345"
 	})
@@ -44,7 +44,7 @@ var _ = Describe("HTTP Client", func() {
 			It("should create a server successfully", func() {
 				server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					Expect(r.Method).To(Equal("POST"))
-					Expect(r.URL.Path).To(Equal("/v1/projects/test-project-123/servers"))
+					Expect(r.URL.Path).To(Equal("/v1/projects/11111111-2222-3333-4444-555555555555/servers"))
 					Expect(r.Header.Get("Content-Type")).To(Equal("application/json"))
 
 					w.WriteHeader(http.StatusOK)
@@ -183,7 +183,7 @@ var _ = Describe("HTTP Client", func() {
 			It("should get server status successfully", func() {
 				server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					Expect(r.Method).To(Equal("GET"))
-					Expect(r.URL.Path).To(Equal("/v1/projects/test-project-123/servers/test-server-456"))
+					Expect(r.URL.Path).To(Equal("/v1/projects/11111111-2222-3333-4444-555555555555/servers/test-server-456"))
 					Expect(r.Header.Get("Accept")).To(Equal("application/json"))
 
 					w.WriteHeader(http.StatusOK)
@@ -271,7 +271,7 @@ var _ = Describe("HTTP Client", func() {
 			It("should delete server successfully", func() {
 				server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					Expect(r.Method).To(Equal("DELETE"))
-					Expect(r.URL.Path).To(Equal("/v1/projects/test-project-123/servers/test-server-456"))
+					Expect(r.URL.Path).To(Equal("/v1/projects/11111111-2222-3333-4444-555555555555/servers/test-server-456"))
 
 					// Real STACKIT API returns 204 No Content on successful DELETE
 					w.WriteHeader(http.StatusNoContent)

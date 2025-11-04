@@ -42,7 +42,7 @@ var _ = Describe("CreateMachine", func() {
 		// Create secret with projectId
 		secret = &corev1.Secret{
 			Data: map[string][]byte{
-				"projectId":    []byte("test-project-123"),
+				"projectId":    []byte("11111111-2222-3333-4444-555555555555"),
 				"stackitToken": []byte("test-token-123"),
 			},
 		}
@@ -50,7 +50,7 @@ var _ = Describe("CreateMachine", func() {
 		// Create ProviderSpec
 		providerSpec := &api.ProviderSpec{
 			MachineType: "c1.2",
-			ImageID:     "image-uuid-123",
+			ImageID:     "12345678-1234-1234-1234-123456789abc",
 		}
 		providerSpecRaw, _ := encodeProviderSpec(providerSpec)
 
@@ -86,7 +86,7 @@ var _ = Describe("CreateMachine", func() {
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp).NotTo(BeNil())
-			Expect(resp.ProviderID).To(Equal("stackit://test-project-123/550e8400-e29b-41d4-a716-446655440000"))
+			Expect(resp.ProviderID).To(Equal("stackit://11111111-2222-3333-4444-555555555555/550e8400-e29b-41d4-a716-446655440000"))
 			Expect(resp.NodeName).To(Equal("test-machine"))
 		})
 
@@ -107,11 +107,11 @@ var _ = Describe("CreateMachine", func() {
 			_, err := provider.CreateMachine(ctx, req)
 
 			Expect(err).NotTo(HaveOccurred())
-			Expect(capturedProjectID).To(Equal("test-project-123"))
+			Expect(capturedProjectID).To(Equal("11111111-2222-3333-4444-555555555555"))
 			Expect(capturedReq).NotTo(BeNil())
 			Expect(capturedReq.Name).To(Equal("test-machine"))
 			Expect(capturedReq.MachineType).To(Equal("c1.2"))
-			Expect(capturedReq.ImageID).To(Equal("image-uuid-123"))
+			Expect(capturedReq.ImageID).To(Equal("12345678-1234-1234-1234-123456789abc"))
 		})
 	})
 
@@ -119,7 +119,7 @@ var _ = Describe("CreateMachine", func() {
 		It("should fail when MachineType is missing", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType: "",
-				ImageID:     "image-uuid-123",
+				ImageID:     "12345678-1234-1234-1234-123456789abc",
 			}
 			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
 			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
@@ -181,7 +181,7 @@ var _ = Describe("CreateMachine", func() {
 		It("should pass userData from ProviderSpec to API", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType: "c1.2",
-				ImageID:     "image-uuid-123",
+				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				UserData:    "#cloud-config\nruncmd:\n  - echo 'Hello from ProviderSpec'",
 			}
 			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
@@ -229,7 +229,7 @@ var _ = Describe("CreateMachine", func() {
 		It("should prefer ProviderSpec.UserData over Secret.userData", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType: "c1.2",
-				ImageID:     "image-uuid-123",
+				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				UserData:    "#cloud-config from ProviderSpec",
 			}
 			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
@@ -298,7 +298,7 @@ var _ = Describe("CreateMachine", func() {
 			deleteOnTermination := true
 			providerSpec := &api.ProviderSpec{
 				MachineType: "c1.2",
-				ImageID:     "image-uuid-123",
+				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				BootVolume: &api.BootVolumeSpec{
 					DeleteOnTermination: &deleteOnTermination,
 					PerformanceClass:    "premium",
@@ -338,7 +338,7 @@ var _ = Describe("CreateMachine", func() {
 		It("should pass BootVolume with minimal config to API", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType: "c1.2",
-				ImageID:     "image-uuid-123",
+				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				BootVolume: &api.BootVolumeSpec{
 					Size: 50,
 				},
@@ -367,7 +367,7 @@ var _ = Describe("CreateMachine", func() {
 		It("should pass Volumes array to API", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType: "c1.2",
-				ImageID:     "image-uuid-123",
+				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				Volumes: []string{
 					"550e8400-e29b-41d4-a716-446655440000",
 					"660e8400-e29b-41d4-a716-446655440001",
@@ -399,7 +399,7 @@ var _ = Describe("CreateMachine", func() {
 		It("should pass both BootVolume and Volumes to API", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType: "c1.2",
-				ImageID:     "image-uuid-123",
+				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				BootVolume: &api.BootVolumeSpec{
 					Size: 50,
 				},
@@ -453,7 +453,7 @@ var _ = Describe("CreateMachine", func() {
 		It("should pass KeypairName to API when specified", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType: "c1.2",
-				ImageID:     "image-uuid-123",
+				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				KeypairName: "my-ssh-key",
 			}
 			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
@@ -499,7 +499,7 @@ var _ = Describe("CreateMachine", func() {
 		It("should pass AvailabilityZone to API when specified", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType:      "c1.2",
-				ImageID:          "image-uuid-123",
+				ImageID:          "12345678-1234-1234-1234-123456789abc",
 				AvailabilityZone: "eu01-1",
 			}
 			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
@@ -545,7 +545,7 @@ var _ = Describe("CreateMachine", func() {
 		It("should pass AffinityGroup to API when specified", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType:   "c1.2",
-				ImageID:       "image-uuid-123",
+				ImageID:       "12345678-1234-1234-1234-123456789abc",
 				AffinityGroup: "880e8400-e29b-41d4-a716-446655440000",
 			}
 			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
@@ -589,7 +589,7 @@ var _ = Describe("CreateMachine", func() {
 		It("should pass ServiceAccountMails to API when specified", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType: "c1.2",
-				ImageID:     "image-uuid-123",
+				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				ServiceAccountMails: []string{
 					"my-service@sa.stackit.cloud",
 				},
@@ -638,7 +638,7 @@ var _ = Describe("CreateMachine", func() {
 			provisioned := true
 			providerSpec := &api.ProviderSpec{
 				MachineType: "c1.2",
-				ImageID:     "image-uuid-123",
+				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				Agent: &api.AgentSpec{
 					Provisioned: &provisioned,
 				},
@@ -685,7 +685,7 @@ var _ = Describe("CreateMachine", func() {
 		It("should pass Metadata to API when specified", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType: "c1.2",
-				ImageID:     "image-uuid-123",
+				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				Metadata: map[string]interface{}{
 					"environment": "production",
 					"cost-center": "12345",

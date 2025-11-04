@@ -41,7 +41,7 @@ var _ = Describe("DeleteMachine", func() {
 		// Create secret with projectId
 		secret = &corev1.Secret{
 			Data: map[string][]byte{
-				"projectId":    []byte("test-project-123"),
+				"projectId":    []byte("11111111-2222-3333-4444-555555555555"),
 				"stackitToken": []byte("test-token-123"),
 			},
 		}
@@ -70,7 +70,7 @@ var _ = Describe("DeleteMachine", func() {
 				Namespace: "default",
 			},
 			Spec: v1alpha1.MachineSpec{
-				ProviderID: "stackit://test-project-123/550e8400-e29b-41d4-a716-446655440000",
+				ProviderID: "stackit://11111111-2222-3333-4444-555555555555/550e8400-e29b-41d4-a716-446655440000",
 			},
 		}
 
@@ -107,7 +107,7 @@ var _ = Describe("DeleteMachine", func() {
 			_, err := provider.DeleteMachine(ctx, req)
 
 			Expect(err).NotTo(HaveOccurred())
-			Expect(capturedProjectID).To(Equal("test-project-123"))
+			Expect(capturedProjectID).To(Equal("11111111-2222-3333-4444-555555555555"))
 			Expect(capturedServerID).To(Equal("550e8400-e29b-41d4-a716-446655440000"))
 		})
 	})

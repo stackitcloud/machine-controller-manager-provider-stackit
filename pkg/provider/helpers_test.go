@@ -19,10 +19,10 @@ var _ = Describe("Helpers", func() {
 	Describe("parseProviderID", func() {
 		Context("with valid ProviderIDs", func() {
 			It("should parse a valid ProviderID", func() {
-				projectID, serverID, err := parseProviderID("stackit://test-project-123/server-456")
+				projectID, serverID, err := parseProviderID("stackit://11111111-2222-3333-4444-555555555555/server-456")
 
 				Expect(err).NotTo(HaveOccurred())
-				Expect(projectID).To(Equal("test-project-123"))
+				Expect(projectID).To(Equal("11111111-2222-3333-4444-555555555555"))
 				Expect(serverID).To(Equal("server-456"))
 			})
 
