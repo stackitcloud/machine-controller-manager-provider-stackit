@@ -335,6 +335,43 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 		})
 	})
 
+	Context("KeypairName validation", func() {
+		It("should succeed with valid keypairName", func() {
+			providerSpec.KeypairName = "my-ssh-key"
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).To(BeEmpty())
+		})
+
+		It("should succeed when keypairName is empty", func() {
+			providerSpec.KeypairName = ""
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).To(BeEmpty())
+		})
+
+		It("should succeed with keypairName containing allowed characters", func() {
+			providerSpec.KeypairName = "my-key_2024@test.com"
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).To(BeEmpty())
+		})
+
+		It("should fail when keypairName contains invalid characters", func() {
+			providerSpec.KeypairName = "my key!"
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).NotTo(BeEmpty())
+			Expect(errors[0].Error()).To(ContainSubstring("invalid characters"))
+		})
+
+		It("should fail when keypairName exceeds max length", func() {
+			providerSpec.KeypairName = string(make([]byte, 128)) // 128 > 127 max
+			for i := range providerSpec.KeypairName {
+				providerSpec.KeypairName = providerSpec.KeypairName[:i] + "a" + providerSpec.KeypairName[i+1:]
+			}
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).NotTo(BeEmpty())
+			Expect(errors[0].Error()).To(ContainSubstring("maximum length"))
+		})
+	})
+
 	Context("Secret validation", func() {
 		It("should fail when secret is nil", func() {
 			errors := ValidateProviderSpecNSecret(providerSpec, nil)

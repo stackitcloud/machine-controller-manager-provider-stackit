@@ -16,6 +16,10 @@ import (
 // uuidRegex is a regex pattern for validating UUID format
 var uuidRegex = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 
+// keypairNameRegex is a regex pattern for validating keypair name format
+// Pattern from STACKIT API: ^[A-Za-z0-9@._-]*$
+var keypairNameRegex = regexp.MustCompile(`^[A-Za-z0-9@._-]*$`)
+
 // ValidateProviderSpecNSecret validates provider spec and secret to check if all fields are present and valid
 func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret) []error {
 	var errors []error
@@ -73,6 +77,16 @@ func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret)
 			} else if !isValidUUID(volumeID) {
 				errors = append(errors, fmt.Errorf("providerSpec.volumes[%d] must be a valid UUID", i))
 			}
+		}
+	}
+
+	// Validate KeypairName
+	if spec.KeypairName != "" {
+		if len(spec.KeypairName) > 127 {
+			errors = append(errors, fmt.Errorf("providerSpec.keypairName exceeds maximum length of 127 characters"))
+		}
+		if !keypairNameRegex.MatchString(spec.KeypairName) {
+			errors = append(errors, fmt.Errorf("providerSpec.keypairName contains invalid characters (allowed: A-Za-z0-9@._-)"))
 		}
 	}
 
