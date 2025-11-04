@@ -33,7 +33,7 @@ import (
 //   - Internal: Failed to create server or communicate with STACKIT API
 func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineRequest) (*driver.CreateMachineResponse, error) {
 	// Log messages to track request
-	klog.V(2).Infof("Machine creation request has been recieved for %q", req.Machine.Name)
+	klog.V(2).Infof("Machine creation request has been received for %q", req.Machine.Name)
 	defer klog.V(2).Infof("Machine creation request has been processed for %q", req.Machine.Name)
 
 	// Decode ProviderSpec from MachineClass
@@ -184,7 +184,7 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 //   - Internal: Failed to delete server or communicate with STACKIT API
 func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineRequest) (*driver.DeleteMachineResponse, error) {
 	// Log messages to track delete request
-	klog.V(2).Infof("Machine deletion request has been recieved for %q", req.Machine.Name)
+	klog.V(2).Infof("Machine deletion request has been received for %q", req.Machine.Name)
 	defer klog.V(2).Infof("Machine deletion request has been processed for %q", req.Machine.Name)
 
 	// Validate ProviderID exists
@@ -232,7 +232,7 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 //   - Internal: Failed to get server status or communicate with STACKIT API
 func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineStatusRequest) (*driver.GetMachineStatusResponse, error) {
 	// Log messages to track start and end of request
-	klog.V(2).Infof("Get request has been recieved for %q", req.Machine.Name)
+	klog.V(2).Infof("Get request has been received for %q", req.Machine.Name)
 	defer klog.V(2).Infof("Machine get request has been processed successfully for %q", req.Machine.Name)
 
 	// When ProviderID is empty, the machine doesn't exist yet
@@ -283,7 +283,7 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 //   - Internal: Failed to list servers or communicate with STACKIT API
 func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesRequest) (*driver.ListMachinesResponse, error) {
 	// Log messages to track start and end of request
-	klog.V(2).Infof("List machines request has been recieved for %q", req.MachineClass.Name)
+	klog.V(2).Infof("List machines request has been received for %q", req.MachineClass.Name)
 	defer klog.V(2).Infof("List machines request has been processed for %q", req.MachineClass.Name)
 
 	// Extract projectId from Secret
@@ -339,7 +339,7 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 //   - Unimplemented: This functionality is not required for STACKIT provider
 func (p *Provider) GetVolumeIDs(ctx context.Context, req *driver.GetVolumeIDsRequest) (*driver.GetVolumeIDsResponse, error) {
 	// Log messages to track start and end of request
-	klog.V(2).Infof("GetVolumeIDs request has been recieved for %q", req.PVSpecs)
+	klog.V(2).Infof("GetVolumeIDs request has been received for %q", req.PVSpecs)
 	defer klog.V(2).Infof("GetVolumeIDs request has been processed successfully for %q", req.PVSpecs)
 
 	return &driver.GetVolumeIDsResponse{}, status.Error(codes.Unimplemented, "")
@@ -357,7 +357,7 @@ func (p *Provider) GetVolumeIDs(ctx context.Context, req *driver.GetVolumeIDsReq
 //   - Unimplemented: No migration required for STACKIT provider
 func (p *Provider) GenerateMachineClassForMigration(ctx context.Context, req *driver.GenerateMachineClassForMigrationRequest) (*driver.GenerateMachineClassForMigrationResponse, error) {
 	// Log messages to track start and end of request
-	klog.V(2).Infof("MigrateMachineClass request has been recieved for %q", req.ClassSpec)
+	klog.V(2).Infof("MigrateMachineClass request has been received for %q", req.ClassSpec)
 	defer klog.V(2).Infof("MigrateMachineClass request has been processed successfully for %q", req.ClassSpec)
 
 	return &driver.GenerateMachineClassForMigrationResponse{}, status.Error(codes.Unimplemented, "")

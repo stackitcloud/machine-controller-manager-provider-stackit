@@ -17,11 +17,11 @@ import (
 
 var _ = Describe("HTTP Client", func() {
 	var (
-		server     *httptest.Server
-		client     *httpStackitClient
-		ctx        context.Context
-		projectID  string
-		serverID   string
+		server    *httptest.Server
+		client    *httpStackitClient
+		ctx       context.Context
+		projectID string
+		serverID  string
 	)
 
 	BeforeEach(func() {

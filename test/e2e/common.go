@@ -100,7 +100,7 @@ func createAndTrackResource(resourceType, resourceName, namespace, yamlContent s
 	cmd.Stdin = strings.NewReader(yamlContent)
 	_, err := utils.Run(cmd)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("Failed to create %s: %s", resourceType, resourceName))
-	
+
 	trackResource(resourceType, resourceName, namespace)
 }
 
