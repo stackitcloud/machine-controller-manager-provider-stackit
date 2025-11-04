@@ -25,11 +25,13 @@ type StackitClient interface {
 type CreateServerRequest struct {
 	Name           string                    `json:"name"`
 	MachineType    string                    `json:"machineType"`
-	ImageID        string                    `json:"imageId"`
+	ImageID        string                    `json:"imageId,omitempty"`
 	Labels         map[string]string         `json:"labels,omitempty"`
 	Networking     *ServerNetworkingRequest  `json:"networking,omitempty"`
 	SecurityGroups []string                  `json:"securityGroups,omitempty"`
 	UserData       string                    `json:"userData,omitempty"`
+	BootVolume     *BootVolumeRequest        `json:"bootVolume,omitempty"`
+	Volumes        []string                  `json:"volumes,omitempty"`
 }
 
 // ServerNetworkingRequest represents the networking configuration for a server
@@ -37,6 +39,20 @@ type CreateServerRequest struct {
 type ServerNetworkingRequest struct {
 	NetworkID string   `json:"networkId,omitempty"`
 	NICIDs    []string `json:"nicIds,omitempty"`
+}
+
+// BootVolumeRequest represents the boot volume configuration for a server
+type BootVolumeRequest struct {
+	DeleteOnTermination *bool                     `json:"deleteOnTermination,omitempty"`
+	PerformanceClass    string                    `json:"performanceClass,omitempty"`
+	Size                int                       `json:"size,omitempty"`
+	Source              *BootVolumeSourceRequest  `json:"source,omitempty"`
+}
+
+// BootVolumeSourceRequest represents the source for creating a boot volume
+type BootVolumeSourceRequest struct {
+	Type string `json:"type"`
+	ID   string `json:"id"`
 }
 
 // Server represents a STACKIT server response

@@ -291,4 +291,160 @@ var _ = Describe("CreateMachine", func() {
 			Expect(capturedReq.UserData).To(BeEmpty())
 		})
 	})
+
+	Context("with volumes", func() {
+		It("should pass BootVolume with all fields to API", func() {
+			deleteOnTermination := true
+			providerSpec := &api.ProviderSpec{
+				MachineType: "c1.2",
+				ImageID:     "image-uuid-123",
+				BootVolume: &api.BootVolumeSpec{
+					DeleteOnTermination: &deleteOnTermination,
+					PerformanceClass:    "premium",
+					Size:                100,
+					Source: &api.BootVolumeSourceSpec{
+						Type: "image",
+						ID:   "550e8400-e29b-41d4-a716-446655440000",
+					},
+				},
+			}
+			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
+
+			var capturedReq *CreateServerRequest
+			mockClient.createServerFunc = func(ctx context.Context, projectID string, req *CreateServerRequest) (*Server, error) {
+				capturedReq = req
+				return &Server{
+					ID:     "test-server-id",
+					Name:   req.Name,
+					Status: "CREATING",
+				}, nil
+			}
+
+			_, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(capturedReq).NotTo(BeNil())
+			Expect(capturedReq.BootVolume).NotTo(BeNil())
+			Expect(capturedReq.BootVolume.DeleteOnTermination).To(Equal(&deleteOnTermination))
+			Expect(capturedReq.BootVolume.PerformanceClass).To(Equal("premium"))
+			Expect(capturedReq.BootVolume.Size).To(Equal(100))
+			Expect(capturedReq.BootVolume.Source).NotTo(BeNil())
+			Expect(capturedReq.BootVolume.Source.Type).To(Equal("image"))
+			Expect(capturedReq.BootVolume.Source.ID).To(Equal("550e8400-e29b-41d4-a716-446655440000"))
+		})
+
+		It("should pass BootVolume with minimal config to API", func() {
+			providerSpec := &api.ProviderSpec{
+				MachineType: "c1.2",
+				ImageID:     "image-uuid-123",
+				BootVolume: &api.BootVolumeSpec{
+					Size: 50,
+				},
+			}
+			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
+
+			var capturedReq *CreateServerRequest
+			mockClient.createServerFunc = func(ctx context.Context, projectID string, req *CreateServerRequest) (*Server, error) {
+				capturedReq = req
+				return &Server{
+					ID:     "test-server-id",
+					Name:   req.Name,
+					Status: "CREATING",
+				}, nil
+			}
+
+			_, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(capturedReq).NotTo(BeNil())
+			Expect(capturedReq.BootVolume).NotTo(BeNil())
+			Expect(capturedReq.BootVolume.Size).To(Equal(50))
+		})
+
+		It("should pass Volumes array to API", func() {
+			providerSpec := &api.ProviderSpec{
+				MachineType: "c1.2",
+				ImageID:     "image-uuid-123",
+				Volumes: []string{
+					"550e8400-e29b-41d4-a716-446655440000",
+					"660e8400-e29b-41d4-a716-446655440001",
+				},
+			}
+			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
+
+			var capturedReq *CreateServerRequest
+			mockClient.createServerFunc = func(ctx context.Context, projectID string, req *CreateServerRequest) (*Server, error) {
+				capturedReq = req
+				return &Server{
+					ID:     "test-server-id",
+					Name:   req.Name,
+					Status: "CREATING",
+				}, nil
+			}
+
+			_, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(capturedReq).NotTo(BeNil())
+			Expect(capturedReq.Volumes).To(Equal([]string{
+				"550e8400-e29b-41d4-a716-446655440000",
+				"660e8400-e29b-41d4-a716-446655440001",
+			}))
+		})
+
+		It("should pass both BootVolume and Volumes to API", func() {
+			providerSpec := &api.ProviderSpec{
+				MachineType: "c1.2",
+				ImageID:     "image-uuid-123",
+				BootVolume: &api.BootVolumeSpec{
+					Size: 50,
+				},
+				Volumes: []string{
+					"550e8400-e29b-41d4-a716-446655440000",
+				},
+			}
+			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
+
+			var capturedReq *CreateServerRequest
+			mockClient.createServerFunc = func(ctx context.Context, projectID string, req *CreateServerRequest) (*Server, error) {
+				capturedReq = req
+				return &Server{
+					ID:     "test-server-id",
+					Name:   req.Name,
+					Status: "CREATING",
+				}, nil
+			}
+
+			_, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(capturedReq).NotTo(BeNil())
+			Expect(capturedReq.BootVolume).NotTo(BeNil())
+			Expect(capturedReq.BootVolume.Size).To(Equal(50))
+			Expect(capturedReq.Volumes).To(HaveLen(1))
+		})
+
+		It("should not send volumes when not specified", func() {
+			var capturedReq *CreateServerRequest
+			mockClient.createServerFunc = func(ctx context.Context, projectID string, req *CreateServerRequest) (*Server, error) {
+				capturedReq = req
+				return &Server{
+					ID:     "test-server-id",
+					Name:   req.Name,
+					Status: "CREATING",
+				}, nil
+			}
+
+			_, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(capturedReq).NotTo(BeNil())
+			Expect(capturedReq.BootVolume).To(BeNil())
+			Expect(capturedReq.Volumes).To(BeNil())
+		})
+	})
 })

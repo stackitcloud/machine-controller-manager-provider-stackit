@@ -38,8 +38,10 @@ func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret)
 		errors = append(errors, fmt.Errorf("providerSpec.machineType is required"))
 	}
 
-	if spec.ImageID == "" {
-		errors = append(errors, fmt.Errorf("providerSpec.imageId is required"))
+	// ImageID is required unless BootVolume.Source is specified
+	hasBootVolumeSource := spec.BootVolume != nil && spec.BootVolume.Source != nil
+	if spec.ImageID == "" && !hasBootVolumeSource {
+		errors = append(errors, fmt.Errorf("providerSpec.imageId or bootVolume.source is required"))
 	}
 
 	// Validate Networking
@@ -53,6 +55,23 @@ func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret)
 		for i, sg := range spec.SecurityGroups {
 			if sg == "" {
 				errors = append(errors, fmt.Errorf("providerSpec.securityGroups[%d] cannot be empty", i))
+			}
+		}
+	}
+
+	// Validate BootVolume
+	if spec.BootVolume != nil {
+		bootVolumeErrors := validateBootVolume(spec.BootVolume)
+		errors = append(errors, bootVolumeErrors...)
+	}
+
+	// Validate Volumes
+	if len(spec.Volumes) > 0 {
+		for i, volumeID := range spec.Volumes {
+			if volumeID == "" {
+				errors = append(errors, fmt.Errorf("providerSpec.volumes[%d] cannot be empty", i))
+			} else if !isValidUUID(volumeID) {
+				errors = append(errors, fmt.Errorf("providerSpec.volumes[%d] must be a valid UUID", i))
 			}
 		}
 	}
@@ -93,6 +112,41 @@ func validateNetworking(networking *api.NetworkingSpec) []error {
 			} else if !isValidUUID(nicID) {
 				errors = append(errors, fmt.Errorf("providerSpec.networking.nicIds[%d] must be a valid UUID", i))
 			}
+		}
+	}
+
+	return errors
+}
+
+// validateBootVolume validates the BootVolumeSpec
+func validateBootVolume(bootVolume *api.BootVolumeSpec) []error {
+	var errors []error
+
+	// Validate size if specified
+	if bootVolume.Size < 0 {
+		errors = append(errors, fmt.Errorf("providerSpec.bootVolume.size must be positive or zero"))
+	}
+
+	// Validate source if specified
+	if bootVolume.Source != nil {
+		if bootVolume.Source.Type == "" {
+			errors = append(errors, fmt.Errorf("providerSpec.bootVolume.source.type is required when source is specified"))
+		} else {
+			// Validate source type is one of the allowed values
+			validSourceTypes := map[string]bool{
+				"image":    true,
+				"snapshot": true,
+				"volume":   true,
+			}
+			if !validSourceTypes[bootVolume.Source.Type] {
+				errors = append(errors, fmt.Errorf("providerSpec.bootVolume.source type must be one of: image, snapshot, volume"))
+			}
+		}
+
+		if bootVolume.Source.ID == "" {
+			errors = append(errors, fmt.Errorf("providerSpec.bootVolume.source.id is required when source is specified"))
+		} else if !isValidUUID(bootVolume.Source.ID) {
+			errors = append(errors, fmt.Errorf("providerSpec.bootVolume.source.id must be a valid UUID"))
 		}
 	}
 

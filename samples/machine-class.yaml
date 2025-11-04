@@ -89,3 +89,70 @@ providerSpec:
 secretRef:
   name: test-secret
   namespace: default
+
+---
+# Example: Machine with custom boot volume configuration
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: MachineClass
+metadata:
+  name: custom-bootvolume-mc
+  namespace: default
+providerSpec:
+  machineType: "c1.2"
+  imageId: "550e8400-e29b-41d4-a716-446655440000"
+  # BootVolume allows fine-grained control over boot disk
+  bootVolume:
+    # Size in GB (must be >= image size)
+    size: 100
+    # Performance class: "standard", "premium", etc.
+    performanceClass: "premium"
+    # Delete volume when server is terminated (default: true)
+    # deleteOnTermination: false  # Set to false to preserve boot volume
+    # Source: create boot volume from image/snapshot/volume
+    # If not specified, uses imageId from ProviderSpec
+    # source:
+    #   type: "snapshot"  # or "image" or "volume"
+    #   id: "770e8400-e29b-41d4-a716-446655440000"
+secretRef:
+  name: test-secret
+  namespace: default
+
+---
+# Example: Machine with additional data volumes
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: MachineClass
+metadata:
+  name: with-volumes-mc
+  namespace: default
+providerSpec:
+  machineType: "c1.2"
+  imageId: "550e8400-e29b-41d4-a716-446655440000"
+  # Volumes: attach existing volumes by UUID
+  # These are data volumes in addition to the boot disk
+  volumes:
+    - "880e8400-e29b-41d4-a716-446655440000"  # data-volume-1
+    - "990e8400-e29b-41d4-a716-446655440001"  # data-volume-2
+secretRef:
+  name: test-secret
+  namespace: default
+
+---
+# Example: Machine with both custom boot volume and additional volumes
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: MachineClass
+metadata:
+  name: full-storage-mc
+  namespace: default
+providerSpec:
+  machineType: "c1.2"
+  imageId: "550e8400-e29b-41d4-a716-446655440000"
+  # Custom boot volume configuration
+  bootVolume:
+    size: 50
+    performanceClass: "standard"
+  # Additional data volumes
+  volumes:
+    - "880e8400-e29b-41d4-a716-446655440000"
+secretRef:
+  name: test-secret
+  namespace: default

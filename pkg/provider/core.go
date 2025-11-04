@@ -121,6 +121,28 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		createReq.UserData = base64.StdEncoding.EncodeToString([]byte(userDataPlain))
 	}
 
+	// Add boot volume configuration if specified
+	if providerSpec.BootVolume != nil {
+		createReq.BootVolume = &BootVolumeRequest{
+			DeleteOnTermination: providerSpec.BootVolume.DeleteOnTermination,
+			PerformanceClass:    providerSpec.BootVolume.PerformanceClass,
+			Size:                providerSpec.BootVolume.Size,
+		}
+
+		// Add boot volume source if specified
+		if providerSpec.BootVolume.Source != nil {
+			createReq.BootVolume.Source = &BootVolumeSourceRequest{
+				Type: providerSpec.BootVolume.Source.Type,
+				ID:   providerSpec.BootVolume.Source.ID,
+			}
+		}
+	}
+
+	// Add additional volumes if specified
+	if len(providerSpec.Volumes) > 0 {
+		createReq.Volumes = providerSpec.Volumes
+	}
+
 	// Call STACKIT API to create server
 	server, err := p.client.CreateServer(ctx, projectID, createReq)
 	if err != nil {

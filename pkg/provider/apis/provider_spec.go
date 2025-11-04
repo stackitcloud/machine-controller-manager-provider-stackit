@@ -33,6 +33,15 @@ type ProviderSpec struct {
 	// If specified, takes precedence over Secret.userData.
 	// Note: Secret.userData is typically required by MCM for node bootstrapping.
 	UserData string `json:"userData,omitempty"`
+
+	// BootVolume defines detailed boot disk configuration
+	// Optional field. If not specified, a boot volume will be created from ImageID with default settings.
+	// If specified, provides fine-grained control over boot disk size, performance, and lifecycle.
+	BootVolume *BootVolumeSpec `json:"bootVolume,omitempty"`
+
+	// Volumes are UUIDs of existing volumes to attach to the server
+	// Optional field. Allows attaching additional data volumes beyond the boot disk.
+	Volumes []string `json:"volumes,omitempty"`
 }
 
 // NetworkingSpec defines the network configuration for a server
@@ -48,4 +57,38 @@ type NetworkingSpec struct {
 	// Advanced variant: Allows fine-grained control over NICs, IPs, and security groups
 	// Mutually exclusive with NetworkID
 	NICIDs []string `json:"nicIds,omitempty"`
+}
+
+// BootVolumeSpec defines the boot disk configuration for a server
+// Provides detailed control over boot volume size, performance, and lifecycle
+type BootVolumeSpec struct {
+	// DeleteOnTermination controls whether the boot volume is deleted when the server is terminated
+	// Optional field. Defaults to true (volume deleted with server).
+	DeleteOnTermination *bool `json:"deleteOnTermination,omitempty"`
+
+	// PerformanceClass defines the performance tier for the boot volume
+	// Optional field. Examples: "standard", "premium", "fast" (depends on STACKIT offerings)
+	PerformanceClass string `json:"performanceClass,omitempty"`
+
+	// Size is the boot volume size in GB
+	// Optional field. If not specified, size is determined from the image.
+	// Must be >= image size if specified.
+	Size int `json:"size,omitempty"`
+
+	// Source defines where to create the boot volume from
+	// Optional field. If not specified, uses ImageID from ProviderSpec.
+	// Allows creating boot volume from snapshots or existing volumes.
+	Source *BootVolumeSourceSpec `json:"source,omitempty"`
+}
+
+// BootVolumeSourceSpec defines the source for creating a boot volume
+// Can be an image, snapshot, or existing volume
+type BootVolumeSourceSpec struct {
+	// Type is the source type: "image", "snapshot", or "volume"
+	// Required field when Source is specified.
+	Type string `json:"type"`
+
+	// ID is the UUID of the source (image/snapshot/volume)
+	// Required field when Source is specified.
+	ID string `json:"id"`
 }
