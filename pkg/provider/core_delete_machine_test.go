@@ -41,7 +41,8 @@ var _ = Describe("DeleteMachine", func() {
 		// Create secret with projectId
 		secret = &corev1.Secret{
 			Data: map[string][]byte{
-				"projectId": []byte("test-project-123"),
+				"projectId":    []byte("test-project-123"),
+				"stackitToken": []byte("test-token-123"),
 			},
 		}
 
@@ -83,7 +84,7 @@ var _ = Describe("DeleteMachine", func() {
 
 	Context("with valid inputs", func() {
 		It("should successfully delete a machine", func() {
-			mockClient.deleteServerFunc = func(ctx context.Context, projectID, serverID string) error {
+			mockClient.deleteServerFunc = func(ctx context.Context, token, projectID, serverID string) error {
 				return nil
 			}
 
@@ -97,7 +98,7 @@ var _ = Describe("DeleteMachine", func() {
 			var capturedProjectID string
 			var capturedServerID string
 
-			mockClient.deleteServerFunc = func(ctx context.Context, projectID, serverID string) error {
+			mockClient.deleteServerFunc = func(ctx context.Context, token, projectID, serverID string) error {
 				capturedProjectID = projectID
 				capturedServerID = serverID
 				return nil
@@ -137,7 +138,7 @@ var _ = Describe("DeleteMachine", func() {
 
 	Context("when server does not exist (idempotency)", func() {
 		It("should succeed when server is already deleted (NotFound)", func() {
-			mockClient.deleteServerFunc = func(ctx context.Context, projectID, serverID string) error {
+			mockClient.deleteServerFunc = func(ctx context.Context, token, projectID, serverID string) error {
 				return fmt.Errorf("%w: status 404", ErrServerNotFound)
 			}
 
@@ -150,7 +151,7 @@ var _ = Describe("DeleteMachine", func() {
 
 	Context("when STACKIT API fails", func() {
 		It("should return Internal error on API failure", func() {
-			mockClient.deleteServerFunc = func(ctx context.Context, projectID, serverID string) error {
+			mockClient.deleteServerFunc = func(ctx context.Context, token, projectID, serverID string) error {
 				return fmt.Errorf("API connection failed")
 			}
 

@@ -18,44 +18,22 @@ import (
 	"k8s.io/klog"
 )
 
-// NOTE
+// CreateMachine handles a machine creation request by creating a STACKIT server
 //
-// The basic working of the controller will work with just implementing the CreateMachine() & DeleteMachine() methods.
-// You can first implement these two methods and check the working of the controller.
-// Leaving the other methods to NOT_IMPLEMENTED error status.
-// Once this works you can implement the rest of the methods.
+// This method creates a new server in STACKIT infrastructure based on the ProviderSpec
+// configuration in the MachineClass. It assigns MCM-specific labels to the server for
+// tracking and orphan VM detection.
 //
-// Also make sure each method return appropriate errors mentioned in `https://github.com/gardener/machine-controller-manager/blob/master/docs/development/machine_error_codes.md`
-
-// CreateMachine handles a machine creation request
-// REQUIRED METHOD
+// Returns:
+//   - ProviderID: Unique identifier in format "stackit://<projectId>/<serverId>"
+//   - NodeName: Name that the VM will register with in Kubernetes (matches Machine name)
 //
-// REQUEST PARAMETERS (driver.CreateMachineRequest)
-// Machine               *v1alpha1.Machine        Machine object from whom VM is to be created
-// MachineClass          *v1alpha1.MachineClass   MachineClass backing the machine object
-// Secret                *corev1.Secret           Kubernetes secret that contains any sensitive data/credentials
-//
-// RESPONSE PARAMETERS (driver.CreateMachineResponse)
-// ProviderID            string                   Unique identification of the VM at the cloud provider. This could be the same/different from req.MachineName.
-//
-//	ProviderID typically matches with the node.Spec.ProviderID on the node object.
-//	Eg: gce://project-name/region/vm-ProviderID
-//
-// NodeName              string                   Returns the name of the node-object that the VM register's with Kubernetes.
-//
-//	This could be different from req.MachineName as well
-//
-// LastKnownState        string                   (Optional) Last known state of VM during the current operation.
-//
-//	Could be helpful to continue operations in future requests.
-//
-// OPTIONAL IMPLEMENTATION LOGIC
-// It is optionally expected by the safety controller to use an identification mechanisms to map the VM Created by a providerSpec.
-// These could be done using tag(s)/resource-groups etc.
-// This logic is used by safety controller to delete orphan VMs which are not backed by any machine CRD
+// Error codes:
+//   - InvalidArgument: Invalid ProviderSpec or missing required fields
+//   - Internal: Failed to create server or communicate with STACKIT API
 func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineRequest) (*driver.CreateMachineResponse, error) {
 	// Log messages to track request
-	klog.V(2).Infof("Machine creation request has been recieved for %q", req.Machine.Name)
+	klog.V(2).Infof("Machine creation request has been received for %q", req.Machine.Name)
 	defer klog.V(2).Infof("Machine creation request has been processed for %q", req.Machine.Name)
 
 	// Decode ProviderSpec from MachineClass
@@ -70,8 +48,9 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		return nil, status.Error(codes.InvalidArgument, validationErrs[0].Error())
 	}
 
-	// Extract projectId from Secret
+	// Extract credentials from Secret
 	projectID := string(req.Secret.Data["projectId"])
+	token := string(req.Secret.Data["stackitToken"])
 
 	// Build labels: merge ProviderSpec labels with MCM-specific labels
 	labels := make(map[string]string)
@@ -170,8 +149,13 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		}
 	}
 
+	// Add metadata if specified
+	if len(providerSpec.Metadata) > 0 {
+		createReq.Metadata = providerSpec.Metadata
+	}
+
 	// Call STACKIT API to create server
-	server, err := p.client.CreateServer(ctx, projectID, createReq)
+	server, err := p.client.CreateServer(ctx, token, projectID, createReq)
 	if err != nil {
 		klog.Errorf("Failed to create server for machine %q: %v", req.Machine.Name, err)
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to create server: %v", err))
@@ -191,26 +175,26 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	}, nil
 }
 
-// DeleteMachine handles a machine deletion request
+// DeleteMachine handles a machine deletion request by deleting the STACKIT server
 //
-// REQUEST PARAMETERS (driver.DeleteMachineRequest)
-// Machine               *v1alpha1.Machine        Machine object from whom VM is to be deleted
-// MachineClass          *v1alpha1.MachineClass   MachineClass backing the machine object
-// Secret                *corev1.Secret           Kubernetes secret that contains any sensitive data/credentials
+// This method deletes the server identified by the ProviderID from STACKIT infrastructure.
+// It is idempotent - if the server is already deleted (404), it returns success.
 //
-// RESPONSE PARAMETERS (driver.DeleteMachineResponse)
-// LastKnownState        bytes(blob)              (Optional) Last known state of VM during the current operation.
-//
-//	Could be helpful to continue operations in future requests.
+// Error codes:
+//   - InvalidArgument: Missing or invalid ProviderID
+//   - Internal: Failed to delete server or communicate with STACKIT API
 func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineRequest) (*driver.DeleteMachineResponse, error) {
 	// Log messages to track delete request
-	klog.V(2).Infof("Machine deletion request has been recieved for %q", req.Machine.Name)
+	klog.V(2).Infof("Machine deletion request has been received for %q", req.Machine.Name)
 	defer klog.V(2).Infof("Machine deletion request has been processed for %q", req.Machine.Name)
 
 	// Validate ProviderID exists
 	if req.Machine.Spec.ProviderID == "" {
 		return nil, status.Error(codes.InvalidArgument, "ProviderID is required")
 	}
+
+	// Extract token from Secret for authentication
+	token := string(req.Secret.Data["stackitToken"])
 
 	// Parse ProviderID to extract projectID and serverID
 	projectID, serverID, err := parseProviderID(req.Machine.Spec.ProviderID)
@@ -219,7 +203,7 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 	}
 
 	// Call STACKIT API to delete server
-	err = p.client.DeleteServer(ctx, projectID, serverID)
+	err = p.client.DeleteServer(ctx, token, projectID, serverID)
 	if err != nil {
 		// Check if server was not found (404) - this is OK for idempotency
 		if errors.Is(err, ErrServerNotFound) {
@@ -236,28 +220,23 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 	return &driver.DeleteMachineResponse{}, nil
 }
 
-// GetMachineStatus handles a machine get status request
-// OPTIONAL METHOD
+// GetMachineStatus retrieves the current status of a STACKIT server
 //
-// REQUEST PARAMETERS (driver.GetMachineStatusRequest)
-// Machine               *v1alpha1.Machine        Machine object from whom VM status needs to be returned
-// MachineClass          *v1alpha1.MachineClass   MachineClass backing the machine object
-// Secret                *corev1.Secret           Kubernetes secret that contains any sensitive data/credentials
+// This method queries STACKIT API to get the current state of the server identified
+// by the Machine's ProviderID. If the ProviderID is empty (machine not created yet)
+// or the server doesn't exist, it returns NotFound error.
 //
-// RESPONSE PARAMETERS (driver.GetMachineStatueResponse)
-// ProviderID            string                   Unique identification of the VM at the cloud provider. This could be the same/different from req.MachineName.
+// Returns:
+//   - ProviderID: The machine's ProviderID
+//   - NodeName: Name that the VM registered with in Kubernetes
 //
-//	ProviderID typically matches with the node.Spec.ProviderID on the node object.
-//	Eg: gce://project-name/region/vm-ProviderID
-//
-// NodeName             string                    Returns the name of the node-object that the VM register's with Kubernetes.
-//
-//	This could be different from req.MachineName as well
-//
-// The request should return a NOT_FOUND (5) status error code if the machine is not existing
+// Error codes:
+//   - NotFound: Machine has no ProviderID yet, or server not found in STACKIT
+//   - InvalidArgument: Invalid ProviderID format
+//   - Internal: Failed to get server status or communicate with STACKIT API
 func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineStatusRequest) (*driver.GetMachineStatusResponse, error) {
 	// Log messages to track start and end of request
-	klog.V(2).Infof("Get request has been recieved for %q", req.Machine.Name)
+	klog.V(2).Infof("Get request has been received for %q", req.Machine.Name)
 	defer klog.V(2).Infof("Machine get request has been processed successfully for %q", req.Machine.Name)
 
 	// When ProviderID is empty, the machine doesn't exist yet
@@ -267,6 +246,9 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 		return nil, status.Error(codes.NotFound, "machine does not have a ProviderID yet")
 	}
 
+	// Extract token from Secret for authentication
+	token := string(req.Secret.Data["stackitToken"])
+
 	// Parse ProviderID to extract projectID and serverID
 	// Expected format: stackit://<projectId>/<serverId>
 	projectID, serverID, err := parseProviderID(req.Machine.Spec.ProviderID)
@@ -275,7 +257,7 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 	}
 
 	// Call STACKIT API to get server status
-	server, err := p.client.GetServer(ctx, projectID, serverID)
+	server, err := p.client.GetServer(ctx, token, projectID, serverID)
 	if err != nil {
 		// Check if server was not found (404)
 		if errors.Is(err, ErrServerNotFound) {
@@ -295,29 +277,28 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 	}, nil
 }
 
-// ListMachines lists all the machines possibilly created by a providerSpec
-// Identifying machines created by a given providerSpec depends on the OPTIONAL IMPLEMENTATION LOGIC
-// you have used to identify machines created by a providerSpec. It could be tags/resource-groups etc
-// OPTIONAL METHOD
+// ListMachines lists all STACKIT servers that belong to the specified MachineClass
 //
-// REQUEST PARAMETERS (driver.ListMachinesRequest)
-// MachineClass          *v1alpha1.MachineClass   MachineClass based on which VMs created have to be listed
-// Secret                *corev1.Secret           Kubernetes secret that contains any sensitive data/credentials
+// This method retrieves all servers in the STACKIT project and filters them based on
+// the "mcm.gardener.cloud/machineclass" label. This enables the MCM safety controller
+// to detect and clean up orphan VMs that are not backed by Machine CRs.
 //
-// RESPONSE PARAMETERS (driver.ListMachinesResponse)
-// MachineList           map<string,string>  A map containing the keys as the MachineID and value as the MachineName
+// Returns:
+//   - MachineList: Map of ProviderID to MachineName for all servers matching the MachineClass
 //
-//	for all machine's who where possibilly created by this ProviderSpec
+// Error codes:
+//   - Internal: Failed to list servers or communicate with STACKIT API
 func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesRequest) (*driver.ListMachinesResponse, error) {
 	// Log messages to track start and end of request
-	klog.V(2).Infof("List machines request has been recieved for %q", req.MachineClass.Name)
+	klog.V(2).Infof("List machines request has been received for %q", req.MachineClass.Name)
 	defer klog.V(2).Infof("List machines request has been processed for %q", req.MachineClass.Name)
 
-	// Extract projectId from Secret
+	// Extract credentials from Secret
 	projectID := string(req.Secret.Data["projectId"])
+	token := string(req.Secret.Data["stackitToken"])
 
 	// Call STACKIT API to list all servers
-	servers, err := p.client.ListServers(ctx, projectID)
+	servers, err := p.client.ListServers(ctx, token, projectID)
 	if err != nil {
 		klog.Errorf("Failed to list servers for MachineClass %q: %v", req.MachineClass.Name, err)
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to list servers: %v", err))
@@ -356,43 +337,35 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 	}, nil
 }
 
-// GetVolumeIDs returns a list of Volume IDs for all PV Specs for whom an provider volume was found
+// GetVolumeIDs extracts volume IDs from PersistentVolume specs
 //
-// REQUEST PARAMETERS (driver.GetVolumeIDsRequest)
-// PVSpecList            []*corev1.PersistentVolumeSpec       PVSpecsList is a list PV specs for whom volume-IDs are required.
+// This method is used by MCM to get volume IDs for persistent volumes.
+// Currently unimplemented for STACKIT provider - volumes are managed directly
+// through the ProviderSpec (bootVolume and volumes fields).
 //
-// RESPONSE PARAMETERS (driver.GetVolumeIDsResponse)
-// VolumeIDs             []string                             VolumeIDs is a repeated list of VolumeIDs.
+// Returns:
+//   - Unimplemented: This functionality is not required for STACKIT provider
 func (p *Provider) GetVolumeIDs(ctx context.Context, req *driver.GetVolumeIDsRequest) (*driver.GetVolumeIDsResponse, error) {
 	// Log messages to track start and end of request
-	klog.V(2).Infof("GetVolumeIDs request has been recieved for %q", req.PVSpecs)
+	klog.V(2).Infof("GetVolumeIDs request has been received for %q", req.PVSpecs)
 	defer klog.V(2).Infof("GetVolumeIDs request has been processed successfully for %q", req.PVSpecs)
 
 	return &driver.GetVolumeIDsResponse{}, status.Error(codes.Unimplemented, "")
 }
 
-// GenerateMachineClassForMigration helps in migration of one kind of machineClass CR to another kind.
-// For instance a machineClass custom resource of `AWSMachineClass` to `MachineClass`.
-// Implement this functionality only if something like this is desired in your setup.
-// If you don't require this functionality leave is as is. (return Unimplemented)
+// GenerateMachineClassForMigration generates a MachineClass for migration purposes
 //
-// The following are the tasks typically expected out of this method
-// 1. Validate if the incoming classSpec is valid one for migration (e.g. has the right kind).
-// 2. Migrate/Copy over all the fields/spec from req.ProviderSpecificMachineClass to req.MachineClass
-// For an example refer
+// This method is used to migrate from provider-specific MachineClass CRDs
+// (e.g., AWSMachineClass) to the generic MachineClass format.
 //
-//	https://github.com/prashanth26/machine-controller-manager-provider-gcp/blob/migration/pkg/gcp/machine_controller.go#L222-L233
+// STACKIT provider does not have a legacy provider-specific MachineClass format,
+// so this method is not needed and returns Unimplemented.
 //
-// REQUEST PARAMETERS (driver.GenerateMachineClassForMigration)
-// ProviderSpecificMachineClass    interface{}                             ProviderSpecificMachineClass is provider specfic machine class object (E.g. AWSMachineClass). Typecasting is required here.
-// MachineClass 				   *v1alpha1.MachineClass                  MachineClass is the machine class object that is to be filled up by this method.
-// ClassSpec                       *v1alpha1.ClassSpec                     Somemore classSpec details useful while migration.
-//
-// RESPONSE PARAMETERS (driver.GenerateMachineClassForMigration)
-// NONE
+// Returns:
+//   - Unimplemented: No migration required for STACKIT provider
 func (p *Provider) GenerateMachineClassForMigration(ctx context.Context, req *driver.GenerateMachineClassForMigrationRequest) (*driver.GenerateMachineClassForMigrationResponse, error) {
 	// Log messages to track start and end of request
-	klog.V(2).Infof("MigrateMachineClass request has been recieved for %q", req.ClassSpec)
+	klog.V(2).Infof("MigrateMachineClass request has been received for %q", req.ClassSpec)
 	defer klog.V(2).Infof("MigrateMachineClass request has been processed successfully for %q", req.ClassSpec)
 
 	return &driver.GenerateMachineClassForMigrationResponse{}, status.Error(codes.Unimplemented, "")

@@ -1,18 +1,6 @@
-/*
-Copyright 2025.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Gardener contributors
+//
+// SPDX-License-Identifier: Apache-2.0
 
 package e2e
 
@@ -22,18 +10,15 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"github.com/aoepeople/machine-controller-manager-provider-stackit/test/utils"
 )
 
 var _ = Describe("MCM Provider STACKIT", func() {
-	Context("Machine userData configuration", func() {
-		It("should create a Machine with userData in ProviderSpec", func() {
+	Context("Machine networking configuration", func() {
+		It("should create a Machine with networkId in networking spec", func() {
 			secretName := generateResourceName("secret")
 			machineClassName := generateResourceName("machineclass")
 			machineName := generateResourceName("machine")
 
-			// Secret with base userData (required by MCM for node bootstrapping)
 			secretYAML := fmt.Sprintf(`
 apiVersion: v1
 kind: Secret
@@ -43,14 +28,14 @@ metadata:
 type: Opaque
 stringData:
   projectId: "12345678-1234-1234-1234-123456789012"
+  stackitToken: "mock-token-for-e2e-tests"
   userData: |
     #cloud-config
     runcmd:
-      - echo "Base bootstrap from Secret"
+      - echo "Machine bootstrapped"
 `, secretName, testNamespace)
 			createAndTrackResource("secret", secretName, testNamespace, secretYAML)
 
-			// MachineClass with userData in providerSpec (overrides Secret.userData)
 			machineClassYAML := fmt.Sprintf(`
 apiVersion: machine.sapcloud.io/v1alpha1
 kind: MachineClass
@@ -60,12 +45,10 @@ metadata:
 providerSpec:
   machineType: "c1.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
-  userData: |
-    #cloud-config
-    runcmd:
-      - echo "UserData from ProviderSpec (overrides Secret)"
+  networking:
+    networkId: "770e8400-e29b-41d4-a716-446655440000"
   labels:
-    test: "userdata-providerspec"
+    test: "networking-networkid"
 secretRef:
   name: %s
   namespace: %s
@@ -86,26 +69,24 @@ spec:
 `, machineName, testNamespace, machineClassName)
 			createAndTrackResource("machine", machineName, testNamespace, machineYAML)
 
-			By("waiting for Machine to get a ProviderID")
+			By("waiting for Machine to have ProviderID set")
 			Eventually(func() string {
 				cmd := exec.Command("kubectl", "get", "machine", machineName, "-n", testNamespace, "-o", "jsonpath={.spec.providerID}")
-				output, _ := utils.Run(cmd)
-				return output
-			}, MediumTimeout, StandardPoll).ShouldNot(BeEmpty(), "Machine should get a ProviderID")
+				output, _ := cmd.CombinedOutput()
+				return string(output)
+			}, "60s", "2s").Should(ContainSubstring("stackit://"), "Machine should have ProviderID set with networking configuration")
 
-			By("verifying Machine has ProviderID in correct format")
-			cmd := exec.Command("kubectl", "get", "machine", machineName, "-n", testNamespace, "-o", "jsonpath={.spec.providerID}")
-			providerID, err := utils.Run(cmd)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(providerID).To(HavePrefix("stackit://"), "ProviderID should have stackit:// prefix")
+			By("verifying Machine was created successfully")
+			cmd := exec.Command("kubectl", "get", "machine", machineName, "-n", testNamespace)
+			output, err := cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred(), "Should be able to get Machine: %s", string(output))
 		})
 
-		It("should create a Machine with userData in Secret", func() {
+		It("should create a Machine with nicIds in networking spec", func() {
 			secretName := generateResourceName("secret")
 			machineClassName := generateResourceName("machineclass")
 			machineName := generateResourceName("machine")
 
-			// Secret with userData
 			secretYAML := fmt.Sprintf(`
 apiVersion: v1
 kind: Secret
@@ -115,14 +96,14 @@ metadata:
 type: Opaque
 stringData:
   projectId: "12345678-1234-1234-1234-123456789012"
+  stackitToken: "mock-token-for-e2e-tests"
   userData: |
     #cloud-config
     runcmd:
-      - echo "UserData from Secret"
+      - echo "Machine bootstrapped"
 `, secretName, testNamespace)
 			createAndTrackResource("secret", secretName, testNamespace, secretYAML)
 
-			// MachineClass without userData in providerSpec
 			machineClassYAML := fmt.Sprintf(`
 apiVersion: machine.sapcloud.io/v1alpha1
 kind: MachineClass
@@ -132,8 +113,12 @@ metadata:
 providerSpec:
   machineType: "c1.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
+  networking:
+    nicIds:
+      - "880e8400-e29b-41d4-a716-446655440000"
+      - "990e8400-e29b-41d4-a716-446655440000"
   labels:
-    test: "userdata-secret"
+    test: "networking-nicids"
 secretRef:
   name: %s
   namespace: %s
@@ -154,26 +139,24 @@ spec:
 `, machineName, testNamespace, machineClassName)
 			createAndTrackResource("machine", machineName, testNamespace, machineYAML)
 
-			By("waiting for Machine to get a ProviderID")
+			By("waiting for Machine to have ProviderID set")
 			Eventually(func() string {
 				cmd := exec.Command("kubectl", "get", "machine", machineName, "-n", testNamespace, "-o", "jsonpath={.spec.providerID}")
-				output, _ := utils.Run(cmd)
-				return output
-			}, MediumTimeout, StandardPoll).ShouldNot(BeEmpty(), "Machine should get a ProviderID")
+				output, _ := cmd.CombinedOutput()
+				return string(output)
+			}, "60s", "2s").Should(ContainSubstring("stackit://"), "Machine should have ProviderID set with NIC IDs configuration")
 
-			By("verifying Machine has ProviderID in correct format")
-			cmd := exec.Command("kubectl", "get", "machine", machineName, "-n", testNamespace, "-o", "jsonpath={.spec.providerID}")
-			providerID, err := utils.Run(cmd)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(providerID).To(HavePrefix("stackit://"), "ProviderID should have stackit:// prefix")
+			By("verifying Machine was created successfully")
+			cmd := exec.Command("kubectl", "get", "machine", machineName, "-n", testNamespace)
+			output, err := cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred(), "Should be able to get Machine: %s", string(output))
 		})
 
-		It("should prefer ProviderSpec userData over Secret userData", func() {
+		It("should create a Machine with securityGroups", func() {
 			secretName := generateResourceName("secret")
 			machineClassName := generateResourceName("machineclass")
 			machineName := generateResourceName("machine")
 
-			// Secret with userData (should be ignored)
 			secretYAML := fmt.Sprintf(`
 apiVersion: v1
 kind: Secret
@@ -183,14 +166,14 @@ metadata:
 type: Opaque
 stringData:
   projectId: "12345678-1234-1234-1234-123456789012"
+  stackitToken: "mock-token-for-e2e-tests"
   userData: |
     #cloud-config
     runcmd:
-      - echo "UserData from Secret (should be ignored)"
+      - echo "Machine bootstrapped"
 `, secretName, testNamespace)
 			createAndTrackResource("secret", secretName, testNamespace, secretYAML)
 
-			// MachineClass with userData in providerSpec (should take precedence)
 			machineClassYAML := fmt.Sprintf(`
 apiVersion: machine.sapcloud.io/v1alpha1
 kind: MachineClass
@@ -200,12 +183,13 @@ metadata:
 providerSpec:
   machineType: "c1.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
-  userData: |
-    #cloud-config
-    runcmd:
-      - echo "UserData from ProviderSpec (should take precedence)"
+  networking:
+    networkId: "770e8400-e29b-41d4-a716-446655440000"
+  securityGroups:
+    - "default"
+    - "web-servers"
   labels:
-    test: "userdata-precedence"
+    test: "networking-securitygroups"
 secretRef:
   name: %s
   namespace: %s
@@ -226,18 +210,17 @@ spec:
 `, machineName, testNamespace, machineClassName)
 			createAndTrackResource("machine", machineName, testNamespace, machineYAML)
 
-			By("waiting for Machine to get a ProviderID")
+			By("waiting for Machine to have ProviderID set")
 			Eventually(func() string {
 				cmd := exec.Command("kubectl", "get", "machine", machineName, "-n", testNamespace, "-o", "jsonpath={.spec.providerID}")
-				output, _ := utils.Run(cmd)
-				return output
-			}, MediumTimeout, StandardPoll).ShouldNot(BeEmpty(), "Machine should get a ProviderID")
+				output, _ := cmd.CombinedOutput()
+				return string(output)
+			}, "60s", "2s").Should(ContainSubstring("stackit://"), "Machine should have ProviderID set with security groups configuration")
 
-			By("verifying Machine has ProviderID in correct format")
-			cmd := exec.Command("kubectl", "get", "machine", machineName, "-n", testNamespace, "-o", "jsonpath={.spec.providerID}")
-			providerID, err := utils.Run(cmd)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(providerID).To(HavePrefix("stackit://"), "ProviderID should have stackit:// prefix")
+			By("verifying Machine was created successfully")
+			cmd := exec.Command("kubectl", "get", "machine", machineName, "-n", testNamespace)
+			output, err := cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred(), "Should be able to get Machine: %s", string(output))
 		})
 	})
 })

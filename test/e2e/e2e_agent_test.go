@@ -13,59 +13,61 @@ import (
 )
 
 var _ = Describe("MCM Provider STACKIT", func() {
-	Context("Machine affinity group configuration", func() {
-		It("should create a Machine with affinityGroup", func() {
+	Context("Machine agent configuration", func() {
+		It("should create a Machine with agent provisioned", func() {
 			secretName := generateResourceName("secret")
 			machineClassName := generateResourceName("machineclass")
 			machineName := generateResourceName("machine")
 
 			// Create Secret
 			secretYAML := fmt.Sprintf(`
-  apiVersion: v1
-  kind: Secret
-  metadata:
-    name: %s
-    namespace: %s
-  type: Opaque
-  stringData:
-    projectId: "12345678-1234-1234-1234-123456789012"
-    userData: |
-      #cloud-config
-      runcmd:
-        - echo "Machine bootstrapped"
-  `, secretName, testNamespace)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: %s
+  namespace: %s
+type: Opaque
+stringData:
+  projectId: "12345678-1234-1234-1234-123456789012"
+  stackitToken: "mock-token-for-e2e-tests"
+  userData: |
+    #cloud-config
+    runcmd:
+      - echo "Machine bootstrapped"
+`, secretName, testNamespace)
 			createAndTrackResource("secret", secretName, testNamespace, secretYAML)
 
-			// Create MachineClass with affinityGroup
+			// Create MachineClass with agent configuration
 			machineClassYAML := fmt.Sprintf(`
-  apiVersion: machine.sapcloud.io/v1alpha1
-  kind: MachineClass
-  metadata:
-    name: %s
-    namespace: %s
-  providerSpec:
-    machineType: "c1.2"
-    imageId: "550e8400-e29b-41d4-a716-446655440000"
-    affinityGroup: "880e8400-e29b-41d4-a716-446655440000"
-  secretRef:
-    name: %s
-    namespace: %s
-  provider: STACKIT
-  `, machineClassName, testNamespace, secretName, testNamespace)
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: MachineClass
+metadata:
+  name: %s
+  namespace: %s
+providerSpec:
+  machineType: "c1.2"
+  imageId: "550e8400-e29b-41d4-a716-446655440000"
+  agent:
+    provisioned: true
+secretRef:
+  name: %s
+  namespace: %s
+provider: STACKIT
+`, machineClassName, testNamespace, secretName, testNamespace)
 			createAndTrackResource("machineclass", machineClassName, testNamespace, machineClassYAML)
 
 			// Create Machine
 			machineYAML := fmt.Sprintf(`
-  apiVersion: machine.sapcloud.io/v1alpha1
-  kind: Machine
-  metadata:
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: Machine
+metadata:
+  name: %s
+  namespace: %s
+spec:
+  class:
+    kind: MachineClass
     name: %s
-    namespace: %s
-  spec:
-    class:
-      kind: MachineClass
-      name: %s
-  `, machineName, testNamespace, machineClassName)
+`, machineName, testNamespace, machineClassName)
 			createAndTrackResource("machine", machineName, testNamespace, machineYAML)
 
 			// Wait for Machine to get a ProviderID (indicates successful creation)
@@ -84,11 +86,11 @@ var _ = Describe("MCM Provider STACKIT", func() {
 			providerID := string(output)
 			Expect(providerID).To(MatchRegexp(`^stackit://[^/]+/[a-f0-9-]+$`), "ProviderID should match format stackit://<project>/<serverID>")
 
-			// Note: We cannot easily verify the affinityGroup was actually passed to the API
+			// Note: We cannot easily verify the agent configuration was actually passed to the API
 			// without inspecting the mock server logs. The test verifies that:
-			// 1. Machine creates successfully with affinityGroup specified
+			// 1. Machine creates successfully with agent configuration specified
 			// 2. No validation errors occur
-			// Unit tests verify the API request includes the affinityGroup field
+			// Unit tests verify the API request includes the agent field
 		})
 	})
 })

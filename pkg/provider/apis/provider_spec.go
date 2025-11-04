@@ -72,6 +72,11 @@ type ProviderSpec struct {
 	// Optional field. The STACKIT agent provides monitoring and management capabilities
 	// If not specified, defaults to the STACKIT platform default behavior
 	Agent *AgentSpec `json:"agent,omitempty"`
+
+	// Metadata is a generic JSON object for storing arbitrary key-value pairs
+	// Optional field. Can be used to store custom metadata that doesn't fit into other fields
+	// Example: {"environment": "production", "cost-center": "12345"}
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // AgentSpec defines the STACKIT agent configuration for a server

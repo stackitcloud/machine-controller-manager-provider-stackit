@@ -12,13 +12,13 @@ import (
 // This allows us to mock the client in unit tests
 type StackitClient interface {
 	// CreateServer creates a new server in STACKIT
-	CreateServer(ctx context.Context, projectID string, req *CreateServerRequest) (*Server, error)
+	CreateServer(ctx context.Context, token, projectID string, req *CreateServerRequest) (*Server, error)
 	// GetServer retrieves a server by ID from STACKIT
-	GetServer(ctx context.Context, projectID, serverID string) (*Server, error)
+	GetServer(ctx context.Context, token, projectID, serverID string) (*Server, error)
 	// DeleteServer deletes a server by ID from STACKIT
-	DeleteServer(ctx context.Context, projectID, serverID string) error
+	DeleteServer(ctx context.Context, token, projectID, serverID string) error
 	// ListServers lists all servers in a project
-	ListServers(ctx context.Context, projectID string) ([]*Server, error)
+	ListServers(ctx context.Context, token, projectID string) ([]*Server, error)
 }
 
 // CreateServerRequest represents the request to create a server
@@ -37,6 +37,7 @@ type CreateServerRequest struct {
 	AffinityGroup       string                   `json:"affinityGroup,omitempty"`
 	ServiceAccountMails []string                 `json:"serviceAccountMails,omitempty"`
 	Agent               *AgentRequest            `json:"agent,omitempty"`
+	Metadata            map[string]interface{}   `json:"metadata,omitempty"`
 }
 
 // ServerNetworkingRequest represents the networking configuration for a server

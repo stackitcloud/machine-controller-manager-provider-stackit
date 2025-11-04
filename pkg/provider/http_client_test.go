@@ -17,17 +17,19 @@ import (
 
 var _ = Describe("HTTP Client", func() {
 	var (
-		server     *httptest.Server
-		client     *httpStackitClient
-		ctx        context.Context
-		projectID  string
-		serverID   string
+		server    *httptest.Server
+		client    *httpStackitClient
+		ctx       context.Context
+		projectID string
+		serverID  string
+		token     string
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
 		projectID = "test-project-123"
 		serverID = "test-server-456"
+		token = "test-token-12345"
 	})
 
 	AfterEach(func() {
@@ -63,7 +65,7 @@ var _ = Describe("HTTP Client", func() {
 					ImageID:     "image-123",
 				}
 
-				result, err := client.CreateServer(ctx, projectID, req)
+				result, err := client.CreateServer(ctx, token, projectID, req)
 
 				Expect(err).NotTo(HaveOccurred())
 				Expect(result).NotTo(BeNil())
@@ -91,7 +93,7 @@ var _ = Describe("HTTP Client", func() {
 					ImageID:     "img-789",
 				}
 
-				_, err := client.CreateServer(ctx, projectID, req)
+				_, err := client.CreateServer(ctx, token, projectID, req)
 
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(receivedBody)).To(ContainSubstring(`"name":"my-server"`))
@@ -118,7 +120,7 @@ var _ = Describe("HTTP Client", func() {
 					ImageID:     "image-123",
 				}
 
-				result, err := client.CreateServer(ctx, projectID, req)
+				result, err := client.CreateServer(ctx, token, projectID, req)
 
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("API returned error status 400"))
@@ -142,7 +144,7 @@ var _ = Describe("HTTP Client", func() {
 					ImageID:     "image-123",
 				}
 
-				result, err := client.CreateServer(ctx, projectID, req)
+				result, err := client.CreateServer(ctx, token, projectID, req)
 
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("API returned error status 500"))
@@ -166,7 +168,7 @@ var _ = Describe("HTTP Client", func() {
 					ImageID:     "image-123",
 				}
 
-				result, err := client.CreateServer(ctx, projectID, req)
+				result, err := client.CreateServer(ctx, token, projectID, req)
 
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("failed to parse response"))
@@ -196,7 +198,7 @@ var _ = Describe("HTTP Client", func() {
 					httpClient: &http.Client{},
 				}
 
-				result, err := client.GetServer(ctx, projectID, serverID)
+				result, err := client.GetServer(ctx, token, projectID, serverID)
 
 				Expect(err).NotTo(HaveOccurred())
 				Expect(result).NotTo(BeNil())
@@ -218,7 +220,7 @@ var _ = Describe("HTTP Client", func() {
 					httpClient: &http.Client{},
 				}
 
-				result, err := client.GetServer(ctx, projectID, serverID)
+				result, err := client.GetServer(ctx, token, projectID, serverID)
 
 				Expect(err).To(HaveOccurred())
 				Expect(err).To(MatchError(ContainSubstring("server not found")))
@@ -236,7 +238,7 @@ var _ = Describe("HTTP Client", func() {
 					httpClient: &http.Client{},
 				}
 
-				result, err := client.GetServer(ctx, projectID, serverID)
+				result, err := client.GetServer(ctx, token, projectID, serverID)
 
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("API returned error status 403"))
@@ -254,7 +256,7 @@ var _ = Describe("HTTP Client", func() {
 					httpClient: &http.Client{},
 				}
 
-				result, err := client.GetServer(ctx, projectID, serverID)
+				result, err := client.GetServer(ctx, token, projectID, serverID)
 
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("failed to parse response"))
@@ -279,7 +281,7 @@ var _ = Describe("HTTP Client", func() {
 					httpClient: &http.Client{},
 				}
 
-				err := client.DeleteServer(ctx, projectID, serverID)
+				err := client.DeleteServer(ctx, token, projectID, serverID)
 
 				Expect(err).NotTo(HaveOccurred())
 			})
@@ -294,7 +296,7 @@ var _ = Describe("HTTP Client", func() {
 					httpClient: &http.Client{},
 				}
 
-				err := client.DeleteServer(ctx, projectID, serverID)
+				err := client.DeleteServer(ctx, token, projectID, serverID)
 
 				Expect(err).NotTo(HaveOccurred())
 			})
@@ -312,7 +314,7 @@ var _ = Describe("HTTP Client", func() {
 					httpClient: &http.Client{},
 				}
 
-				err := client.DeleteServer(ctx, projectID, serverID)
+				err := client.DeleteServer(ctx, token, projectID, serverID)
 
 				Expect(err).To(HaveOccurred())
 				Expect(err).To(MatchError(ContainSubstring("server not found")))
@@ -329,7 +331,7 @@ var _ = Describe("HTTP Client", func() {
 					httpClient: &http.Client{},
 				}
 
-				err := client.DeleteServer(ctx, projectID, serverID)
+				err := client.DeleteServer(ctx, token, projectID, serverID)
 
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("API returned error status 403"))
@@ -346,7 +348,7 @@ var _ = Describe("HTTP Client", func() {
 					httpClient: &http.Client{},
 				}
 
-				err := client.DeleteServer(ctx, projectID, serverID)
+				err := client.DeleteServer(ctx, token, projectID, serverID)
 
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("API returned error status 500"))

@@ -256,3 +256,25 @@ providerSpec:
 secretRef:
   name: test-secret
   namespace: default
+
+---
+# Example: Machine with custom metadata for arbitrary key-value pairs
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: MachineClass
+metadata:
+  name: with-metadata-mc
+  namespace: default
+providerSpec:
+  machineType: "c1.2"
+  imageId: "550e8400-e29b-41d4-a716-446655440000"
+  # Metadata: Generic JSON object for storing arbitrary key-value pairs
+  # Can be used to store custom metadata that doesn't fit into other fields
+  # Examples: environment tags, cost center, owner, project info, etc.
+  metadata:
+    environment: "production"
+    cost-center: "12345"
+    owner: "team-a"
+    project: "ml-training"
+secretRef:
+  name: test-secret
+  namespace: default

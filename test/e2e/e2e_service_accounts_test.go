@@ -13,8 +13,8 @@ import (
 )
 
 var _ = Describe("MCM Provider STACKIT", func() {
-	Context("Machine agent configuration", func() {
-		It("should create a Machine with agent provisioned", func() {
+	Context("Machine service account configuration", func() {
+		It("should create a Machine with serviceAccountMails", func() {
 			secretName := generateResourceName("secret")
 			machineClassName := generateResourceName("machineclass")
 			machineName := generateResourceName("machine")
@@ -29,6 +29,7 @@ metadata:
 type: Opaque
 stringData:
   projectId: "12345678-1234-1234-1234-123456789012"
+  stackitToken: "mock-token-for-e2e-tests"
   userData: |
     #cloud-config
     runcmd:
@@ -36,7 +37,8 @@ stringData:
 `, secretName, testNamespace)
 			createAndTrackResource("secret", secretName, testNamespace, secretYAML)
 
-			// Create MachineClass with agent configuration
+			// Create MachineClass with serviceAccountMails
+			// Note: OpenAPI spec currently limits to maxItems: 1
 			machineClassYAML := fmt.Sprintf(`
 apiVersion: machine.sapcloud.io/v1alpha1
 kind: MachineClass
@@ -46,8 +48,8 @@ metadata:
 providerSpec:
   machineType: "c1.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
-  agent:
-    provisioned: true
+  serviceAccountMails:
+    - "my-service@sa.stackit.cloud"
 secretRef:
   name: %s
   namespace: %s
@@ -85,11 +87,11 @@ spec:
 			providerID := string(output)
 			Expect(providerID).To(MatchRegexp(`^stackit://[^/]+/[a-f0-9-]+$`), "ProviderID should match format stackit://<project>/<serverID>")
 
-			// Note: We cannot easily verify the agent configuration was actually passed to the API
+			// Note: We cannot easily verify the serviceAccountMails were actually passed to the API
 			// without inspecting the mock server logs. The test verifies that:
-			// 1. Machine creates successfully with agent configuration specified
+			// 1. Machine creates successfully with serviceAccountMails specified
 			// 2. No validation errors occur
-			// Unit tests verify the API request includes the agent field
+			// Unit tests verify the API request includes the serviceAccountMails field
 		})
 	})
 })
