@@ -7,6 +7,7 @@ package provider
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 
@@ -104,6 +105,20 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	// Add security groups if specified
 	if len(providerSpec.SecurityGroups) > 0 {
 		createReq.SecurityGroups = providerSpec.SecurityGroups
+	}
+
+	// Add userData for VM bootstrapping
+	// Priority: ProviderSpec.UserData > Secret.userData
+	// Note: IAAS API requires base64-encoded userData (OpenAPI spec: format=byte)
+	var userDataPlain string
+	if providerSpec.UserData != "" {
+		userDataPlain = providerSpec.UserData
+	} else if userData, ok := req.Secret.Data["userData"]; ok && len(userData) > 0 {
+		userDataPlain = string(userData)
+	}
+
+	if userDataPlain != "" {
+		createReq.UserData = base64.StdEncoding.EncodeToString([]byte(userDataPlain))
 	}
 
 	// Call STACKIT API to create server

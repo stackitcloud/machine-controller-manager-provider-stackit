@@ -27,6 +27,12 @@ type ProviderSpec struct {
 	// SecurityGroups are the names of security groups to attach to the server
 	// Optional field. If not specified, the project's default security group will be used.
 	SecurityGroups []string `json:"securityGroups,omitempty"`
+
+	// UserData is cloud-init script or user data for VM bootstrapping
+	// Optional field. Can be used to override Secret.userData for this MachineClass.
+	// If specified, takes precedence over Secret.userData.
+	// Note: Secret.userData is typically required by MCM for node bootstrapping.
+	UserData string `json:"userData,omitempty"`
 }
 
 // NetworkingSpec defines the network configuration for a server
