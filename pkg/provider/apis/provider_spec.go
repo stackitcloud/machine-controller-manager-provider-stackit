@@ -42,6 +42,11 @@ type ProviderSpec struct {
 	// Volumes are UUIDs of existing volumes to attach to the server
 	// Optional field. Allows attaching additional data volumes beyond the boot disk.
 	Volumes []string `json:"volumes,omitempty"`
+
+	// KeypairName is the name of the SSH keypair for server access
+	// Optional field. If specified, the public key will be injected into the server for SSH access.
+	// The keypair must already exist in the STACKIT project.
+	KeypairName string `json:"keypairName,omitempty"`
 }
 
 // NetworkingSpec defines the network configuration for a server

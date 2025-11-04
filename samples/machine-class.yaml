@@ -156,3 +156,23 @@ providerSpec:
 secretRef:
   name: test-secret
   namespace: default
+
+---
+# Example: Machine with SSH keypair for remote access
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: MachineClass
+metadata:
+  name: with-keypair-mc
+  namespace: default
+providerSpec:
+  machineType: "c1.2"
+  imageId: "550e8400-e29b-41d4-a716-446655440000"
+  # KeypairName: SSH keypair for server access
+  # The keypair must already exist in the STACKIT project
+  # The public key will be injected into the server for SSH access
+  # Max length: 127 characters
+  # Allowed characters: A-Z, a-z, 0-9, @, ., _, -
+  keypairName: "my-ssh-key"
+secretRef:
+  name: test-secret
+  namespace: default

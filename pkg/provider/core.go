@@ -143,6 +143,11 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		createReq.Volumes = providerSpec.Volumes
 	}
 
+	// Add keypair name if specified
+	if providerSpec.KeypairName != "" {
+		createReq.KeypairName = providerSpec.KeypairName
+	}
+
 	// Call STACKIT API to create server
 	server, err := p.client.CreateServer(ctx, projectID, createReq)
 	if err != nil {

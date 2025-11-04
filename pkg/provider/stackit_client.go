@@ -32,6 +32,7 @@ type CreateServerRequest struct {
 	UserData       string                    `json:"userData,omitempty"`
 	BootVolume     *BootVolumeRequest        `json:"bootVolume,omitempty"`
 	Volumes        []string                  `json:"volumes,omitempty"`
+	KeypairName    string                    `json:"keypairName,omitempty"`
 }
 
 // ServerNetworkingRequest represents the networking configuration for a server

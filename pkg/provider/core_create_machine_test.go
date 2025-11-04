@@ -447,4 +447,50 @@ var _ = Describe("CreateMachine", func() {
 			Expect(capturedReq.Volumes).To(BeNil())
 		})
 	})
+
+	Context("with keypairName", func() {
+		It("should pass KeypairName to API when specified", func() {
+			providerSpec := &api.ProviderSpec{
+				MachineType: "c1.2",
+				ImageID:     "image-uuid-123",
+				KeypairName: "my-ssh-key",
+			}
+			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
+
+			var capturedReq *CreateServerRequest
+			mockClient.createServerFunc = func(ctx context.Context, projectID string, req *CreateServerRequest) (*Server, error) {
+				capturedReq = req
+				return &Server{
+					ID:     "test-server-id",
+					Name:   req.Name,
+					Status: "CREATING",
+				}, nil
+			}
+
+			_, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(capturedReq).NotTo(BeNil())
+			Expect(capturedReq.KeypairName).To(Equal("my-ssh-key"))
+		})
+
+		It("should not send KeypairName when empty", func() {
+			var capturedReq *CreateServerRequest
+			mockClient.createServerFunc = func(ctx context.Context, projectID string, req *CreateServerRequest) (*Server, error) {
+				capturedReq = req
+				return &Server{
+					ID:     "test-server-id",
+					Name:   req.Name,
+					Status: "CREATING",
+				}, nil
+			}
+
+			_, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(capturedReq).NotTo(BeNil())
+			Expect(capturedReq.KeypairName).To(BeEmpty())
+		})
+	})
 })
