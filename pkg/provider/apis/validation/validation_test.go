@@ -45,11 +45,31 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 			Expect(errors[0].Error()).To(ContainSubstring("machineType"))
 		})
 
+		It("should fail when MachineType has invalid format", func() {
+			providerSpec.MachineType = "InvalidFormat"
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).NotTo(BeEmpty())
+			Expect(errors[0].Error()).To(ContainSubstring("machineType has invalid format"))
+		})
+
+		It("should succeed when MachineType has valid format", func() {
+			providerSpec.MachineType = "c1.2"
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).To(BeEmpty())
+		})
+
 		It("should fail when ImageID is empty", func() {
 			providerSpec.ImageID = ""
 			errors := ValidateProviderSpecNSecret(providerSpec, secret)
 			Expect(errors).NotTo(BeEmpty())
 			Expect(errors[0].Error()).To(ContainSubstring("imageId"))
+		})
+
+		It("should fail when ImageID is not a valid UUID", func() {
+			providerSpec.ImageID = "invalid-uuid"
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).NotTo(BeEmpty())
+			Expect(errors[0].Error()).To(ContainSubstring("imageId must be a valid UUID"))
 		})
 
 		It("should fail when both required fields are empty", func() {
@@ -561,6 +581,13 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 			errors := ValidateProviderSpecNSecret(providerSpec, secret)
 			Expect(errors).NotTo(BeEmpty())
 			Expect(errors[0].Error()).To(ContainSubstring("projectId"))
+		})
+
+		It("should fail when projectId is not a valid UUID", func() {
+			secret.Data["projectId"] = []byte("invalid-uuid")
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).NotTo(BeEmpty())
+			Expect(errors[0].Error()).To(ContainSubstring("projectId' must be a valid UUID"))
 		})
 	})
 })
