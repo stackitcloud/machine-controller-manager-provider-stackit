@@ -153,6 +153,11 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		createReq.AvailabilityZone = providerSpec.AvailabilityZone
 	}
 
+	// Add affinity group if specified
+	if providerSpec.AffinityGroup != "" {
+		createReq.AffinityGroup = providerSpec.AffinityGroup
+	}
+
 	// Call STACKIT API to create server
 	server, err := p.client.CreateServer(ctx, projectID, createReq)
 	if err != nil {

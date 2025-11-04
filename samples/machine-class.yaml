@@ -196,3 +196,22 @@ providerSpec:
 secretRef:
   name: test-secret
   namespace: default
+---
+  # Example: Machine with affinity group for server placement control
+  apiVersion: machine.sapcloud.io/v1alpha1
+  kind: MachineClass
+  metadata:
+    name: with-affinity-mc
+    namespace: default
+  providerSpec:
+    machineType: "c1.2"
+    imageId: "550e8400-e29b-41d4-a716-446655440000"
+    # AffinityGroup: UUID of affinity group to control server placement
+    # The affinity group must already exist in the STACKIT project
+    # Used for performance optimization (anti-affinity to separate servers)
+    # or high availability (affinity to keep servers together)
+    # Example: "880e8400-e29b-41d4-a716-446655440000"
+    affinityGroup: "880e8400-e29b-41d4-a716-446655440000"
+  secretRef:
+    name: test-secret
+    namespace: default

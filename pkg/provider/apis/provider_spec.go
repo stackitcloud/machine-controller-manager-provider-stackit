@@ -54,6 +54,12 @@ type ProviderSpec struct {
 	// - For requests with no volumes, it will be set to the metro availability zone
 	// Example values: "eu01-1", "eu01-2"
 	AvailabilityZone string `json:"availabilityZone,omitempty"`
+
+	// AffinityGroup is the UUID of the affinity group to associate with the server
+	// Optional field. Affinity groups control server placement for performance or availability requirements
+	// The affinity group must already exist in the STACKIT project
+	// Example: "880e8400-e29b-41d4-a716-446655440000"
+	AffinityGroup string `json:"affinityGroup,omitempty"`
 }
 
 // NetworkingSpec defines the network configuration for a server

@@ -539,4 +539,50 @@ var _ = Describe("CreateMachine", func() {
 			Expect(capturedReq.AvailabilityZone).To(BeEmpty())
 		})
 	})
+
+	Context("with affinityGroup", func() {
+		It("should pass AffinityGroup to API when specified", func() {
+			providerSpec := &api.ProviderSpec{
+				MachineType:   "c1.2",
+				ImageID:       "image-uuid-123",
+				AffinityGroup: "880e8400-e29b-41d4-a716-446655440000",
+			}
+			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
+
+			var capturedReq *CreateServerRequest
+			mockClient.createServerFunc = func(ctx context.Context, projectID string, req *CreateServerRequest) (*Server, error) {
+				capturedReq = req
+				return &Server{
+					ID:     "test-server-id",
+					Name:   req.Name,
+					Status: "CREATING",
+				}, nil
+			}
+
+			_, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(capturedReq).NotTo(BeNil())
+			Expect(capturedReq.AffinityGroup).To(Equal("880e8400-e29b-41d4-a716-446655440000"))
+		})
+
+		It("should not send AffinityGroup when empty", func() {
+			var capturedReq *CreateServerRequest
+			mockClient.createServerFunc = func(ctx context.Context, projectID string, req *CreateServerRequest) (*Server, error) {
+				capturedReq = req
+				return &Server{
+					ID:     "test-server-id",
+					Name:   req.Name,
+					Status: "CREATING",
+				}, nil
+			}
+
+			_, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(capturedReq).NotTo(BeNil())
+			Expect(capturedReq.AffinityGroup).To(BeEmpty())
+		})
+	})
 })

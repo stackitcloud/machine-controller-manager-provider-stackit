@@ -400,6 +400,20 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 		})
 	})
 
+	Context("AffinityGroup validation", func() {
+		It("should succeed with valid affinityGroup UUID", func() {
+			providerSpec.AffinityGroup = "880e8400-e29b-41d4-a716-446655440000"
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).To(BeEmpty())
+		})
+
+		It("should succeed when affinityGroup is empty", func() {
+			providerSpec.AffinityGroup = ""
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).To(BeEmpty())
+		})
+	})
+
 	Context("Secret validation", func() {
 		It("should fail when secret is nil", func() {
 			errors := ValidateProviderSpecNSecret(providerSpec, nil)
