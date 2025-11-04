@@ -170,6 +170,11 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		}
 	}
 
+	// Add metadata if specified
+	if len(providerSpec.Metadata) > 0 {
+		createReq.Metadata = providerSpec.Metadata
+	}
+
 	// Call STACKIT API to create server
 	server, err := p.client.CreateServer(ctx, projectID, createReq)
 	if err != nil {

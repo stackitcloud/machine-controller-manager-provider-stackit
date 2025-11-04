@@ -120,6 +120,10 @@ func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret)
 	// Agent is optional with no specific constraints - just a boolean flag
 	// No validation needed as any value (nil, true, false) is acceptable
 
+	// Validate Metadata
+	// Metadata is optional with no specific constraints - freeform JSON object
+	// No validation needed as any key-value pairs are acceptable
+
 	return errors
 }
 

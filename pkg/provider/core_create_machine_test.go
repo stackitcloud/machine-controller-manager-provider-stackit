@@ -680,5 +680,58 @@ var _ = Describe("CreateMachine", func() {
 			Expect(capturedReq).NotTo(BeNil())
 			Expect(capturedReq.Agent).To(BeNil())
 		})
+
+		It("should pass Metadata to API when specified", func() {
+			providerSpec := &api.ProviderSpec{
+				MachineType: "c1.2",
+				ImageID:     "image-uuid-123",
+				Metadata: map[string]interface{}{
+					"environment": "production",
+					"cost-center": "12345",
+					"count":       42,
+				},
+			}
+			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
+
+			var capturedReq *CreateServerRequest
+			mockClient.createServerFunc = func(ctx context.Context, projectID string, req *CreateServerRequest) (*Server, error) {
+				capturedReq = req
+				return &Server{
+					ID:     "test-server-id",
+					Name:   req.Name,
+					Status: "CREATING",
+				}, nil
+			}
+
+			_, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(capturedReq).NotTo(BeNil())
+			Expect(capturedReq.Metadata).NotTo(BeNil())
+			Expect(capturedReq.Metadata).To(HaveLen(3))
+			Expect(capturedReq.Metadata["environment"]).To(Equal("production"))
+			Expect(capturedReq.Metadata["cost-center"]).To(Equal("12345"))
+			// JSON marshaling converts int to float64
+			Expect(capturedReq.Metadata["count"]).To(BeNumerically("==", 42))
+		})
+
+		It("should not send Metadata when nil", func() {
+			var capturedReq *CreateServerRequest
+			mockClient.createServerFunc = func(ctx context.Context, projectID string, req *CreateServerRequest) (*Server, error) {
+				capturedReq = req
+				return &Server{
+					ID:     "test-server-id",
+					Name:   req.Name,
+					Status: "CREATING",
+				}, nil
+			}
+
+			_, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(capturedReq).NotTo(BeNil())
+			Expect(capturedReq.Metadata).To(BeNil())
+		})
 	})
 })

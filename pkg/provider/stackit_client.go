@@ -37,6 +37,7 @@ type CreateServerRequest struct {
 	AffinityGroup       string                   `json:"affinityGroup,omitempty"`
 	ServiceAccountMails []string                 `json:"serviceAccountMails,omitempty"`
 	Agent               *AgentRequest            `json:"agent,omitempty"`
+	Metadata            map[string]interface{}   `json:"metadata,omitempty"`
 }
 
 // ServerNetworkingRequest represents the networking configuration for a server
