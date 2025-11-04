@@ -40,7 +40,7 @@ var _ = Describe("ListMachines", func() {
 		// Create secret with projectId
 		secret = &corev1.Secret{
 			Data: map[string][]byte{
-				"projectId":    []byte("test-project-123"),
+				"projectId":    []byte("11111111-2222-3333-4444-555555555555"),
 				"stackitToken": []byte("test-token-123"),
 			},
 		}
@@ -105,9 +105,9 @@ var _ = Describe("ListMachines", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp).NotTo(BeNil())
 			Expect(resp.MachineList).To(HaveLen(2))
-			Expect(resp.MachineList).To(HaveKeyWithValue("stackit://test-project-123/server-1", "machine-1"))
-			Expect(resp.MachineList).To(HaveKeyWithValue("stackit://test-project-123/server-2", "machine-2"))
-			Expect(resp.MachineList).NotTo(HaveKey("stackit://test-project-123/server-3"))
+			Expect(resp.MachineList).To(HaveKeyWithValue("stackit://11111111-2222-3333-4444-555555555555/server-1", "machine-1"))
+			Expect(resp.MachineList).To(HaveKeyWithValue("stackit://11111111-2222-3333-4444-555555555555/server-2", "machine-2"))
+			Expect(resp.MachineList).NotTo(HaveKey("stackit://11111111-2222-3333-4444-555555555555/server-3"))
 		})
 
 		It("should return empty list when no servers match", func() {
@@ -166,7 +166,7 @@ var _ = Describe("ListMachines", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp).NotTo(BeNil())
 			Expect(resp.MachineList).To(HaveLen(1))
-			Expect(resp.MachineList).To(HaveKeyWithValue("stackit://test-project-123/server-2", "machine-2"))
+			Expect(resp.MachineList).To(HaveKeyWithValue("stackit://11111111-2222-3333-4444-555555555555/server-2", "machine-2"))
 		})
 	})
 

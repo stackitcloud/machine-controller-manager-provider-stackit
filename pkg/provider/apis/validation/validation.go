@@ -24,6 +24,18 @@ var keypairNameRegex = regexp.MustCompile(`^[A-Za-z0-9@._-]*$`)
 // Basic validation: local-part@domain with reasonable character restrictions
 var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 
+// machineTypeRegex is a regex pattern for validating machine type format
+// Pattern: lowercase letter(s) followed by digits, dot, then more digits (e.g., c1.2, m1.4, g1a.8)
+var machineTypeRegex = regexp.MustCompile(`^[a-z]+\d+\.\d+$`)
+
+// labelKeyRegex validates Kubernetes label keys (must start/end with alphanumeric, can contain -, _, .)
+// Maximum length: 63 characters
+var labelKeyRegex = regexp.MustCompile(`^[a-zA-Z0-9]([-a-zA-Z0-9_.]*[a-zA-Z0-9])?$`)
+
+// labelValueRegex validates Kubernetes label values (must start/end with alphanumeric, can contain -, _, ., can be empty)
+// Maximum length: 63 characters
+var labelValueRegex = regexp.MustCompile(`^([a-zA-Z0-9]([-a-zA-Z0-9_.]*[a-zA-Z0-9])?)?$`)
+
 // ValidateProviderSpecNSecret validates provider spec and secret to check if all fields are present and valid
 func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret) []error {
 	var errors []error
@@ -39,6 +51,8 @@ func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret)
 		errors = append(errors, fmt.Errorf("secret must contain 'projectId' field"))
 	} else if len(projectID) == 0 {
 		errors = append(errors, fmt.Errorf("secret 'projectId' cannot be empty"))
+	} else if !isValidUUID(string(projectID)) {
+		errors = append(errors, fmt.Errorf("secret 'projectId' must be a valid UUID"))
 	}
 
 	// Validate stackitToken (required for authentication)
@@ -52,12 +66,36 @@ func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret)
 	// Validate ProviderSpec
 	if spec.MachineType == "" {
 		errors = append(errors, fmt.Errorf("providerSpec.machineType is required"))
+	} else if !isValidMachineType(spec.MachineType) {
+		errors = append(errors, fmt.Errorf("providerSpec.machineType has invalid format (expected format: c1.2, m1.4, etc.)"))
 	}
 
 	// ImageID is required unless BootVolume.Source is specified
 	hasBootVolumeSource := spec.BootVolume != nil && spec.BootVolume.Source != nil
 	if spec.ImageID == "" && !hasBootVolumeSource {
 		errors = append(errors, fmt.Errorf("providerSpec.imageId or bootVolume.source is required"))
+	}
+	// Validate ImageID format if specified
+	if spec.ImageID != "" && !isValidUUID(spec.ImageID) {
+		errors = append(errors, fmt.Errorf("providerSpec.imageId must be a valid UUID"))
+	}
+
+	// Validate Labels
+	if spec.Labels != nil {
+		for key, value := range spec.Labels {
+			if len(key) > 63 {
+				errors = append(errors, fmt.Errorf("providerSpec.labels key '%s' exceeds maximum length of 63 characters", key))
+			}
+			if !labelKeyRegex.MatchString(key) {
+				errors = append(errors, fmt.Errorf("providerSpec.labels key '%s' has invalid format (must start/end with alphanumeric, can contain -, _, .)", key))
+			}
+			if len(value) > 63 {
+				errors = append(errors, fmt.Errorf("providerSpec.labels value for key '%s' exceeds maximum length of 63 characters", key))
+			}
+			if !labelValueRegex.MatchString(value) {
+				errors = append(errors, fmt.Errorf("providerSpec.labels value for key '%s' has invalid format (must start/end with alphanumeric, can contain -, _, ., can be empty)", key))
+			}
+		}
 	}
 
 	// Validate Networking
@@ -217,4 +255,9 @@ func isValidUUID(s string) bool {
 // isValidEmail checks if a string is a valid email address
 func isValidEmail(s string) bool {
 	return emailRegex.MatchString(s)
+}
+
+// isValidMachineType checks if a string matches the machine type format
+func isValidMachineType(s string) bool {
+	return machineTypeRegex.MatchString(s)
 }

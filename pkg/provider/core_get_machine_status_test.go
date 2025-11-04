@@ -41,7 +41,7 @@ var _ = Describe("GetMachineStatus", func() {
 		// Create secret with projectId
 		secret = &corev1.Secret{
 			Data: map[string][]byte{
-				"projectId":    []byte("test-project-123"),
+				"projectId":    []byte("11111111-2222-3333-4444-555555555555"),
 				"stackitToken": []byte("test-token-123"),
 			},
 		}
@@ -70,7 +70,7 @@ var _ = Describe("GetMachineStatus", func() {
 				Namespace: "default",
 			},
 			Spec: v1alpha1.MachineSpec{
-				ProviderID: "stackit://test-project-123/550e8400-e29b-41d4-a716-446655440000",
+				ProviderID: "stackit://11111111-2222-3333-4444-555555555555/550e8400-e29b-41d4-a716-446655440000",
 			},
 		}
 
@@ -96,7 +96,7 @@ var _ = Describe("GetMachineStatus", func() {
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp).NotTo(BeNil())
-			Expect(resp.ProviderID).To(Equal("stackit://test-project-123/550e8400-e29b-41d4-a716-446655440000"))
+			Expect(resp.ProviderID).To(Equal("stackit://11111111-2222-3333-4444-555555555555/550e8400-e29b-41d4-a716-446655440000"))
 			Expect(resp.NodeName).To(Equal("test-machine"))
 		})
 
@@ -117,7 +117,7 @@ var _ = Describe("GetMachineStatus", func() {
 			_, err := provider.GetMachineStatus(ctx, req)
 
 			Expect(err).NotTo(HaveOccurred())
-			Expect(capturedProjectID).To(Equal("test-project-123"))
+			Expect(capturedProjectID).To(Equal("11111111-2222-3333-4444-555555555555"))
 			Expect(capturedServerID).To(Equal("550e8400-e29b-41d4-a716-446655440000"))
 		})
 	})
@@ -146,7 +146,7 @@ var _ = Describe("GetMachineStatus", func() {
 		})
 
 		It("should return InvalidArgument when ProviderID is missing server ID", func() {
-			machine.Spec.ProviderID = "stackit://test-project-123/"
+			machine.Spec.ProviderID = "stackit://11111111-2222-3333-4444-555555555555/"
 
 			_, err := provider.GetMachineStatus(ctx, req)
 
