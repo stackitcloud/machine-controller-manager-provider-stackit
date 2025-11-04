@@ -13,6 +13,8 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
+	"time"
 )
 
 // Sentinel errors for common HTTP client errors
@@ -34,9 +36,20 @@ func newHTTPStackitClient() *httpStackitClient {
 		baseURL = "https://api.stackit.cloud" // Default to production
 	}
 
+	// Configure timeout (default: 30 seconds)
+	timeout := 30 * time.Second
+	if timeoutEnv := os.Getenv("STACKIT_API_TIMEOUT"); timeoutEnv != "" {
+		if timeoutSeconds, err := strconv.Atoi(timeoutEnv); err == nil && timeoutSeconds > 0 {
+			timeout = time.Duration(timeoutSeconds) * time.Second
+		}
+		// If parsing fails or value is invalid, use default timeout
+	}
+
 	return &httpStackitClient{
-		baseURL:    baseURL,
-		httpClient: &http.Client{},
+		baseURL: baseURL,
+		httpClient: &http.Client{
+			Timeout: timeout,
+		},
 	}
 }
 
