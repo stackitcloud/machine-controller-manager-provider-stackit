@@ -36,6 +36,7 @@ type CreateServerRequest struct {
 	AvailabilityZone    string                   `json:"availabilityZone,omitempty"`
 	AffinityGroup       string                   `json:"affinityGroup,omitempty"`
 	ServiceAccountMails []string                 `json:"serviceAccountMails,omitempty"`
+	Agent               *AgentRequest            `json:"agent,omitempty"`
 }
 
 // ServerNetworkingRequest represents the networking configuration for a server
@@ -57,6 +58,11 @@ type BootVolumeRequest struct {
 type BootVolumeSourceRequest struct {
 	Type string `json:"type"`
 	ID   string `json:"id"`
+}
+
+// AgentRequest represents the STACKIT agent configuration for a server
+type AgentRequest struct {
+	Provisioned *bool `json:"provisioned,omitempty"`
 }
 
 // Server represents a STACKIT server response

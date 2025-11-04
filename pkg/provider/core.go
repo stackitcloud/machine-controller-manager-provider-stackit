@@ -163,6 +163,13 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		createReq.ServiceAccountMails = providerSpec.ServiceAccountMails
 	}
 
+	// Add agent configuration if specified
+	if providerSpec.Agent != nil {
+		createReq.Agent = &AgentRequest{
+			Provisioned: providerSpec.Agent.Provisioned,
+		}
+	}
+
 	// Call STACKIT API to create server
 	server, err := p.client.CreateServer(ctx, projectID, createReq)
 	if err != nil {
