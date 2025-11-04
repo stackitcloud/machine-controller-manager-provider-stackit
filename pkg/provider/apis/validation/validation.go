@@ -20,6 +20,10 @@ var uuidRegex = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4
 // Pattern from STACKIT API: ^[A-Za-z0-9@._-]*$
 var keypairNameRegex = regexp.MustCompile(`^[A-Za-z0-9@._-]*$`)
 
+// emailRegex is a simple regex pattern for validating email format
+// Basic validation: local-part@domain with reasonable character restrictions
+var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+
 // ValidateProviderSpecNSecret validates provider spec and secret to check if all fields are present and valid
 func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret) []error {
 	var errors []error
@@ -94,6 +98,21 @@ func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret)
 	if spec.AffinityGroup != "" {
 		if !isValidUUID(spec.AffinityGroup) {
 			errors = append(errors, fmt.Errorf("providerSpec.affinityGroup must be a valid UUID"))
+		}
+	}
+
+	// Validate ServiceAccountMails
+	if len(spec.ServiceAccountMails) > 0 {
+		// STACKIT API currently limits to 1 service account per server
+		if len(spec.ServiceAccountMails) > 1 {
+			errors = append(errors, fmt.Errorf("providerSpec.serviceAccountMails can contain a maximum of 1 service account (STACKIT API constraint)"))
+		}
+		for i, email := range spec.ServiceAccountMails {
+			if email == "" {
+				errors = append(errors, fmt.Errorf("providerSpec.serviceAccountMails[%d] cannot be empty", i))
+			} else if !isValidEmail(email) {
+				errors = append(errors, fmt.Errorf("providerSpec.serviceAccountMails[%d] must be a valid email address", i))
+			}
 		}
 	}
 
@@ -177,4 +196,9 @@ func validateBootVolume(bootVolume *api.BootVolumeSpec) []error {
 // isValidUUID checks if a string is a valid UUID
 func isValidUUID(s string) bool {
 	return uuidRegex.MatchString(s)
+}
+
+// isValidEmail checks if a string is a valid email address
+func isValidEmail(s string) bool {
+	return emailRegex.MatchString(s)
 }

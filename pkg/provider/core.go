@@ -158,6 +158,11 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		createReq.AffinityGroup = providerSpec.AffinityGroup
 	}
 
+	// Add service account mails if specified
+	if len(providerSpec.ServiceAccountMails) > 0 {
+		createReq.ServiceAccountMails = providerSpec.ServiceAccountMails
+	}
+
 	// Call STACKIT API to create server
 	server, err := p.client.CreateServer(ctx, projectID, createReq)
 	if err != nil {

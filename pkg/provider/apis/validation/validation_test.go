@@ -421,6 +421,56 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 		})
 	})
 
+	Context("ServiceAccountMails validation", func() {
+		It("should succeed with valid service account email", func() {
+			providerSpec.ServiceAccountMails = []string{
+				"my-service@sa.stackit.cloud",
+			}
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).To(BeEmpty())
+		})
+
+		It("should succeed when serviceAccountMails is empty", func() {
+			providerSpec.ServiceAccountMails = []string{}
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).To(BeEmpty())
+		})
+
+		It("should succeed when serviceAccountMails is nil", func() {
+			providerSpec.ServiceAccountMails = nil
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).To(BeEmpty())
+		})
+
+		It("should fail when serviceAccountMails contains invalid email format", func() {
+			providerSpec.ServiceAccountMails = []string{
+				"invalid-email-format",
+			}
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).NotTo(BeEmpty())
+			Expect(errors[0].Error()).To(ContainSubstring("valid email"))
+		})
+
+		It("should fail when serviceAccountMails contains empty string", func() {
+			providerSpec.ServiceAccountMails = []string{
+				"",
+			}
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).NotTo(BeEmpty())
+			Expect(errors[0].Error()).To(ContainSubstring("empty"))
+		})
+
+		It("should fail when serviceAccountMails has more than 1 item", func() {
+			providerSpec.ServiceAccountMails = []string{
+				"first@sa.stackit.cloud",
+				"second@sa.stackit.cloud",
+			}
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).NotTo(BeEmpty())
+			Expect(errors[0].Error()).To(ContainSubstring("maximum of 1"))
+		})
+	})
+
 	Context("Secret validation", func() {
 		It("should fail when secret is nil", func() {
 			errors := ValidateProviderSpecNSecret(providerSpec, nil)
