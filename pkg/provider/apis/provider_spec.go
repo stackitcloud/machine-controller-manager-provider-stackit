@@ -60,6 +60,13 @@ type ProviderSpec struct {
 	// The affinity group must already exist in the STACKIT project
 	// Example: "880e8400-e29b-41d4-a716-446655440000"
 	AffinityGroup string `json:"affinityGroup,omitempty"`
+
+	// ServiceAccountMails are email addresses of service accounts to associate with the server
+	// Optional field. Service accounts provide identity and access management for the server
+	// Service accounts must already exist in the STACKIT project
+	// Note: STACKIT API currently limits this to a maximum of 1 service account per server
+	// Example: ["my-service@sa.stackit.cloud"]
+	ServiceAccountMails []string `json:"serviceAccountMails,omitempty"`
 }
 
 // NetworkingSpec defines the network configuration for a server

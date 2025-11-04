@@ -23,18 +23,19 @@ type StackitClient interface {
 
 // CreateServerRequest represents the request to create a server
 type CreateServerRequest struct {
-	Name             string                   `json:"name"`
-	MachineType      string                   `json:"machineType"`
-	ImageID          string                   `json:"imageId,omitempty"`
-	Labels           map[string]string        `json:"labels,omitempty"`
-	Networking       *ServerNetworkingRequest `json:"networking,omitempty"`
-	SecurityGroups   []string                 `json:"securityGroups,omitempty"`
-	UserData         string                   `json:"userData,omitempty"`
-	BootVolume       *BootVolumeRequest       `json:"bootVolume,omitempty"`
-	Volumes          []string                 `json:"volumes,omitempty"`
-	KeypairName      string                   `json:"keypairName,omitempty"`
-	AvailabilityZone string                   `json:"availabilityZone,omitempty"`
-	AffinityGroup    string                   `json:"affinityGroup,omitempty"`
+	Name                string                   `json:"name"`
+	MachineType         string                   `json:"machineType"`
+	ImageID             string                   `json:"imageId,omitempty"`
+	Labels              map[string]string        `json:"labels,omitempty"`
+	Networking          *ServerNetworkingRequest `json:"networking,omitempty"`
+	SecurityGroups      []string                 `json:"securityGroups,omitempty"`
+	UserData            string                   `json:"userData,omitempty"`
+	BootVolume          *BootVolumeRequest       `json:"bootVolume,omitempty"`
+	Volumes             []string                 `json:"volumes,omitempty"`
+	KeypairName         string                   `json:"keypairName,omitempty"`
+	AvailabilityZone    string                   `json:"availabilityZone,omitempty"`
+	AffinityGroup       string                   `json:"affinityGroup,omitempty"`
+	ServiceAccountMails []string                 `json:"serviceAccountMails,omitempty"`
 }
 
 // ServerNetworkingRequest represents the networking configuration for a server

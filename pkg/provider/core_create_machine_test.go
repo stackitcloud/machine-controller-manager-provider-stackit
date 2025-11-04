@@ -584,5 +584,53 @@ var _ = Describe("CreateMachine", func() {
 			Expect(capturedReq).NotTo(BeNil())
 			Expect(capturedReq.AffinityGroup).To(BeEmpty())
 		})
+
+		It("should pass ServiceAccountMails to API when specified", func() {
+			providerSpec := &api.ProviderSpec{
+				MachineType: "c1.2",
+				ImageID:     "image-uuid-123",
+				ServiceAccountMails: []string{
+					"my-service@sa.stackit.cloud",
+				},
+			}
+			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
+
+			var capturedReq *CreateServerRequest
+			mockClient.createServerFunc = func(ctx context.Context, projectID string, req *CreateServerRequest) (*Server, error) {
+				capturedReq = req
+				return &Server{
+					ID:     "test-server-id",
+					Name:   req.Name,
+					Status: "CREATING",
+				}, nil
+			}
+
+			_, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(capturedReq).NotTo(BeNil())
+			Expect(capturedReq.ServiceAccountMails).To(Equal([]string{
+				"my-service@sa.stackit.cloud",
+			}))
+		})
+
+		It("should not send ServiceAccountMails when empty", func() {
+			var capturedReq *CreateServerRequest
+			mockClient.createServerFunc = func(ctx context.Context, projectID string, req *CreateServerRequest) (*Server, error) {
+				capturedReq = req
+				return &Server{
+					ID:     "test-server-id",
+					Name:   req.Name,
+					Status: "CREATING",
+				}, nil
+			}
+
+			_, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(capturedReq).NotTo(BeNil())
+			Expect(capturedReq.ServiceAccountMails).To(BeNil())
+		})
 	})
 })
