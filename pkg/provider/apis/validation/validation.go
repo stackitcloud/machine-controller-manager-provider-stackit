@@ -41,6 +41,14 @@ func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret)
 		errors = append(errors, fmt.Errorf("secret 'projectId' cannot be empty"))
 	}
 
+	// Validate stackitToken (required for authentication)
+	stackitToken, ok := secrets.Data["stackitToken"]
+	if !ok {
+		errors = append(errors, fmt.Errorf("secret must contain 'stackitToken' field"))
+	} else if len(stackitToken) == 0 {
+		errors = append(errors, fmt.Errorf("secret 'stackitToken' cannot be empty"))
+	}
+
 	// Validate ProviderSpec
 	if spec.MachineType == "" {
 		errors = append(errors, fmt.Errorf("providerSpec.machineType is required"))

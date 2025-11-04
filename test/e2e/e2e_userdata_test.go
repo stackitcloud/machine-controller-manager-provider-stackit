@@ -31,6 +31,7 @@ metadata:
 type: Opaque
 stringData:
   projectId: "12345678-1234-1234-1234-123456789012"
+  stackitToken: "mock-token-for-e2e-tests"
   userData: |
     #cloud-config
     runcmd:
@@ -103,6 +104,7 @@ metadata:
 type: Opaque
 stringData:
   projectId: "12345678-1234-1234-1234-123456789012"
+  stackitToken: "mock-token-for-e2e-tests"
   userData: |
     #cloud-config
     runcmd:
@@ -171,6 +173,7 @@ metadata:
 type: Opaque
 stringData:
   projectId: "12345678-1234-1234-1234-123456789012"
+  stackitToken: "mock-token-for-e2e-tests"
   userData: |
     #cloud-config
     runcmd:

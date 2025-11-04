@@ -26,7 +26,8 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 		}
 		secret = &corev1.Secret{
 			Data: map[string][]byte{
-				"projectId": []byte("test-project"),
+				"projectId":    []byte("test-project"),
+				"stackitToken": []byte("test-token"),
 			},
 		}
 	})

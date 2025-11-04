@@ -41,7 +41,8 @@ var _ = Describe("GetMachineStatus", func() {
 		// Create secret with projectId
 		secret = &corev1.Secret{
 			Data: map[string][]byte{
-				"projectId": []byte("test-project-123"),
+				"projectId":    []byte("test-project-123"),
+				"stackitToken": []byte("test-token-123"),
 			},
 		}
 
@@ -83,7 +84,7 @@ var _ = Describe("GetMachineStatus", func() {
 
 	Context("with valid inputs", func() {
 		It("should successfully get machine status when server exists", func() {
-			mockClient.getServerFunc = func(ctx context.Context, projectID, serverID string) (*Server, error) {
+			mockClient.getServerFunc = func(ctx context.Context, token, projectID, serverID string) (*Server, error) {
 				return &Server{
 					ID:     serverID,
 					Name:   "test-machine",
@@ -103,7 +104,7 @@ var _ = Describe("GetMachineStatus", func() {
 			var capturedProjectID string
 			var capturedServerID string
 
-			mockClient.getServerFunc = func(ctx context.Context, projectID, serverID string) (*Server, error) {
+			mockClient.getServerFunc = func(ctx context.Context, token, projectID, serverID string) (*Server, error) {
 				capturedProjectID = projectID
 				capturedServerID = serverID
 				return &Server{
@@ -158,7 +159,7 @@ var _ = Describe("GetMachineStatus", func() {
 
 	Context("when server does not exist", func() {
 		It("should return NotFound when server is not found", func() {
-			mockClient.getServerFunc = func(ctx context.Context, projectID, serverID string) (*Server, error) {
+			mockClient.getServerFunc = func(ctx context.Context, token, projectID, serverID string) (*Server, error) {
 				return nil, fmt.Errorf("%w: status 404", ErrServerNotFound)
 			}
 
@@ -173,7 +174,7 @@ var _ = Describe("GetMachineStatus", func() {
 
 	Context("when STACKIT API fails", func() {
 		It("should return Internal error on API failure", func() {
-			mockClient.getServerFunc = func(ctx context.Context, projectID, serverID string) (*Server, error) {
+			mockClient.getServerFunc = func(ctx context.Context, token, projectID, serverID string) (*Server, error) {
 				return nil, fmt.Errorf("API connection failed")
 			}
 

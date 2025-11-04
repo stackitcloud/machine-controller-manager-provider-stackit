@@ -41,7 +41,7 @@ func newHTTPStackitClient() *httpStackitClient {
 }
 
 // CreateServer creates a new server via HTTP API
-func (c *httpStackitClient) CreateServer(ctx context.Context, projectID string, req *CreateServerRequest) (*Server, error) {
+func (c *httpStackitClient) CreateServer(ctx context.Context, token, projectID string, req *CreateServerRequest) (*Server, error) {
 	// Build API path
 	url := fmt.Sprintf("%s/v1/projects/%s/servers", c.baseURL, projectID)
 
@@ -58,6 +58,7 @@ func (c *httpStackitClient) CreateServer(ctx context.Context, projectID string, 
 	}
 
 	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 
 	// Send request
 	resp, err := c.httpClient.Do(httpReq)
@@ -87,7 +88,7 @@ func (c *httpStackitClient) CreateServer(ctx context.Context, projectID string, 
 }
 
 // GetServer retrieves a server by ID via HTTP API
-func (c *httpStackitClient) GetServer(ctx context.Context, projectID, serverID string) (*Server, error) {
+func (c *httpStackitClient) GetServer(ctx context.Context, token, projectID, serverID string) (*Server, error) {
 	// Build API path
 	url := fmt.Sprintf("%s/v1/projects/%s/servers/%s", c.baseURL, projectID, serverID)
 
@@ -98,6 +99,7 @@ func (c *httpStackitClient) GetServer(ctx context.Context, projectID, serverID s
 	}
 
 	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 
 	// Send request
 	resp, err := c.httpClient.Do(httpReq)
@@ -130,7 +132,7 @@ func (c *httpStackitClient) GetServer(ctx context.Context, projectID, serverID s
 }
 
 // DeleteServer deletes a server by ID via HTTP API
-func (c *httpStackitClient) DeleteServer(ctx context.Context, projectID, serverID string) error {
+func (c *httpStackitClient) DeleteServer(ctx context.Context, token, projectID, serverID string) error {
 	// Build API path
 	url := fmt.Sprintf("%s/v1/projects/%s/servers/%s", c.baseURL, projectID, serverID)
 
@@ -139,6 +141,8 @@ func (c *httpStackitClient) DeleteServer(ctx context.Context, projectID, serverI
 	if err != nil {
 		return fmt.Errorf("failed to create HTTP request: %w", err)
 	}
+
+	httpReq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 
 	// Send request
 	resp, err := c.httpClient.Do(httpReq)
@@ -169,7 +173,7 @@ func (c *httpStackitClient) DeleteServer(ctx context.Context, projectID, serverI
 }
 
 // ListServers lists all servers in a project via HTTP API
-func (c *httpStackitClient) ListServers(ctx context.Context, projectID string) ([]*Server, error) {
+func (c *httpStackitClient) ListServers(ctx context.Context, token, projectID string) ([]*Server, error) {
 	// Build API path
 	url := fmt.Sprintf("%s/v1/projects/%s/servers", c.baseURL, projectID)
 
@@ -180,6 +184,7 @@ func (c *httpStackitClient) ListServers(ctx context.Context, projectID string) (
 	}
 
 	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 
 	// Send request
 	resp, err := c.httpClient.Do(httpReq)
