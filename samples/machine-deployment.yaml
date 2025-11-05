@@ -6,9 +6,9 @@ metadata:
   name: test-machine-deployment
   namespace: default
 spec:
-  #paused: true [uncommment this when you want to pause]
-  #rollbackTo:
-    #revision: 0 [uncommment this when you want to rollback to previous version]
+  # paused: true
+  # rollbackTo:
+  #   revision: 0
   replicas: 3 # Number of healthy replicas that should always be healthy
   minReadySeconds: 500 # Minimum time to wait for machine to be ready
   strategy:
