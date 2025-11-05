@@ -28,6 +28,7 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 			Data: map[string][]byte{
 				"projectId":    []byte("11111111-2222-3333-4444-555555555555"),
 				"stackitToken": []byte("test-token"),
+				"region":       []byte("eu01-1"),
 			},
 		}
 	})
@@ -103,8 +104,8 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 		It("should succeed with label keys containing allowed characters", func() {
 			providerSpec.Labels = map[string]string{
 				"app.kubernetes.io_component": "worker",
-				"environment-type":             "prod",
-				"version":                      "v1.2.3",
+				"environment-type":            "prod",
+				"version":                     "v1.2.3",
 			}
 			errors := ValidateProviderSpecNSecret(providerSpec, secret)
 			Expect(errors).To(BeEmpty())

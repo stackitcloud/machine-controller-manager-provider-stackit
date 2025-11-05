@@ -9,8 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strconv"
-	"time"
 
 	"github.com/stackitcloud/stackit-sdk-go/core/config"
 	"github.com/stackitcloud/stackit-sdk-go/services/iaas"
@@ -27,6 +25,11 @@ type sdkStackitClient struct{}
 func newSDKStackitClient() *sdkStackitClient {
 	return &sdkStackitClient{}
 }
+
+var (
+	// ErrServerNotFound indicates the server was not found (404)
+	ErrServerNotFound = errors.New("server not found")
+)
 
 // createIAASClient creates a new STACKIT SDK IAAS API client for a request
 // This allows different MachineClasses to use different credentials
@@ -84,14 +87,18 @@ func (c *sdkStackitClient) CreateServer(ctx context.Context, token, projectID, r
 		payload.Labels = convertLabelsToSDK(req.Labels)
 	}
 
-	// Networking
+	// Networking - SDK uses union type: either NetworkId OR NicIds
 	if req.Networking != nil {
-		payload.Networking = &iaas.CreateServerPayloadAllOfNetworking{}
 		if req.Networking.NetworkID != "" {
-			payload.Networking.NetworkId = ptr(req.Networking.NetworkID)
-		}
-		if len(req.Networking.NICIDs) > 0 {
-			payload.Networking.NicIds = convertStringSliceToSDK(req.Networking.NICIDs)
+			// Use CreateServerNetworking (with networkId)
+			networking := iaas.NewCreateServerNetworking()
+			networking.SetNetworkId(req.Networking.NetworkID)
+			payload.SetNetworking(iaas.CreateServerNetworkingAsCreateServerPayloadAllOfNetworking(networking))
+		} else if len(req.Networking.NICIDs) > 0 {
+			// Use CreateServerNetworkingWithNics (with nicIds)
+			networking := iaas.NewCreateServerNetworkingWithNics()
+			networking.SetNicIds(req.Networking.NICIDs)
+			payload.SetNetworking(iaas.CreateServerNetworkingWithNicsAsCreateServerPayloadAllOfNetworking(networking))
 		}
 	}
 
@@ -100,24 +107,29 @@ func (c *sdkStackitClient) CreateServer(ctx context.Context, token, projectID, r
 		payload.SecurityGroups = convertStringSliceToSDK(req.SecurityGroups)
 	}
 
-	// UserData
+	// UserData - SDK expects *[]byte (base64-encoded bytes)
 	if req.UserData != "" {
-		payload.UserData = convertUserDataToSDK(req.UserData)
+		userDataBytes := []byte(req.UserData)
+		payload.SetUserData(userDataBytes)
 	}
 
 	// Boot Volume
 	if req.BootVolume != nil {
-		payload.BootVolume = &iaas.ServerBootVolume{
-			Size:                ptr(int64(req.BootVolume.Size)),
-			PerformanceClass:    ptr(req.BootVolume.PerformanceClass),
-			DeleteOnTermination: req.BootVolume.DeleteOnTermination,
+		bootVolume := iaas.NewServerBootVolume()
+		if req.BootVolume.Size > 0 {
+			bootVolume.SetSize(int64(req.BootVolume.Size))
+		}
+		if req.BootVolume.PerformanceClass != "" {
+			bootVolume.SetPerformanceClass(req.BootVolume.PerformanceClass)
+		}
+		if req.BootVolume.DeleteOnTermination != nil {
+			bootVolume.SetDeleteOnTermination(*req.BootVolume.DeleteOnTermination)
 		}
 		if req.BootVolume.Source != nil {
-			payload.BootVolume.Source = &iaas.ServerBootVolumeSource{
-				Type: ptr(req.BootVolume.Source.Type),
-				Id:   ptr(req.BootVolume.Source.ID),
-			}
+			source := iaas.NewBootVolumeSource(req.BootVolume.Source.ID, req.BootVolume.Source.Type)
+			bootVolume.SetSource(*source)
 		}
+		payload.SetBootVolume(*bootVolume)
 	}
 
 	// Volumes
@@ -244,7 +256,7 @@ func (c *sdkStackitClient) ListServers(ctx context.Context, token, projectID, re
 			server := &Server{
 				ID:     getStringValue(sdkServer.Id),
 				Name:   getStringValue(sdkServer.Name),
-				Status:getStringValue(sdkServer.Status),
+				Status: getStringValue(sdkServer.Status),
 				Labels: convertLabelsFromSDK(sdkServer.Labels),
 			}
 			servers = append(servers, server)
@@ -272,17 +284,17 @@ func isNotFoundError(err error) bool {
 	// The SDK returns structured errors that contain HTTP status codes
 	// Check error message for common 404 indicators
 	errStr := err.Error()
-	return contains(errStr, "404") || 
-		   contains(errStr, "not found") || 
-		   contains(errStr, "NotFound")
+	return contains(errStr, "404") ||
+		contains(errStr, "not found") ||
+		contains(errStr, "NotFound")
 }
 
 // contains checks if a string contains a substring (case-insensitive)
 func contains(s, substr string) bool {
-	return len(s) >= len(substr) && 
-		   (s == substr || len(s) > len(substr) && 
-		   (s[:len(substr)] == substr || s[len(s)-len(substr):] == substr || 
-		   findSubstring(s, substr)))
+	return len(s) >= len(substr) &&
+		(s == substr || len(s) > len(substr) &&
+			(s[:len(substr)] == substr || s[len(s)-len(substr):] == substr ||
+				findSubstring(s, substr)))
 }
 
 // findSubstring searches for a substring in a string

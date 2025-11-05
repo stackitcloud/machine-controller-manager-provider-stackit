@@ -43,6 +43,7 @@ var _ = Describe("DeleteMachine", func() {
 			Data: map[string][]byte{
 				"projectId":    []byte("11111111-2222-3333-4444-555555555555"),
 				"stackitToken": []byte("test-token-123"),
+				"region":       []byte("eu01-1"),
 			},
 		}
 
@@ -84,7 +85,7 @@ var _ = Describe("DeleteMachine", func() {
 
 	Context("with valid inputs", func() {
 		It("should successfully delete a machine", func() {
-			mockClient.deleteServerFunc = func(ctx context.Context, token, projectID, serverID string) error {
+			mockClient.deleteServerFunc = func(ctx context.Context, token, projectID, region, serverID string) error {
 				return nil
 			}
 
@@ -98,7 +99,7 @@ var _ = Describe("DeleteMachine", func() {
 			var capturedProjectID string
 			var capturedServerID string
 
-			mockClient.deleteServerFunc = func(ctx context.Context, token, projectID, serverID string) error {
+			mockClient.deleteServerFunc = func(ctx context.Context, token, projectID, region, serverID string) error {
 				capturedProjectID = projectID
 				capturedServerID = serverID
 				return nil
@@ -136,9 +137,9 @@ var _ = Describe("DeleteMachine", func() {
 		})
 	})
 
-	Context("when server does not exist (idempotency)", func() {
-		It("should succeed when server is already deleted (NotFound)", func() {
-			mockClient.deleteServerFunc = func(ctx context.Context, token, projectID, serverID string) error {
+	Context("when machine not found", func() {
+		It("should return success if machine does not exist (idempotent)", func() {
+			mockClient.deleteServerFunc = func(ctx context.Context, token, projectID, region, serverID string) error {
 				return fmt.Errorf("%w: status 404", ErrServerNotFound)
 			}
 
@@ -150,8 +151,8 @@ var _ = Describe("DeleteMachine", func() {
 	})
 
 	Context("when STACKIT API fails", func() {
-		It("should return Internal error on API failure", func() {
-			mockClient.deleteServerFunc = func(ctx context.Context, token, projectID, serverID string) error {
+		It("should return error when API call fails", func() {
+			mockClient.deleteServerFunc = func(ctx context.Context, token, projectID, region, serverID string) error {
 				return fmt.Errorf("API connection failed")
 			}
 

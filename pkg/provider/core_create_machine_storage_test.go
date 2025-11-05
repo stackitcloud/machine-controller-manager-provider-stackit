@@ -40,6 +40,7 @@ var _ = Describe("CreateMachine", func() {
 			Data: map[string][]byte{
 				"projectId":    []byte("11111111-2222-3333-4444-555555555555"),
 				"stackitToken": []byte("test-token-123"),
+				"region":       []byte("eu01-1"),
 			},
 		}
 
@@ -96,7 +97,7 @@ var _ = Describe("CreateMachine", func() {
 			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
 
 			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(ctx context.Context, token, projectID string, req *CreateServerRequest) (*Server, error) {
+			mockClient.createServerFunc = func(ctx context.Context, token, projectID, region string, req *CreateServerRequest) (*Server, error) {
 				capturedReq = req
 				return &Server{
 					ID:     "test-server-id",
@@ -130,7 +131,7 @@ var _ = Describe("CreateMachine", func() {
 			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
 
 			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(ctx context.Context, token, projectID string, req *CreateServerRequest) (*Server, error) {
+			mockClient.createServerFunc = func(ctx context.Context, token, projectID, region string, req *CreateServerRequest) (*Server, error) {
 				capturedReq = req
 				return &Server{
 					ID:     "test-server-id",
@@ -160,7 +161,7 @@ var _ = Describe("CreateMachine", func() {
 			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
 
 			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(ctx context.Context, token, projectID string, req *CreateServerRequest) (*Server, error) {
+			mockClient.createServerFunc = func(ctx context.Context, token, projectID, region string, req *CreateServerRequest) (*Server, error) {
 				capturedReq = req
 				return &Server{
 					ID:     "test-server-id",
@@ -194,7 +195,7 @@ var _ = Describe("CreateMachine", func() {
 			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
 
 			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(ctx context.Context, token, projectID string, req *CreateServerRequest) (*Server, error) {
+			mockClient.createServerFunc = func(ctx context.Context, token, projectID, region string, req *CreateServerRequest) (*Server, error) {
 				capturedReq = req
 				return &Server{
 					ID:     "test-server-id",
@@ -214,7 +215,7 @@ var _ = Describe("CreateMachine", func() {
 
 		It("should not send volumes when not specified", func() {
 			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(ctx context.Context, token, projectID string, req *CreateServerRequest) (*Server, error) {
+			mockClient.createServerFunc = func(ctx context.Context, token, projectID, region string, req *CreateServerRequest) (*Server, error) {
 				capturedReq = req
 				return &Server{
 					ID:     "test-server-id",

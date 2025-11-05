@@ -197,6 +197,9 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 	// Extract token from Secret for authentication
 	token := string(req.Secret.Data["stackitToken"])
 
+	// Extract region from Secret
+	region := string(req.Secret.Data["region"])
+
 	// Parse ProviderID to extract projectID and serverID
 	projectID, serverID, err := parseProviderID(req.Machine.Spec.ProviderID)
 	if err != nil {
@@ -249,6 +252,9 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 
 	// Extract token from Secret for authentication
 	token := string(req.Secret.Data["stackitToken"])
+
+	// Extract region from Secret
+	region := string(req.Secret.Data["region"])
 
 	// Parse ProviderID to extract projectID and serverID
 	// Expected format: stackit://<projectId>/<serverId>
