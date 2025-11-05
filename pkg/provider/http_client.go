@@ -54,7 +54,11 @@ func newHTTPStackitClient() *httpStackitClient {
 }
 
 // CreateServer creates a new server via HTTP API
-func (c *httpStackitClient) CreateServer(ctx context.Context, token, projectID string, req *CreateServerRequest) (*Server, error) {
+func (c *httpStackitClient) CreateServer(ctx context.Context, token, projectID, region string, req *CreateServerRequest) (*Server, error) {
+	// Note: region parameter added for interface compatibility with SDK
+	// The HTTP API doesn't use region in the URL structure
+	_ = region
+
 	// Build API path
 	url := fmt.Sprintf("%s/v1/projects/%s/servers", c.baseURL, projectID)
 
@@ -101,7 +105,10 @@ func (c *httpStackitClient) CreateServer(ctx context.Context, token, projectID s
 }
 
 // GetServer retrieves a server by ID via HTTP API
-func (c *httpStackitClient) GetServer(ctx context.Context, token, projectID, serverID string) (*Server, error) {
+func (c *httpStackitClient) GetServer(ctx context.Context, token, projectID, region, serverID string) (*Server, error) {
+	// Note: region parameter added for interface compatibility with SDK
+	_ = region
+
 	// Build API path
 	url := fmt.Sprintf("%s/v1/projects/%s/servers/%s", c.baseURL, projectID, serverID)
 
@@ -145,7 +152,10 @@ func (c *httpStackitClient) GetServer(ctx context.Context, token, projectID, ser
 }
 
 // DeleteServer deletes a server by ID via HTTP API
-func (c *httpStackitClient) DeleteServer(ctx context.Context, token, projectID, serverID string) error {
+func (c *httpStackitClient) DeleteServer(ctx context.Context, token, projectID, region, serverID string) error {
+	// Note: region parameter added for interface compatibility with SDK
+	_ = region
+
 	// Build API path
 	url := fmt.Sprintf("%s/v1/projects/%s/servers/%s", c.baseURL, projectID, serverID)
 
@@ -186,7 +196,10 @@ func (c *httpStackitClient) DeleteServer(ctx context.Context, token, projectID, 
 }
 
 // ListServers lists all servers in a project via HTTP API
-func (c *httpStackitClient) ListServers(ctx context.Context, token, projectID string) ([]*Server, error) {
+func (c *httpStackitClient) ListServers(ctx context.Context, token, projectID, region string) ([]*Server, error) {
+	// Note: region parameter added for interface compatibility with SDK
+	_ = region
+
 	// Build API path
 	url := fmt.Sprintf("%s/v1/projects/%s/servers", c.baseURL, projectID)
 

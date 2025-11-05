@@ -5,53 +5,73 @@
 package provider
 
 import (
-	"encoding/json"
-	"fmt"
-	"strings"
-
-	api "github.com/aoepeople/machine-controller-manager-provider-stackit/pkg/provider/apis"
-	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
+	"encoding/base64"
 )
 
-// decodeProviderSpec decodes the ProviderSpec from a MachineClass
-func decodeProviderSpec(machineClass *v1alpha1.MachineClass) (*api.ProviderSpec, error) {
-	if machineClass == nil {
-		return nil, fmt.Errorf("machineClass is nil")
-	}
-
-	var providerSpec *api.ProviderSpec
-	if err := json.Unmarshal(machineClass.ProviderSpec.Raw, &providerSpec); err != nil {
-		return nil, fmt.Errorf("failed to decode ProviderSpec: %w", err)
-	}
-
-	return providerSpec, nil
+// ptr returns a pointer to the given value
+// This helper is needed because the STACKIT SDK uses pointers for optional fields
+func ptr[T any](v T) *T {
+	return &v
 }
 
-// encodeProviderSpecForResponse encodes a ProviderSpec to JSON bytes
-func encodeProviderSpecForResponse(spec *api.ProviderSpec) ([]byte, error) {
-	return json.Marshal(spec)
+// convertLabelsToSDK converts map[string]string to *map[string]interface{} for SDK
+func convertLabelsToSDK(labels map[string]string) *map[string]interface{} {
+	if labels == nil {
+		return nil
+	}
+
+	result := make(map[string]interface{}, len(labels))
+	for k, v := range labels {
+		result[k] = v
+	}
+	return &result
 }
 
-// parseProviderID parses a STACKIT ProviderID and extracts the projectID and serverID
-// Expected format: stackit://<projectId>/<serverId>
-func parseProviderID(providerID string) (projectID, serverID string, err error) {
-	const prefix = "stackit://"
-
-	if !strings.HasPrefix(providerID, prefix) {
-		return "", "", fmt.Errorf("ProviderID must start with 'stackit://'")
+// convertLabelsFromSDK converts *map[string]interface{} from SDK to map[string]string
+func convertLabelsFromSDK(labels *map[string]interface{}) map[string]string {
+	if labels == nil {
+		return nil
 	}
 
-	// Remove prefix and split by '/'
-	remainder := strings.TrimPrefix(providerID, prefix)
-	parts := strings.Split(remainder, "/")
+	result := make(map[string]string, len(*labels))
+	for k, v := range *labels {
+		if strVal, ok := v.(string); ok {
+			result[k] = strVal
+		}
+	}
+	return result
+}
 
-	if len(parts) != 2 {
-		return "", "", fmt.Errorf("ProviderID must have format 'stackit://<projectId>/<serverId>'")
+// convertUserDataToSDK converts base64-encoded string to *string for SDK
+// The STACKIT API expects userData as a base64-encoded string
+func convertUserDataToSDK(userData string) *string {
+	if userData == "" {
+		return nil
 	}
 
-	if parts[0] == "" || parts[1] == "" {
-		return "", "", fmt.Errorf("projectId and serverId cannot be empty")
+	// Check if already base64-encoded
+	if _, err := base64.StdEncoding.DecodeString(userData); err == nil {
+		// Already base64, use as-is
+		return ptr(userData)
 	}
 
-	return parts[0], parts[1], nil
+	// Not base64, encode it
+	encoded := base64.StdEncoding.EncodeToString([]byte(userData))
+	return ptr(encoded)
+}
+
+// convertStringSliceToSDK converts []string to *[]string for SDK
+func convertStringSliceToSDK(slice []string) *[]string {
+	if slice == nil {
+		return nil
+	}
+	return &slice
+}
+
+// convertMetadataToSDK converts map[string]interface{} to *map[string]interface{} for SDK
+func convertMetadataToSDK(metadata map[string]interface{}) *map[string]interface{} {
+	if metadata == nil {
+		return nil
+	}
+	return &metadata
 }

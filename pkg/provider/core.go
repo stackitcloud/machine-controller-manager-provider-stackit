@@ -51,6 +51,7 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	// Extract credentials from Secret
 	projectID := string(req.Secret.Data["projectId"])
 	token := string(req.Secret.Data["stackitToken"])
+	region := string(req.Secret.Data["region"])
 
 	// Build labels: merge ProviderSpec labels with MCM-specific labels
 	labels := make(map[string]string)
@@ -155,7 +156,7 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	}
 
 	// Call STACKIT API to create server
-	server, err := p.client.CreateServer(ctx, token, projectID, createReq)
+	server, err := p.client.CreateServer(ctx, token, projectID, region, createReq)
 	if err != nil {
 		klog.Errorf("Failed to create server for machine %q: %v", req.Machine.Name, err)
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to create server: %v", err))
@@ -203,7 +204,7 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 	}
 
 	// Call STACKIT API to delete server
-	err = p.client.DeleteServer(ctx, token, projectID, serverID)
+	err = p.client.DeleteServer(ctx, token, projectID, region, serverID)
 	if err != nil {
 		// Check if server was not found (404) - this is OK for idempotency
 		if errors.Is(err, ErrServerNotFound) {
@@ -257,7 +258,7 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 	}
 
 	// Call STACKIT API to get server status
-	server, err := p.client.GetServer(ctx, token, projectID, serverID)
+	server, err := p.client.GetServer(ctx, token, projectID, region, serverID)
 	if err != nil {
 		// Check if server was not found (404)
 		if errors.Is(err, ErrServerNotFound) {
@@ -296,9 +297,10 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 	// Extract credentials from Secret
 	projectID := string(req.Secret.Data["projectId"])
 	token := string(req.Secret.Data["stackitToken"])
+	region := string(req.Secret.Data["region"])
 
 	// Call STACKIT API to list all servers
-	servers, err := p.client.ListServers(ctx, token, projectID)
+	servers, err := p.client.ListServers(ctx, token, projectID, region)
 	if err != nil {
 		klog.Errorf("Failed to list servers for MachineClass %q: %v", req.MachineClass.Name, err)
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to list servers: %v", err))
