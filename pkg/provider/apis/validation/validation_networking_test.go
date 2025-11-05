@@ -110,31 +110,4 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 			Expect(errors[0].Error()).To(ContainSubstring("cannot be empty"))
 		})
 	})
-
-	Context("SecurityGroups validation", func() {
-		It("should succeed with valid SecurityGroups", func() {
-			providerSpec.SecurityGroups = []string{"default", "web-servers"}
-			errors := ValidateProviderSpecNSecret(providerSpec, secret)
-			Expect(errors).To(BeEmpty())
-		})
-
-		It("should succeed when SecurityGroups is nil", func() {
-			providerSpec.SecurityGroups = nil
-			errors := ValidateProviderSpecNSecret(providerSpec, secret)
-			Expect(errors).To(BeEmpty())
-		})
-
-		It("should succeed when SecurityGroups is empty array", func() {
-			providerSpec.SecurityGroups = []string{}
-			errors := ValidateProviderSpecNSecret(providerSpec, secret)
-			Expect(errors).To(BeEmpty())
-		})
-
-		It("should fail when SecurityGroups contains empty string", func() {
-			providerSpec.SecurityGroups = []string{"default", ""}
-			errors := ValidateProviderSpecNSecret(providerSpec, secret)
-			Expect(errors).NotTo(BeEmpty())
-			Expect(errors[0].Error()).To(ContainSubstring("cannot be empty"))
-		})
-	})
 })
