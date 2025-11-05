@@ -21,7 +21,7 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 	BeforeEach(func() {
 		// Set up valid defaults
 		providerSpec = &api.ProviderSpec{
-			MachineType: "c1.2",
+			MachineType: "c2i.2",
 			ImageID:     "550e8400-e29b-41d4-a716-446655440000",
 		}
 		secret = &corev1.Secret{
@@ -53,7 +53,7 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 		})
 
 		It("should succeed when MachineType has valid format", func() {
-			providerSpec.MachineType = "c1.2"
+			providerSpec.MachineType = "c2i.2"
 			errors := ValidateProviderSpecNSecret(providerSpec, secret)
 			Expect(errors).To(BeEmpty())
 		})
@@ -103,8 +103,8 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 		It("should succeed with label keys containing allowed characters", func() {
 			providerSpec.Labels = map[string]string{
 				"app.kubernetes.io_component": "worker",
-				"environment-type":             "prod",
-				"version":                      "v1.2.3",
+				"environment-type":            "prod",
+				"version":                     "v1.2.3",
 			}
 			errors := ValidateProviderSpecNSecret(providerSpec, secret)
 			Expect(errors).To(BeEmpty())

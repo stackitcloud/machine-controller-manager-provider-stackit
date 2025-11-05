@@ -103,7 +103,7 @@ kubectl apply -f samples/machine.yaml
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `machineType` | string | Yes | STACKIT server type (e.g., "c1.2", "m1.4") |
+| `machineType` | string | Yes | STACKIT server type (e.g., "c2i.2", "m2i.8") |
 | `imageId` | string | Yes | UUID of the OS image |
 | `labels` | map[string]string | No | Labels for server identification |
 | `networking` | NetworkingSpec | No | Network configuration (NetworkID or NICIDs) |

@@ -4,8 +4,8 @@ metadata:
   name: test-mc
   namespace: default
 providerSpec:
-  # Required: STACKIT machine type (e.g., "c1.2", "m1.4", "g1.8")
-  machineType: "c1.2"
+  # Required: STACKIT machine type (e.g., "c2i.2", "m2i.8")
+  machineType: "c2i.2"
 
   # Required: UUID of the OS image to use
   imageId: "550e8400-e29b-41d4-a716-446655440000"
@@ -55,7 +55,7 @@ metadata:
   name: minimal-mc
   namespace: default
 providerSpec:
-  machineType: "c1.2"
+  machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
 secretRef:
   name: test-secret
@@ -69,7 +69,7 @@ metadata:
   name: custom-userdata-mc
   namespace: default
 providerSpec:
-  machineType: "c1.2"
+  machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   # UserData in ProviderSpec overrides Secret.userData
   # Useful for MachineClass-specific bootstrapping (e.g., different software per class)
@@ -98,7 +98,7 @@ metadata:
   name: custom-bootvolume-mc
   namespace: default
 providerSpec:
-  machineType: "c1.2"
+  machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   # BootVolume allows fine-grained control over boot disk
   bootVolume:
@@ -125,7 +125,7 @@ metadata:
   name: with-volumes-mc
   namespace: default
 providerSpec:
-  machineType: "c1.2"
+  machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   # Volumes: attach existing volumes by UUID
   # These are data volumes in addition to the boot disk
@@ -144,7 +144,7 @@ metadata:
   name: full-storage-mc
   namespace: default
 providerSpec:
-  machineType: "c1.2"
+  machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   # Custom boot volume configuration
   bootVolume:
@@ -165,7 +165,7 @@ metadata:
   name: with-keypair-mc
   namespace: default
 providerSpec:
-  machineType: "c1.2"
+  machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   # KeypairName: SSH keypair for server access
   # The keypair must already exist in the STACKIT project
@@ -185,7 +185,7 @@ metadata:
   name: with-az-mc
   namespace: default
 providerSpec:
-  machineType: "c1.2"
+  machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   # AvailabilityZone: Specify the AZ where the server will be created
   # If not specified:
@@ -204,7 +204,7 @@ metadata:
   name: with-affinity-mc
   namespace: default
 providerSpec:
-  machineType: "c1.2"
+  machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   # AffinityGroup: UUID of affinity group to control server placement
   # The affinity group must already exist in the STACKIT project
@@ -224,7 +224,7 @@ metadata:
   name: with-service-accounts-mc
   namespace: default
 providerSpec:
-  machineType: "c1.2"
+  machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   # ServiceAccountMails: Email addresses of service accounts to associate with the server
   # Service accounts provide identity and access management for the server
@@ -245,7 +245,7 @@ metadata:
   name: with-agent-mc
   namespace: default
 providerSpec:
-  machineType: "c1.2"
+  machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   # Agent: Configure the STACKIT agent on the server
   # The agent provides monitoring and management capabilities
@@ -265,7 +265,7 @@ metadata:
   name: with-metadata-mc
   namespace: default
 providerSpec:
-  machineType: "c1.2"
+  machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   # Metadata: Generic JSON object for storing arbitrary key-value pairs
   # Can be used to store custom metadata that doesn't fit into other fields

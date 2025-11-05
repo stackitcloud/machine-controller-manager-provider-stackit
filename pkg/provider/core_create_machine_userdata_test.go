@@ -46,7 +46,7 @@ var _ = Describe("CreateMachine", func() {
 
 		// Create ProviderSpec
 		providerSpec := &api.ProviderSpec{
-			MachineType: "c1.2",
+			MachineType: "c2i.2",
 			ImageID:     "12345678-1234-1234-1234-123456789abc",
 		}
 		providerSpecRaw, _ := encodeProviderSpec(providerSpec)
@@ -80,7 +80,7 @@ var _ = Describe("CreateMachine", func() {
 	Context("with userData", func() {
 		It("should pass userData from ProviderSpec to API", func() {
 			providerSpec := &api.ProviderSpec{
-				MachineType: "c1.2",
+				MachineType: "c2i.2",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				UserData:    "#cloud-config\nruncmd:\n  - echo 'Hello from ProviderSpec'",
 			}
@@ -128,7 +128,7 @@ var _ = Describe("CreateMachine", func() {
 
 		It("should prefer ProviderSpec.UserData over Secret.userData", func() {
 			providerSpec := &api.ProviderSpec{
-				MachineType: "c1.2",
+				MachineType: "c2i.2",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				UserData:    "#cloud-config from ProviderSpec",
 			}

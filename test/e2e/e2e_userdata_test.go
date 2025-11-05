@@ -47,7 +47,7 @@ metadata:
   name: %s
   namespace: %s
 providerSpec:
-  machineType: "c1.2"
+  machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   userData: |
     #cloud-config
@@ -120,7 +120,7 @@ metadata:
   name: %s
   namespace: %s
 providerSpec:
-  machineType: "c1.2"
+  machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   labels:
     test: "userdata-secret"
@@ -189,7 +189,7 @@ metadata:
   name: %s
   namespace: %s
 providerSpec:
-  machineType: "c1.2"
+  machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   userData: |
     #cloud-config
