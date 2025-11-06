@@ -44,6 +44,7 @@ var _ = Describe("GetMachineStatus", func() {
 				"projectId":    []byte("11111111-2222-3333-4444-555555555555"),
 				"stackitToken": []byte("test-token-123"),
 				"region":       []byte("eu01-1"),
+				"networkId":    []byte("770e8400-e29b-41d4-a716-446655440000"),
 			},
 		}
 

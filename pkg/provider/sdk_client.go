@@ -87,7 +87,8 @@ func (c *sdkStackitClient) CreateServer(ctx context.Context, token, projectID, r
 		payload.Labels = convertLabelsToSDK(req.Labels)
 	}
 
-	// Networking - SDK uses union type: either NetworkId OR NicIds
+	// Networking - Required in v2 API, SDK uses union type: either NetworkId OR NicIds
+	// If Networking is provided but empty, set an empty networking object to satisfy v2 API
 	if req.Networking != nil {
 		if req.Networking.NetworkID != "" {
 			// Use CreateServerNetworking (with networkId)
@@ -99,6 +100,10 @@ func (c *sdkStackitClient) CreateServer(ctx context.Context, token, projectID, r
 			networking := iaas.NewCreateServerNetworkingWithNics()
 			networking.SetNicIds(req.Networking.NICIDs)
 			payload.SetNetworking(iaas.CreateServerNetworkingWithNicsAsCreateServerPayloadAllOfNetworking(networking))
+		} else {
+			// Empty networking object (v2 API requires networking field even if empty)
+			networking := iaas.NewCreateServerNetworking()
+			payload.SetNetworking(iaas.CreateServerNetworkingAsCreateServerPayloadAllOfNetworking(networking))
 		}
 	}
 

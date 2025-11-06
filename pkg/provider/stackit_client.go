@@ -30,7 +30,7 @@ type CreateServerRequest struct {
 	MachineType         string                   `json:"machineType"`
 	ImageID             string                   `json:"imageId,omitempty"`
 	Labels              map[string]string        `json:"labels,omitempty"`
-	Networking          *ServerNetworkingRequest `json:"networking,omitempty"`
+	Networking          *ServerNetworkingRequest `json:"networking"` // Required in v2 API, no omitempty
 	SecurityGroups      []string                 `json:"securityGroups,omitempty"`
 	UserData            string                   `json:"userData,omitempty"`
 	BootVolume          *BootVolumeRequest       `json:"bootVolume,omitempty"`

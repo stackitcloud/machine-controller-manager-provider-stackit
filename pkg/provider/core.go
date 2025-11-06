@@ -74,11 +74,19 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		Labels:      labels,
 	}
 
-	// Add networking configuration if specified
+	// Add networking configuration (required in v2 API)
+	// If not specified in ProviderSpec, try to use networkId from Secret, or use empty
 	if providerSpec.Networking != nil {
 		createReq.Networking = &ServerNetworkingRequest{
 			NetworkID: providerSpec.Networking.NetworkID,
 			NICIDs:    providerSpec.Networking.NICIDs,
+		}
+	} else {
+		// v2 API requires networking field - use networkId from Secret if available
+		// This allows tests/deployments to specify a default network without modifying each MachineClass
+		networkID := string(req.Secret.Data["networkId"])
+		createReq.Networking = &ServerNetworkingRequest{
+			NetworkID: networkID, // Can be empty string if not in Secret
 		}
 	}
 
