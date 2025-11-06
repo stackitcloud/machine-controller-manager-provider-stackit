@@ -6,6 +6,7 @@
 package validation
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 
@@ -59,12 +60,15 @@ func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret)
 		errors = append(errors, fmt.Errorf("secret 'projectId' must be a valid UUID"))
 	}
 
-	// Validate stackitToken (required for authentication)
-	stackitToken, ok := secrets.Data["stackitToken"]
+	// Validate serviceAccountKey (required for authentication)
+	// ServiceAccount Key Flow: JSON string containing service account credentials and private key
+	serviceAccountKey, ok := secrets.Data["serviceAccountKey"]
 	if !ok {
-		errors = append(errors, fmt.Errorf("secret must contain 'stackitToken' field"))
-	} else if len(stackitToken) == 0 {
-		errors = append(errors, fmt.Errorf("secret 'stackitToken' cannot be empty"))
+		errors = append(errors, fmt.Errorf("secret must contain 'serviceAccountKey' field"))
+	} else if len(serviceAccountKey) == 0 {
+		errors = append(errors, fmt.Errorf("secret 'serviceAccountKey' cannot be empty"))
+	} else if !isValidJSON(string(serviceAccountKey)) {
+		errors = append(errors, fmt.Errorf("secret 'serviceAccountKey' must be valid JSON (service account credentials)"))
 	}
 
 	// Validate region (required for SDK)
