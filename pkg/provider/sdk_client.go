@@ -14,8 +14,6 @@ import (
 	"github.com/stackitcloud/stackit-sdk-go/services/iaas"
 )
 
-// Note: ErrServerNotFound is defined in http_client.go and shared by both clients
-
 // sdkStackitClient is an SDK implementation of StackitClient
 // It is stateless and creates SDK API clients per-request to support
 // different credentials per MachineClass

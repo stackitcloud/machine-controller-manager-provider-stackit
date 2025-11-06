@@ -103,6 +103,8 @@ kubectl apply -f samples/machine.yaml
 
 This provider uses the official [STACKIT Go SDK](https://github.com/stackitcloud/stackit-sdk-go) for all interactions with the STACKIT IaaS API. The SDK provides type-safe API access, built-in authentication handling, and is officially maintained by STACKIT.
 
+The SDK client is stateless and supports different credentials per MachineClass, allowing multi-tenancy scenarios where different machine pools use different STACKIT projects.
+
 ### Authentication & Credentials
 
 The provider requires STACKIT credentials to be provided via a Kubernetes Secret. The Secret must contain the following fields:
@@ -114,51 +116,6 @@ The provider requires STACKIT credentials to be provided via a Kubernetes Secret
 | `region` | Yes | STACKIT region (e.g., `eu01-1`, `eu01-2`) |
 | `userData` | No | Default cloud-init user data (can be overridden in ProviderSpec) |
 | `networkId` | No | Default network UUID (can be overridden in ProviderSpec) |
-
-**Example Secret:**
-
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: stackit-credentials
-  namespace: default
-type: Opaque
-stringData:
-  projectId: "12345678-1234-1234-1234-123456789012"
-  stackitToken: "your-stackit-api-token-here"
-  region: "eu01-1"  # Required by STACKIT SDK v1.0.0+
-```
-
-### Obtaining STACKIT Credentials
-
-1. **Project ID**: Your STACKIT project UUID (visible in the STACKIT Portal)
-2. **API Token**: Create a service account and generate an API token:
-   - Visit the [STACKIT Portal](https://portal.stackit.cloud/)
-   - Navigate to Service Accounts
-   - Create a new service account or use an existing one
-   - Generate an API token with appropriate permissions
-   - See [STACKIT Service Accounts Documentation](https://docs.stackit.cloud/stackit/en/service-accounts-134415819.html)
-
-3. **Region**: The STACKIT region where resources will be created
-   - Common values: `eu01-1`, `eu01-2`
-   - Must match the region where your project's resources are deployed
-
-### SDK Configuration
-
-The provider automatically configures the STACKIT SDK using:
-- **SDK Core**: v0.18.0
-- **SDK IaaS Service**: v1.0.0
-- **Authentication Method**: Token-based authentication (token flow)
-
-The SDK client is stateless and supports different credentials per MachineClass, allowing multi-tenancy scenarios where different machine pools use different STACKIT projects.
-
-### SDK References
-
-- **STACKIT SDK Repository**: https://github.com/stackitcloud/stackit-sdk-go
-- **IaaS Service Documentation**: https://github.com/stackitcloud/stackit-sdk-go/tree/main/services/iaas
-- **SDK Core Documentation**: https://github.com/stackitcloud/stackit-sdk-go/tree/main/core
-- **Authentication Guide**: https://github.com/stackitcloud/stackit-sdk-go/blob/main/examples/authentication/authentication.go
 
 ## Configuration Reference
 
