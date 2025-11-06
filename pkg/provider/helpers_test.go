@@ -98,7 +98,7 @@ var _ = Describe("Helpers", func() {
 	Describe("decodeProviderSpec", func() {
 		Context("with valid MachineClass", func() {
 			It("should decode a valid ProviderSpec", func() {
-				providerSpecJSON := `{"machineType":"c1.2","imageId":"image-123"}`
+				providerSpecJSON := `{"machineType":"c2i.2","imageId":"image-123"}`
 				machineClass := &v1alpha1.MachineClass{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "test-class",
@@ -112,7 +112,7 @@ var _ = Describe("Helpers", func() {
 
 				Expect(err).NotTo(HaveOccurred())
 				Expect(spec).NotTo(BeNil())
-				Expect(spec.MachineType).To(Equal("c1.2"))
+				Expect(spec.MachineType).To(Equal("c2i.2"))
 				Expect(spec.ImageID).To(Equal("image-123"))
 			})
 		})
@@ -149,7 +149,7 @@ var _ = Describe("Helpers", func() {
 		Context("with valid ProviderSpec", func() {
 			It("should encode a ProviderSpec to JSON", func() {
 				spec := &api.ProviderSpec{
-					MachineType: "c1.2",
+					MachineType: "c2i.2",
 					ImageID:     "image-123",
 				}
 
@@ -162,7 +162,7 @@ var _ = Describe("Helpers", func() {
 				var decoded api.ProviderSpec
 				err = json.Unmarshal(data, &decoded)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(decoded.MachineType).To(Equal("c1.2"))
+				Expect(decoded.MachineType).To(Equal("c2i.2"))
 				Expect(decoded.ImageID).To(Equal("image-123"))
 			})
 

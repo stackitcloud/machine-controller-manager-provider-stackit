@@ -45,7 +45,7 @@ var _ = Describe("CreateMachine", func() {
 
 		// Create ProviderSpec
 		providerSpec := &api.ProviderSpec{
-			MachineType: "c1.2",
+			MachineType: "c2i.2",
 			ImageID:     "12345678-1234-1234-1234-123456789abc",
 		}
 		providerSpecRaw, _ := encodeProviderSpec(providerSpec)
@@ -79,7 +79,7 @@ var _ = Describe("CreateMachine", func() {
 	Context("with keypairName", func() {
 		It("should pass KeypairName to API when specified", func() {
 			providerSpec := &api.ProviderSpec{
-				MachineType: "c1.2",
+				MachineType: "c2i.2",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				KeypairName: "my-ssh-key",
 			}
@@ -125,7 +125,7 @@ var _ = Describe("CreateMachine", func() {
 	Context("with availabilityZone", func() {
 		It("should pass AvailabilityZone to API when specified", func() {
 			providerSpec := &api.ProviderSpec{
-				MachineType:      "c1.2",
+				MachineType:      "c2i.2",
 				ImageID:          "12345678-1234-1234-1234-123456789abc",
 				AvailabilityZone: "eu01-1",
 			}
@@ -171,7 +171,7 @@ var _ = Describe("CreateMachine", func() {
 	Context("with affinityGroup", func() {
 		It("should pass AffinityGroup to API when specified", func() {
 			providerSpec := &api.ProviderSpec{
-				MachineType:   "c1.2",
+				MachineType:   "c2i.2",
 				ImageID:       "12345678-1234-1234-1234-123456789abc",
 				AffinityGroup: "880e8400-e29b-41d4-a716-446655440000",
 			}
@@ -215,7 +215,7 @@ var _ = Describe("CreateMachine", func() {
 
 		It("should pass ServiceAccountMails to API when specified", func() {
 			providerSpec := &api.ProviderSpec{
-				MachineType: "c1.2",
+				MachineType: "c2i.2",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				ServiceAccountMails: []string{
 					"my-service@sa.stackit.cloud",
@@ -264,7 +264,7 @@ var _ = Describe("CreateMachine", func() {
 		It("should pass Agent to API when specified", func() {
 			provisioned := true
 			providerSpec := &api.ProviderSpec{
-				MachineType: "c1.2",
+				MachineType: "c2i.2",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				Agent: &api.AgentSpec{
 					Provisioned: &provisioned,
@@ -311,7 +311,7 @@ var _ = Describe("CreateMachine", func() {
 
 		It("should pass Metadata to API when specified", func() {
 			providerSpec := &api.ProviderSpec{
-				MachineType: "c1.2",
+				MachineType: "c2i.2",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				Metadata: map[string]interface{}{
 					"environment": "production",

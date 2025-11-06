@@ -47,7 +47,7 @@ metadata:
   name: %s
   namespace: %s
 providerSpec:
-  machineType: "c1.2"
+  machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   bootVolume:
     size: 100
@@ -119,7 +119,7 @@ metadata:
   name: %s
   namespace: %s
 providerSpec:
-  machineType: "c1.2"
+  machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   volumes:
     - "550e8400-e29b-41d4-a716-446655440000"
@@ -191,7 +191,7 @@ metadata:
   name: %s
   namespace: %s
 providerSpec:
-  machineType: "c1.2"
+  machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   bootVolume:
     size: 50
@@ -266,7 +266,7 @@ metadata:
   name: %s
   namespace: %s
 providerSpec:
-  machineType: "c1.2"
+  machineType: "c2i.2"
   bootVolume:
     size: 80
     performanceClass: "premium"

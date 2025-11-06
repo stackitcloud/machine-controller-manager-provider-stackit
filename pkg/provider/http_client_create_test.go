@@ -58,7 +58,7 @@ var _ = Describe("HTTP Client", func() {
 
 				req := &CreateServerRequest{
 					Name:        "test-machine",
-					MachineType: "c1.2",
+					MachineType: "c2i.2",
 					ImageID:     "image-123",
 				}
 
@@ -137,7 +137,7 @@ var _ = Describe("HTTP Client", func() {
 
 				req := &CreateServerRequest{
 					Name:        "test-machine",
-					MachineType: "c1.2",
+					MachineType: "c2i.2",
 					ImageID:     "image-123",
 				}
 
@@ -161,7 +161,7 @@ var _ = Describe("HTTP Client", func() {
 
 				req := &CreateServerRequest{
 					Name:        "test-machine",
-					MachineType: "c1.2",
+					MachineType: "c2i.2",
 					ImageID:     "image-123",
 				}
 

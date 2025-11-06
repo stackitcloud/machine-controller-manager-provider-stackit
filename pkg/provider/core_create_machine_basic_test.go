@@ -48,7 +48,7 @@ var _ = Describe("CreateMachine", func() {
 
 		// Create ProviderSpec
 		providerSpec := &api.ProviderSpec{
-			MachineType: "c1.2",
+			MachineType: "c2i.2",
 			ImageID:     "12345678-1234-1234-1234-123456789abc",
 		}
 		providerSpecRaw, _ := encodeProviderSpec(providerSpec)
@@ -109,7 +109,7 @@ var _ = Describe("CreateMachine", func() {
 			Expect(capturedProjectID).To(Equal("11111111-2222-3333-4444-555555555555"))
 			Expect(capturedReq).NotTo(BeNil())
 			Expect(capturedReq.Name).To(Equal("test-machine"))
-			Expect(capturedReq.MachineType).To(Equal("c1.2"))
+			Expect(capturedReq.MachineType).To(Equal("c2i.2"))
 			Expect(capturedReq.ImageID).To(Equal("12345678-1234-1234-1234-123456789abc"))
 		})
 	})
@@ -133,7 +133,7 @@ var _ = Describe("CreateMachine", func() {
 
 		It("should fail when ImageID is missing", func() {
 			providerSpec := &api.ProviderSpec{
-				MachineType: "c1.2",
+				MachineType: "c2i.2",
 				ImageID:     "",
 			}
 			providerSpecRaw, _ := encodeProviderSpec(providerSpec)

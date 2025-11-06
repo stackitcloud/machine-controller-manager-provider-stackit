@@ -50,7 +50,7 @@ Additional endpoints available (may be useful for future enhancements):
 
 ### Required Fields
 - **`name`** (string) - Server name (MCM will use Machine CR name)
-- **`machineType`** (string) - Machine/instance type (e.g., "c1.2", "m1.4")
+- **`machineType`** (string) - Machine/instance type (e.g., "c2i.2", "m2i.8")
 
 ### Optional Fields
 
@@ -136,7 +136,7 @@ Based on the API analysis, our ProviderSpec should include:
 ```go
 type ProviderSpec struct {
     // Required fields
-    MachineType string `json:"machineType"` // e.g., "c1.2", "m1.4"
+    MachineType string `json:"machineType"` // e.g., "c2i.2", "m2i.8"
 
     // Compute configuration
     ImageID          string `json:"imageId"`          // OS image UUID

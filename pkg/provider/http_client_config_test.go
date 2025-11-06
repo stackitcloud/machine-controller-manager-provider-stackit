@@ -157,7 +157,7 @@ var _ = Describe("HTTP Client", func() {
 
 			req := &CreateServerRequest{
 				Name:        "test-machine",
-				MachineType: "c1.2",
+				MachineType: "c2i.2",
 			}
 
 			_, err := client.CreateServer(ctx, token, projectID, req)
