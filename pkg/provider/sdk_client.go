@@ -41,16 +41,22 @@ var (
 func (c *sdkStackitClient) createIAASClient(serviceAccountKey string) (*iaas.APIClient, error) {
 	// Configure SDK with custom base URL if provided (for testing with mock server)
 	baseURL := os.Getenv("STACKIT_API_ENDPOINT")
+	noAuth := os.Getenv("STACKIT_NO_AUTH") == "true"
 
 	var opts []config.ConfigurationOption
 
-	// Use ServiceAccount Key Flow (production-recommended authentication)
-	// The SDK will:
-	// 1. Parse the service account key JSON
-	// 2. Use the private key to sign JWT tokens
-	// 3. Automatically fetch access tokens from STACKIT token API
-	// 4. Refresh tokens before expiration (with 5s leeway)
-	opts = append(opts, config.WithServiceAccountKey(serviceAccountKey))
+	// For testing with mock servers, skip authentication if STACKIT_NO_AUTH=true
+	if noAuth {
+		opts = append(opts, config.WithoutAuthentication())
+	} else {
+		// Use ServiceAccount Key Flow (production-recommended authentication)
+		// The SDK will:
+		// 1. Parse the service account key JSON
+		// 2. Use the private key to sign JWT tokens
+		// 3. Automatically fetch access tokens from STACKIT token API
+		// 4. Refresh tokens before expiration (with 5s leeway)
+		opts = append(opts, config.WithServiceAccountKey(serviceAccountKey))
+	}
 
 	if baseURL != "" {
 		opts = append(opts, config.WithEndpoint(baseURL))

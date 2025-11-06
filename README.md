@@ -112,7 +112,7 @@ The provider requires STACKIT credentials to be provided via a Kubernetes Secret
 | Field | Required | Description |
 |-------|----------|-------------|
 | `projectId` | Yes | STACKIT project UUID |
-| `stackitToken` | Yes | STACKIT API authentication token |
+| `serviceAccountKey` | Yes | STACKIT service account credentials (JSON format) |
 | `region` | Yes | STACKIT region (e.g., `eu01-1`, `eu01-2`) |
 | `userData` | No | Default cloud-init user data (can be overridden in ProviderSpec) |
 | `networkId` | No | Default network UUID (can be overridden in ProviderSpec) |
