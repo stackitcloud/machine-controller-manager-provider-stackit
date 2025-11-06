@@ -284,3 +284,9 @@ func isValidMachineType(s string) bool {
 func isValidRegion(s string) bool {
 	return regionRegex.MatchString(s)
 }
+
+// isValidJSON checks if a string is valid JSON
+func isValidJSON(s string) bool {
+	var js json.RawMessage
+	return json.Unmarshal([]byte(s), &js) == nil
+}
