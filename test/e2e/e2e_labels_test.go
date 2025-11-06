@@ -35,6 +35,8 @@ type: Opaque
 stringData:
   projectId: "12345678-1234-1234-1234-123456789012"
   stackitToken: "mock-token-for-e2e-tests"
+  region: "eu01-1"
+  networkId: "770e8400-e29b-41d4-a716-446655440000"
   userData: |
     #cloud-config
     runcmd:
@@ -213,6 +215,8 @@ type: Opaque
 stringData:
   projectId: "12345678-1234-1234-1234-123456789012"
   stackitToken: "mock-token-for-e2e-tests"
+  region: "eu01-1"
+  networkId: "770e8400-e29b-41d4-a716-446655440000"
   userData: |
     #cloud-config
     runcmd:
@@ -367,23 +371,32 @@ spec:
 			// This mock test verifies the code path works end-to-end.
 		})
 
-		It("should create Machine without user-provided labels (negative test)", func() {
-			// KNOWN ISSUE: This test consistently fails with timeout waiting for ProviderID
+		It("should create Machine without user-provided labels", func() {
+			// KNOWN ISSUE: Still fails after SDK migration - different root cause than originally suspected
 			//
-			// Investigation findings:
-			// - Provider code handles nil labels correctly (core.go:77-81)
-			// - Validation doesn't require labels (validation.go:32-39)
-			// - Mock API returns valid responses with ID field (verified via curl)
-			// - All 9 tests WITH labels pass successfully
-			// - Test fails in isolation (not test ordering or state pollution)
-			// - Controller logs show: "Created new VM... with ProviderID: " (empty!)
-			// - Machine status remains empty (controller never attempts reconciliation)
+			// Original hypothesis: HTTP client issue with missing labels field
+			// After SDK migration investigation (2025-11-06):
+			//   - CreateMachine is called by MCM (logs confirm)
+			//   - Provider code (core.go) is NOT executed (no klog messages)
+			//   - No POST request reaches mock IAAS API (confirmed via mock logs)
+			//   - CreateMachine returns successfully but with EMPTY ProviderID
 			//
-			// Hypothesis: HTTP client or mock API interaction issue when request body
-			// lacks labels field. Needs persistent cluster access to debug further.
+			// Current findings:
+			//   - Issue occurs BEFORE our provider code runs
+			//   - Likely in decodeProviderSpec() or validation layer
+			//   - SDK migration did NOT fix this issue
+			//   - Needs investigation with verbose logging (-v=4 or higher)
 			//
-			// The test serves its purpose - it exposed a real edge case that needs fixing.
-			Skip("TODO: Debug why CreateServer returns empty ProviderID when labels are missing")
+			// Evidence from debugging:
+			//   - MCM logs: "Created new VM for machine: 'machine-wn58lb4r' with ProviderID: " (empty!)
+			//   - Provider logs: NO output from core.go:36 (CreateMachine entry point)
+			//   - Mock API logs: NO POST /servers requests for this machine
+			//
+			// Next steps:
+			//   - Add debug logging to decodeProviderSpec and validation
+			//   - Check if nil ProviderSpec.Labels causes JSON unmarshal issues
+			//   - Run with -v=4 to see gRPC/driver layer logs
+			Skip("TODO: Debug why CreateMachine returns empty ProviderID (issue predates SDK migration)")
 
 			secretName := generateResourceName("secret")
 			machineClassName := generateResourceName("machineclass")
@@ -400,6 +413,8 @@ type: Opaque
 stringData:
   projectId: "12345678-1234-1234-1234-123456789012"
   stackitToken: "mock-token-for-e2e-tests"
+  region: "eu01-1"
+  networkId: "770e8400-e29b-41d4-a716-446655440000"
   userData: |
     #cloud-config
     runcmd:

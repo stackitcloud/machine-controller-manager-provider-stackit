@@ -32,6 +32,8 @@ type: Opaque
 stringData:
   projectId: "12345678-1234-1234-1234-123456789012"
   stackitToken: "mock-token-for-e2e-tests"
+  region: "eu01-1"
+  networkId: "770e8400-e29b-41d4-a716-446655440000"
   userData: |
     #cloud-config
     runcmd:
@@ -104,6 +106,8 @@ type: Opaque
 stringData:
   projectId: "12345678-1234-1234-1234-123456789012"
   stackitToken: "mock-token-for-e2e-tests"
+  region: "eu01-1"
+  networkId: "770e8400-e29b-41d4-a716-446655440000"
   userData: |
     #cloud-config
     runcmd:
@@ -176,6 +180,8 @@ type: Opaque
 stringData:
   projectId: "12345678-1234-1234-1234-123456789012"
   stackitToken: "mock-token-for-e2e-tests"
+  region: "eu01-1"
+  networkId: "770e8400-e29b-41d4-a716-446655440000"
   userData: |
     #cloud-config
     runcmd:
@@ -250,6 +256,8 @@ type: Opaque
 stringData:
   projectId: "12345678-1234-1234-1234-123456789012"
   stackitToken: "mock-token-for-e2e-tests"
+  region: "eu01-1"
+  networkId: "770e8400-e29b-41d4-a716-446655440000"
   userData: |
     #cloud-config
     runcmd:

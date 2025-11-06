@@ -21,6 +21,6 @@ type Provider struct {
 func NewProvider(spi spi.SessionProviderInterface) driver.Driver {
 	return &Provider{
 		SPI:    spi,
-		client: newHTTPStackitClient(), // Initialize HTTP client for STACKIT API
+		client: newSDKStackitClient(), // Initialize SDK client for STACKIT API
 	}
 }

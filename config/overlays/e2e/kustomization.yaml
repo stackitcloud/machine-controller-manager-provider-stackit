@@ -4,7 +4,9 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - ../../default
+  # TODO: replace ref with 'main' once changes merged upstream
   - https://github.com/stackit-controllers-k8s/stackit-api-mockservers//config/apis/iaas?ref=main
+
 
 patches:
   # Patch MCM deployment to machine-controller-manager namespace

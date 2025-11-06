@@ -43,6 +43,8 @@ var _ = Describe("GetMachineStatus", func() {
 			Data: map[string][]byte{
 				"projectId":    []byte("11111111-2222-3333-4444-555555555555"),
 				"stackitToken": []byte("test-token-123"),
+				"region":       []byte("eu01-1"),
+				"networkId":    []byte("770e8400-e29b-41d4-a716-446655440000"),
 			},
 		}
 
@@ -84,7 +86,7 @@ var _ = Describe("GetMachineStatus", func() {
 
 	Context("with valid inputs", func() {
 		It("should successfully get machine status when server exists", func() {
-			mockClient.getServerFunc = func(ctx context.Context, token, projectID, serverID string) (*Server, error) {
+			mockClient.getServerFunc = func(ctx context.Context, token, projectID, region, serverID string) (*Server, error) {
 				return &Server{
 					ID:     serverID,
 					Name:   "test-machine",
@@ -104,7 +106,7 @@ var _ = Describe("GetMachineStatus", func() {
 			var capturedProjectID string
 			var capturedServerID string
 
-			mockClient.getServerFunc = func(ctx context.Context, token, projectID, serverID string) (*Server, error) {
+			mockClient.getServerFunc = func(ctx context.Context, token, projectID, region, serverID string) (*Server, error) {
 				capturedProjectID = projectID
 				capturedServerID = serverID
 				return &Server{
@@ -159,7 +161,7 @@ var _ = Describe("GetMachineStatus", func() {
 
 	Context("when server does not exist", func() {
 		It("should return NotFound when server is not found", func() {
-			mockClient.getServerFunc = func(ctx context.Context, token, projectID, serverID string) (*Server, error) {
+			mockClient.getServerFunc = func(ctx context.Context, token, projectID, region, serverID string) (*Server, error) {
 				return nil, fmt.Errorf("%w: status 404", ErrServerNotFound)
 			}
 
@@ -174,7 +176,7 @@ var _ = Describe("GetMachineStatus", func() {
 
 	Context("when STACKIT API fails", func() {
 		It("should return Internal error on API failure", func() {
-			mockClient.getServerFunc = func(ctx context.Context, token, projectID, serverID string) (*Server, error) {
+			mockClient.getServerFunc = func(ctx context.Context, token, projectID, region, serverID string) (*Server, error) {
 				return nil, fmt.Errorf("API connection failed")
 			}
 

@@ -51,6 +51,7 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	// Extract credentials from Secret
 	projectID := string(req.Secret.Data["projectId"])
 	token := string(req.Secret.Data["stackitToken"])
+	region := string(req.Secret.Data["region"])
 
 	// Build labels: merge ProviderSpec labels with MCM-specific labels
 	labels := make(map[string]string)
@@ -73,11 +74,19 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		Labels:      labels,
 	}
 
-	// Add networking configuration if specified
+	// Add networking configuration (required in v2 API)
+	// If not specified in ProviderSpec, try to use networkId from Secret, or use empty
 	if providerSpec.Networking != nil {
 		createReq.Networking = &ServerNetworkingRequest{
 			NetworkID: providerSpec.Networking.NetworkID,
 			NICIDs:    providerSpec.Networking.NICIDs,
+		}
+	} else {
+		// v2 API requires networking field - use networkId from Secret if available
+		// This allows tests/deployments to specify a default network without modifying each MachineClass
+		networkID := string(req.Secret.Data["networkId"])
+		createReq.Networking = &ServerNetworkingRequest{
+			NetworkID: networkID, // Can be empty string if not in Secret
 		}
 	}
 
@@ -155,7 +164,7 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	}
 
 	// Call STACKIT API to create server
-	server, err := p.client.CreateServer(ctx, token, projectID, createReq)
+	server, err := p.client.CreateServer(ctx, token, projectID, region, createReq)
 	if err != nil {
 		klog.Errorf("Failed to create server for machine %q: %v", req.Machine.Name, err)
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to create server: %v", err))
@@ -196,6 +205,9 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 	// Extract token from Secret for authentication
 	token := string(req.Secret.Data["stackitToken"])
 
+	// Extract region from Secret
+	region := string(req.Secret.Data["region"])
+
 	// Parse ProviderID to extract projectID and serverID
 	projectID, serverID, err := parseProviderID(req.Machine.Spec.ProviderID)
 	if err != nil {
@@ -203,7 +215,7 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 	}
 
 	// Call STACKIT API to delete server
-	err = p.client.DeleteServer(ctx, token, projectID, serverID)
+	err = p.client.DeleteServer(ctx, token, projectID, region, serverID)
 	if err != nil {
 		// Check if server was not found (404) - this is OK for idempotency
 		if errors.Is(err, ErrServerNotFound) {
@@ -249,6 +261,9 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 	// Extract token from Secret for authentication
 	token := string(req.Secret.Data["stackitToken"])
 
+	// Extract region from Secret
+	region := string(req.Secret.Data["region"])
+
 	// Parse ProviderID to extract projectID and serverID
 	// Expected format: stackit://<projectId>/<serverId>
 	projectID, serverID, err := parseProviderID(req.Machine.Spec.ProviderID)
@@ -257,7 +272,7 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 	}
 
 	// Call STACKIT API to get server status
-	server, err := p.client.GetServer(ctx, token, projectID, serverID)
+	server, err := p.client.GetServer(ctx, token, projectID, region, serverID)
 	if err != nil {
 		// Check if server was not found (404)
 		if errors.Is(err, ErrServerNotFound) {
@@ -296,9 +311,10 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 	// Extract credentials from Secret
 	projectID := string(req.Secret.Data["projectId"])
 	token := string(req.Secret.Data["stackitToken"])
+	region := string(req.Secret.Data["region"])
 
 	// Call STACKIT API to list all servers
-	servers, err := p.client.ListServers(ctx, token, projectID)
+	servers, err := p.client.ListServers(ctx, token, projectID, region)
 	if err != nil {
 		klog.Errorf("Failed to list servers for MachineClass %q: %v", req.MachineClass.Name, err)
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to list servers: %v", err))

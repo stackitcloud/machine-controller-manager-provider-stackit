@@ -28,6 +28,7 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 			Data: map[string][]byte{
 				"projectId":    []byte("11111111-2222-3333-4444-555555555555"),
 				"stackitToken": []byte("test-token"),
+				"region":       []byte("eu01-1"),
 			},
 		}
 	})

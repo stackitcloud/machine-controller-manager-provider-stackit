@@ -28,6 +28,10 @@ var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]
 // Pattern: lowercase letter(s) followed by digits, dot, then more digits (e.g., c2i.2, m2i.8, g1a.8)
 var machineTypeRegex = regexp.MustCompile(`^[a-z]+\d+[a-z]*\.\d+[a-z]*(\.[a-z]+\d+)*$`)
 
+// regionRegex is a regex pattern for validating STACKIT region format
+// Pattern: lowercase letters/digits followed by digits, dash, then digit(s) (e.g., eu01-1, eu01-2)
+var regionRegex = regexp.MustCompile(`^[a-z0-9]+-\d+$`)
+
 // labelKeyRegex validates Kubernetes label keys (must start/end with alphanumeric, can contain -, _, .)
 // Maximum length: 63 characters
 var labelKeyRegex = regexp.MustCompile(`^[a-zA-Z0-9]([-a-zA-Z0-9_.]*[a-zA-Z0-9])?$`)
@@ -61,6 +65,16 @@ func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret)
 		errors = append(errors, fmt.Errorf("secret must contain 'stackitToken' field"))
 	} else if len(stackitToken) == 0 {
 		errors = append(errors, fmt.Errorf("secret 'stackitToken' cannot be empty"))
+	}
+
+	// Validate region (required for SDK)
+	region, ok := secrets.Data["region"]
+	if !ok {
+		errors = append(errors, fmt.Errorf("secret must contain 'region' field"))
+	} else if len(region) == 0 {
+		errors = append(errors, fmt.Errorf("secret 'region' cannot be empty"))
+	} else if !isValidRegion(string(region)) {
+		errors = append(errors, fmt.Errorf("secret 'region' has invalid format (expected format: eu01-1, eu01-2, etc.)"))
 	}
 
 	// Validate ProviderSpec
@@ -260,4 +274,9 @@ func isValidEmail(s string) bool {
 // isValidMachineType checks if a string matches the machine type format
 func isValidMachineType(s string) bool {
 	return machineTypeRegex.MatchString(s)
+}
+
+// isValidRegion checks if a string matches the STACKIT region format
+func isValidRegion(s string) bool {
+	return regionRegex.MatchString(s)
 }
