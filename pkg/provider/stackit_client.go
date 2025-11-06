@@ -44,7 +44,12 @@ type CreateServerRequest struct {
 }
 
 // ServerNetworkingRequest represents the networking configuration for a server
-// Use either NetworkID or NICIDs (mutually exclusive)
+//
+// Union type - use one of the following (mutually exclusive):
+//   - NetworkID: Auto-create a NIC in the specified network (takes precedence)
+//   - NICIDs: Attach pre-existing NICs to the server
+//
+// If both are specified, NetworkID takes precedence and NICIDs is ignored.
 type ServerNetworkingRequest struct {
 	NetworkID string   `json:"networkId,omitempty"`
 	NICIDs    []string `json:"nicIds,omitempty"`

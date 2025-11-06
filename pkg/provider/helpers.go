@@ -5,7 +5,6 @@
 package provider
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -91,24 +90,6 @@ func convertLabelsFromSDK(labels *map[string]interface{}) map[string]string {
 		}
 	}
 	return result
-}
-
-// convertUserDataToSDK converts base64-encoded string to *string for SDK
-// The STACKIT API expects userData as a base64-encoded string
-func convertUserDataToSDK(userData string) *string {
-	if userData == "" {
-		return nil
-	}
-
-	// Check if already base64-encoded
-	if _, err := base64.StdEncoding.DecodeString(userData); err == nil {
-		// Already base64, use as-is
-		return ptr(userData)
-	}
-
-	// Not base64, encode it
-	encoded := base64.StdEncoding.EncodeToString([]byte(userData))
-	return ptr(encoded)
 }
 
 // convertStringSliceToSDK converts []string to *[]string for SDK

@@ -5,9 +5,10 @@
 package provider
 
 import (
-	"encoding/base64"
 	"errors"
+	"fmt"
 
+	"github.com/stackitcloud/stackit-sdk-go/core/oapierror"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -106,6 +107,51 @@ var _ = Describe("SDK Client Helpers", func() {
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("'region' field is required"))
 			})
+
+			It("should fail when region has invalid format - missing zone", func() {
+				secretData := map[string][]byte{
+					"region": []byte("eu01"),
+				}
+
+				_, err := extractRegion(secretData)
+
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("invalid region format"))
+				Expect(err.Error()).To(ContainSubstring("eu01"))
+			})
+
+			It("should fail when region has invalid format - wrong pattern", func() {
+				secretData := map[string][]byte{
+					"region": []byte("invalid-region"),
+				}
+
+				_, err := extractRegion(secretData)
+
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("invalid region format"))
+			})
+
+			It("should fail when region has invalid format - uppercase", func() {
+				secretData := map[string][]byte{
+					"region": []byte("EU01-1"),
+				}
+
+				_, err := extractRegion(secretData)
+
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("invalid region format"))
+			})
+
+			It("should fail when region has invalid format - extra characters", func() {
+				secretData := map[string][]byte{
+					"region": []byte("eu01-1-extra"),
+				}
+
+				_, err := extractRegion(secretData)
+
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("invalid region format"))
+			})
 		})
 	})
 
@@ -136,75 +182,65 @@ var _ = Describe("SDK Client Helpers", func() {
 	})
 
 	Describe("isNotFoundError", func() {
-		Context("with 404 errors", func() {
-			It("should detect error with '404' in message", func() {
-				err := errors.New("API returned 404 status code")
+		Context("with SDK 404 errors", func() {
+			It("should detect GenericOpenAPIError with 404 status code", func() {
+				err := &oapierror.GenericOpenAPIError{
+					StatusCode:   404,
+					ErrorMessage: "Not Found",
+				}
 
 				result := isNotFoundError(err)
 
 				Expect(result).To(BeTrue())
 			})
 
-			It("should detect error with 'not found' in message", func() {
-				err := errors.New("server not found")
+			It("should detect wrapped GenericOpenAPIError with 404", func() {
+				baseErr := &oapierror.GenericOpenAPIError{
+					StatusCode:   404,
+					ErrorMessage: "Server not found",
+					Body:         []byte(`{"message": "server does not exist"}`),
+				}
+				wrappedErr := fmt.Errorf("failed to get server: %w", baseErr)
 
-				result := isNotFoundError(err)
-
-				Expect(result).To(BeTrue())
-			})
-
-			It("should detect error with 'NotFound' in message", func() {
-				err := errors.New("ResourceNotFound: server does not exist")
-
-				result := isNotFoundError(err)
-
-				Expect(result).To(BeTrue())
-			})
-
-			It("should detect error with '404' at start", func() {
-				err := errors.New("404: server missing")
-
-				result := isNotFoundError(err)
-
-				Expect(result).To(BeTrue())
-			})
-
-			It("should detect error with '404' at end", func() {
-				err := errors.New("HTTP error 404")
-
-				result := isNotFoundError(err)
-
-				Expect(result).To(BeTrue())
-			})
-
-			It("should detect error with '404' in middle", func() {
-				err := errors.New("API call failed with 404 status")
-
-				result := isNotFoundError(err)
+				result := isNotFoundError(wrappedErr)
 
 				Expect(result).To(BeTrue())
 			})
 		})
 
 		Context("with non-404 errors", func() {
-			It("should not detect 500 error", func() {
-				err := errors.New("API returned 500 status code")
+			It("should not detect GenericOpenAPIError with 500 status", func() {
+				err := &oapierror.GenericOpenAPIError{
+					StatusCode:   500,
+					ErrorMessage: "Internal Server Error",
+				}
 
 				result := isNotFoundError(err)
 
 				Expect(result).To(BeFalse())
 			})
 
-			It("should not detect 403 error", func() {
-				err := errors.New("403 Forbidden")
+			It("should not detect GenericOpenAPIError with 403 status", func() {
+				err := &oapierror.GenericOpenAPIError{
+					StatusCode:   403,
+					ErrorMessage: "Forbidden",
+				}
 
 				result := isNotFoundError(err)
 
 				Expect(result).To(BeFalse())
 			})
 
-			It("should not detect generic error", func() {
+			It("should not detect generic error without status code", func() {
 				err := errors.New("something went wrong")
+
+				result := isNotFoundError(err)
+
+				Expect(result).To(BeFalse())
+			})
+
+			It("should not detect wrapped generic error", func() {
+				err := fmt.Errorf("API call failed: %w", errors.New("connection timeout"))
 
 				result := isNotFoundError(err)
 
@@ -213,96 +249,6 @@ var _ = Describe("SDK Client Helpers", func() {
 
 			It("should return false for nil error", func() {
 				result := isNotFoundError(nil)
-
-				Expect(result).To(BeFalse())
-			})
-		})
-	})
-
-	Describe("contains", func() {
-		Context("with substring present", func() {
-			It("should find substring at start", func() {
-				result := contains("hello world", "hello")
-
-				Expect(result).To(BeTrue())
-			})
-
-			It("should find substring at end", func() {
-				result := contains("hello world", "world")
-
-				Expect(result).To(BeTrue())
-			})
-
-			It("should find substring in middle", func() {
-				result := contains("hello world", "lo wo")
-
-				Expect(result).To(BeTrue())
-			})
-
-			It("should find exact match", func() {
-				result := contains("404", "404")
-
-				Expect(result).To(BeTrue())
-			})
-
-			It("should find single character", func() {
-				result := contains("test", "e")
-
-				Expect(result).To(BeTrue())
-			})
-		})
-
-		Context("with substring not present", func() {
-			It("should not find missing substring", func() {
-				result := contains("hello world", "foo")
-
-				Expect(result).To(BeFalse())
-			})
-
-			It("should not find when substring is longer", func() {
-				result := contains("hi", "hello")
-
-				Expect(result).To(BeFalse())
-			})
-
-			It("should handle empty string", func() {
-				result := contains("", "test")
-
-				Expect(result).To(BeFalse())
-			})
-		})
-	})
-
-	Describe("findSubstring", func() {
-		Context("with substring present", func() {
-			It("should find substring in string", func() {
-				result := findSubstring("hello world", "world")
-
-				Expect(result).To(BeTrue())
-			})
-
-			It("should find substring at start", func() {
-				result := findSubstring("testing", "test")
-
-				Expect(result).To(BeTrue())
-			})
-
-			It("should find substring in middle", func() {
-				result := findSubstring("the quick brown fox", "quick")
-
-				Expect(result).To(BeTrue())
-			})
-		})
-
-		Context("with substring not present", func() {
-			It("should not find missing substring", func() {
-				result := findSubstring("hello", "world")
-
-				Expect(result).To(BeFalse())
-			})
-
-			It("should handle empty string", func() {
-				result := findSubstring("", "test")
 
 				Expect(result).To(BeFalse())
 			})
@@ -556,44 +502,4 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 		})
 	})
 
-	Describe("convertUserDataToSDK", func() {
-		Context("with plain text userData", func() {
-			It("should base64-encode plain text userData", func() {
-				userData := "#cloud-config\nruncmd:\n  - echo 'test'"
-
-				result := convertUserDataToSDK(userData)
-
-				Expect(result).NotTo(BeNil())
-				// Should be base64-encoded
-				Expect(*result).NotTo(Equal(userData))
-				Expect(*result).To(MatchRegexp(`^[A-Za-z0-9+/]+=*$`)) // base64 pattern
-			})
-		})
-
-		Context("with base64-encoded userData", func() {
-			It("should keep already base64-encoded userData", func() {
-				// Generate base64-encoded userData
-				originalData := "#cloud-config\nruncmd:\n  - echo 'test'"
-				base64Data := base64.StdEncoding.EncodeToString([]byte(originalData))
-
-				result := convertUserDataToSDK(base64Data)
-
-				Expect(result).NotTo(BeNil())
-				Expect(*result).To(Equal(base64Data))
-
-				// Verify it decodes back to original
-				decoded, err := base64.StdEncoding.DecodeString(*result)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(string(decoded)).To(Equal(originalData))
-			})
-		})
-
-		Context("with empty userData", func() {
-			It("should return nil for empty userData", func() {
-				result := convertUserDataToSDK("")
-
-				Expect(result).To(BeNil())
-			})
-		})
-	})
 })

@@ -9,8 +9,10 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 
 	"github.com/stackitcloud/stackit-sdk-go/core/config"
+	"github.com/stackitcloud/stackit-sdk-go/core/oapierror"
 	"github.com/stackitcloud/stackit-sdk-go/services/iaas"
 )
 
@@ -50,15 +52,26 @@ func (c *sdkStackitClient) createIAASClient(token string) (*iaas.APIClient, erro
 	return iaasClient, nil
 }
 
-// extractRegion extracts the region from the secret data
+// validRegionPattern matches STACKIT region formats like "eu01-1", "eu01-2"
+// Pattern: <2 letters><2 digits>-<zone number>
+var validRegionPattern = regexp.MustCompile(`^[a-z]{2}\d{2}-\d+$`)
+
+// extractRegion extracts and validates the region from the secret data
 // Region is required by STACKIT SDK v1.0.0+
 func extractRegion(secretData map[string][]byte) (string, error) {
 	region, ok := secretData["region"]
 	if !ok || len(region) == 0 {
-		// Provide a helpful error message
 		return "", fmt.Errorf("'region' field is required in Secret (e.g., 'eu01-1')")
 	}
-	return string(region), nil
+
+	regionStr := string(region)
+
+	// Validate region format
+	if !validRegionPattern.MatchString(regionStr) {
+		return "", fmt.Errorf("invalid region format '%s': must match pattern '<location><number>-<zone>' (e.g., 'eu01-1', 'eu01-2')", regionStr)
+	}
+
+	return regionStr, nil
 }
 
 // CreateServer creates a new server via STACKIT SDK
@@ -86,15 +99,25 @@ func (c *sdkStackitClient) CreateServer(ctx context.Context, token, projectID, r
 	}
 
 	// Networking - Required in v2 API, SDK uses union type: either NetworkId OR NicIds
-	// If Networking is provided but empty, set an empty networking object to satisfy v2 API
+	//
+	// Precedence (mutually exclusive):
+	//   1. If NetworkID is set (non-empty), use it (ignores NICIDs if both are set)
+	//   2. If NICIDs is set (non-empty slice), use it
+	//   3. Otherwise, create empty networking object (v2 API requirement)
+	//
+	// This matches the STACKIT API behavior where you can either:
+	//   - Auto-create NICs in a network (NetworkID)
+	//   - Use pre-created NICs (NICIDs)
 	if req.Networking != nil {
 		if req.Networking.NetworkID != "" {
 			// Use CreateServerNetworking (with networkId)
+			// This will auto-create a NIC in the specified network
 			networking := iaas.NewCreateServerNetworking()
 			networking.SetNetworkId(req.Networking.NetworkID)
 			payload.SetNetworking(iaas.CreateServerNetworkingAsCreateServerPayloadAllOfNetworking(networking))
 		} else if len(req.Networking.NICIDs) > 0 {
 			// Use CreateServerNetworkingWithNics (with nicIds)
+			// This attaches pre-existing NICs to the server
 			networking := iaas.NewCreateServerNetworkingWithNics()
 			networking.SetNicIds(req.Networking.NICIDs)
 			payload.SetNetworking(iaas.CreateServerNetworkingWithNicsAsCreateServerPayloadAllOfNetworking(networking))
@@ -284,28 +307,10 @@ func isNotFoundError(err error) bool {
 	if err == nil {
 		return false
 	}
-	// The SDK returns structured errors that contain HTTP status codes
-	// Check error message for common 404 indicators
-	errStr := err.Error()
-	return contains(errStr, "404") ||
-		contains(errStr, "not found") ||
-		contains(errStr, "NotFound")
-}
-
-// contains checks if a string contains a substring (case-insensitive)
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) &&
-		(s == substr || len(s) > len(substr) &&
-			(s[:len(substr)] == substr || s[len(s)-len(substr):] == substr ||
-				findSubstring(s, substr)))
-}
-
-// findSubstring searches for a substring in a string
-func findSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
+	// Use the SDK's structured error type to check the HTTP status code
+	var oapiErr *oapierror.GenericOpenAPIError
+	if errors.As(err, &oapiErr) {
+		return oapiErr.StatusCode == 404
 	}
 	return false
 }
