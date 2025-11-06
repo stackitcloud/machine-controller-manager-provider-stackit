@@ -25,8 +25,8 @@ var keypairNameRegex = regexp.MustCompile(`^[A-Za-z0-9@._-]*$`)
 var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 
 // machineTypeRegex is a regex pattern for validating machine type format
-// Pattern: lowercase letter(s) followed by digits, dot, then more digits (e.g., c1.2, m1.4, g1a.8)
-var machineTypeRegex = regexp.MustCompile(`^[a-z]+\d+\.\d+$`)
+// Pattern: lowercase letter(s) followed by digits, dot, then more digits (e.g., c2i.2, m2i.8, g1a.8)
+var machineTypeRegex = regexp.MustCompile(`^[a-z]+\d+[a-z]*\.\d+[a-z]*(\.[a-z]+\d+)*$`)
 
 // regionRegex is a regex pattern for validating STACKIT region format
 // Pattern: lowercase letters/digits followed by digits, dash, then digit(s) (e.g., eu01-1, eu01-2)
@@ -81,7 +81,7 @@ func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret)
 	if spec.MachineType == "" {
 		errors = append(errors, fmt.Errorf("providerSpec.machineType is required"))
 	} else if !isValidMachineType(spec.MachineType) {
-		errors = append(errors, fmt.Errorf("providerSpec.machineType has invalid format (expected format: c1.2, m1.4, etc.)"))
+		errors = append(errors, fmt.Errorf("providerSpec.machineType has invalid format (expected format: c2i.2, m2i.8, etc.)"))
 	}
 
 	// ImageID is required unless BootVolume.Source is specified

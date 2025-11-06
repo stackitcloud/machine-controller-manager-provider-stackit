@@ -6,7 +6,7 @@ package api
 
 // ProviderSpec is the spec to be used while parsing the calls.
 type ProviderSpec struct {
-	// MachineType is the STACKIT server type (e.g., "c1.2", "m1.4")
+	// MachineType is the STACKIT server type (e.g., "c2i.2", "m2i.8")
 	// Required field for creating a server.
 	MachineType string `json:"machineType"`
 

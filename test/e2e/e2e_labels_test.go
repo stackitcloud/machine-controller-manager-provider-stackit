@@ -53,7 +53,7 @@ metadata:
   name: %s
   namespace: %s
 providerSpec:
-  machineType: "c1.2"
+  machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   labels:
     application: "web-server"
@@ -232,7 +232,7 @@ metadata:
   name: %s
   namespace: %s
 providerSpec:
-  machineType: "c1.2"
+  machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   labels:
     test-propagation: "enabled"
@@ -430,7 +430,7 @@ metadata:
   name: %s
   namespace: %s
 providerSpec:
-  machineType: "c1.2"
+  machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   # NO labels field - testing graceful handling of missing labels
 secretRef:

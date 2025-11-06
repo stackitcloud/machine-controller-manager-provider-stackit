@@ -47,7 +47,7 @@ var _ = Describe("CreateMachine", func() {
 
 		// Create ProviderSpec
 		providerSpec := &api.ProviderSpec{
-			MachineType: "c1.2",
+			MachineType: "c2i.2",
 			ImageID:     "12345678-1234-1234-1234-123456789abc",
 		}
 		providerSpecRaw, _ := encodeProviderSpec(providerSpec)
@@ -82,7 +82,7 @@ var _ = Describe("CreateMachine", func() {
 		It("should pass BootVolume with all fields to API", func() {
 			deleteOnTermination := true
 			providerSpec := &api.ProviderSpec{
-				MachineType: "c1.2",
+				MachineType: "c2i.2",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				BootVolume: &api.BootVolumeSpec{
 					DeleteOnTermination: &deleteOnTermination,
@@ -122,7 +122,7 @@ var _ = Describe("CreateMachine", func() {
 
 		It("should pass BootVolume with minimal config to API", func() {
 			providerSpec := &api.ProviderSpec{
-				MachineType: "c1.2",
+				MachineType: "c2i.2",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				BootVolume: &api.BootVolumeSpec{
 					Size: 50,
@@ -151,7 +151,7 @@ var _ = Describe("CreateMachine", func() {
 
 		It("should pass Volumes array to API", func() {
 			providerSpec := &api.ProviderSpec{
-				MachineType: "c1.2",
+				MachineType: "c2i.2",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				Volumes: []string{
 					"550e8400-e29b-41d4-a716-446655440000",
@@ -183,7 +183,7 @@ var _ = Describe("CreateMachine", func() {
 
 		It("should pass both BootVolume and Volumes to API", func() {
 			providerSpec := &api.ProviderSpec{
-				MachineType: "c1.2",
+				MachineType: "c2i.2",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				BootVolume: &api.BootVolumeSpec{
 					Size: 50,

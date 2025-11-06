@@ -50,7 +50,7 @@ var _ = Describe("DeleteMachine", func() {
 
 		// Create ProviderSpec
 		providerSpec := &api.ProviderSpec{
-			MachineType: "c1.2",
+			MachineType: "c2i.2",
 			ImageID:     "image-uuid-123",
 		}
 		providerSpecRaw, _ := encodeProviderSpec(providerSpec)

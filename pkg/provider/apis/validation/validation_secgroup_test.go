@@ -21,7 +21,7 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 	BeforeEach(func() {
 		// Set up valid defaults
 		providerSpec = &api.ProviderSpec{
-			MachineType: "c1.2",
+			MachineType: "c2i.2",
 			ImageID:     "550e8400-e29b-41d4-a716-446655440000",
 		}
 		secret = &corev1.Secret{
