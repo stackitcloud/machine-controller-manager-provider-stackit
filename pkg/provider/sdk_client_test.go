@@ -42,7 +42,7 @@ var _ = Describe("SDK Client Helpers", func() {
 			It("should extract region when other fields are present", func() {
 				secretData := map[string][]byte{
 					"projectId":    []byte("11111111-2222-3333-4444-555555555555"),
-					"stackitToken": []byte("test-token-123"),
+					"serviceAccountKey": []byte(`{"credentials":{"iss":"test"}}`),
 					"region":       []byte("eu01-1"),
 					"userData":     []byte("some-user-data"),
 				}
@@ -58,7 +58,7 @@ var _ = Describe("SDK Client Helpers", func() {
 			It("should fail when region field is missing", func() {
 				secretData := map[string][]byte{
 					"projectId":    []byte("11111111-2222-3333-4444-555555555555"),
-					"stackitToken": []byte("test-token-123"),
+					"serviceAccountKey": []byte(`{"credentials":{"iss":"test"}}`),
 				}
 
 				_, err := extractRegion(secretData)
