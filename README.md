@@ -21,7 +21,9 @@ machine-controller-manager-provider-stackit/
 │   ├── provider/
 │   │   ├── core.go                    # Core provider implementation
 │   │   ├── provider.go                # Driver interface implementation
-│   │   ├── stackit_client.go          # STACKIT API client
+│   │   ├── stackit_client.go          # STACKIT client interface
+│   │   ├── sdk_client.go              # STACKIT SDK wrapper implementation
+│   │   ├── helpers.go                 # SDK type conversion utilities
 │   │   ├── apis/
 │   │   │   ├── provider_spec.go       # ProviderSpec CRD definitions
 │   │   │   └── validation/            # Field validation logic
@@ -97,6 +99,67 @@ kubectl apply -f samples/machine-class.yaml
 kubectl apply -f samples/machine.yaml
 ```
 
+## STACKIT SDK Integration
+
+This provider uses the official [STACKIT Go SDK](https://github.com/stackitcloud/stackit-sdk-go) for all interactions with the STACKIT IaaS API. The SDK provides type-safe API access, built-in authentication handling, and is officially maintained by STACKIT.
+
+### Authentication & Credentials
+
+The provider requires STACKIT credentials to be provided via a Kubernetes Secret. The Secret must contain the following fields:
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `projectId` | Yes | STACKIT project UUID |
+| `stackitToken` | Yes | STACKIT API authentication token |
+| `region` | Yes | STACKIT region (e.g., `eu01-1`, `eu01-2`) |
+| `userData` | No | Default cloud-init user data (can be overridden in ProviderSpec) |
+| `networkId` | No | Default network UUID (can be overridden in ProviderSpec) |
+
+**Example Secret:**
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: stackit-credentials
+  namespace: default
+type: Opaque
+stringData:
+  projectId: "12345678-1234-1234-1234-123456789012"
+  stackitToken: "your-stackit-api-token-here"
+  region: "eu01-1"  # Required by STACKIT SDK v1.0.0+
+```
+
+### Obtaining STACKIT Credentials
+
+1. **Project ID**: Your STACKIT project UUID (visible in the STACKIT Portal)
+2. **API Token**: Create a service account and generate an API token:
+   - Visit the [STACKIT Portal](https://portal.stackit.cloud/)
+   - Navigate to Service Accounts
+   - Create a new service account or use an existing one
+   - Generate an API token with appropriate permissions
+   - See [STACKIT Service Accounts Documentation](https://docs.stackit.cloud/stackit/en/service-accounts-134415819.html)
+
+3. **Region**: The STACKIT region where resources will be created
+   - Common values: `eu01-1`, `eu01-2`
+   - Must match the region where your project's resources are deployed
+
+### SDK Configuration
+
+The provider automatically configures the STACKIT SDK using:
+- **SDK Core**: v0.18.0
+- **SDK IaaS Service**: v1.0.0
+- **Authentication Method**: Token-based authentication (token flow)
+
+The SDK client is stateless and supports different credentials per MachineClass, allowing multi-tenancy scenarios where different machine pools use different STACKIT projects.
+
+### SDK References
+
+- **STACKIT SDK Repository**: https://github.com/stackitcloud/stackit-sdk-go
+- **IaaS Service Documentation**: https://github.com/stackitcloud/stackit-sdk-go/tree/main/services/iaas
+- **SDK Core Documentation**: https://github.com/stackitcloud/stackit-sdk-go/tree/main/core
+- **Authentication Guide**: https://github.com/stackitcloud/stackit-sdk-go/blob/main/examples/authentication/authentication.go
+
 ## Configuration Reference
 
 ### ProviderSpec Fields
@@ -145,11 +208,25 @@ just start
 
 ## References
 
+### Machine Controller Manager
 - [Machine Controller Manager](https://github.com/gardener/machine-controller-manager) - Core MCM project
 - [MCM Provider Development Guide](https://github.com/gardener/machine-controller-manager/blob/master/docs/development/cp_support_new.md) - Guidelines followed to build this provider
 - [MCM Sample Provider](https://github.com/gardener/machine-controller-manager-provider-sampleprovider) - Original template used as starting point
 - [MCM Driver Interface](https://github.com/gardener/machine-controller-manager/blob/master/pkg/util/provider/driver/driver.go) - Provider contract interface
+
+### STACKIT SDK
+- [STACKIT SDK Go](https://github.com/stackitcloud/stackit-sdk-go) - Official STACKIT Go SDK
+- [IaaS Service Package](https://github.com/stackitcloud/stackit-sdk-go/tree/main/services/iaas) - IaaS service API documentation
+- [SDK Core Package](https://github.com/stackitcloud/stackit-sdk-go/tree/main/core) - Core SDK configuration and authentication
+- [SDK Examples](https://github.com/stackitcloud/stackit-sdk-go/tree/main/examples) - Code examples and usage patterns
+- [SDK Releases](https://github.com/stackitcloud/stackit-sdk-go/releases) - Release notes and changelog
+
+### STACKIT Platform
 - [STACKIT Documentation](https://docs.stackit.cloud/) - STACKIT cloud platform documentation
+- [STACKIT Portal](https://portal.stackit.cloud/) - STACKIT management console
+- [Service Accounts](https://docs.stackit.cloud/stackit/en/service-accounts-134415819.html) - Creating and managing service accounts
+- [Service Account Keys](https://docs.stackit.cloud/stackit/en/usage-of-the-service-account-keys-in-stackit-175112464.html) - API authentication setup
+- [IaaS API Documentation](https://docs.stackit.cloud/) - STACKIT IaaS REST API reference
 
 ## License
 
