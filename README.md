@@ -117,6 +117,19 @@ The provider requires STACKIT credentials to be provided via a Kubernetes Secret
 | `userData` | No | Default cloud-init user data (can be overridden in ProviderSpec) |
 | `networkId` | No | Default network UUID (can be overridden in ProviderSpec) |
 
+The service account key should be obtained from the STACKIT Portal (Project Settings → Service Accounts → Create Key) and contains JWT credentials and a private key for secure authentication.
+
+### Environment Variables
+
+The provider supports the following environment variables for configuration:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `STACKIT_API_ENDPOINT` | (SDK default) | Override STACKIT API endpoint URL (useful for testing) |
+| `STACKIT_NO_AUTH` | `false` | Skip authentication (for testing with mock servers, set to `true`) |
+
+**Note:** `STACKIT_NO_AUTH=true` is only intended for testing environments with mock servers. Do not use in production.
+
 ## Configuration Reference
 
 ### ProviderSpec Fields
