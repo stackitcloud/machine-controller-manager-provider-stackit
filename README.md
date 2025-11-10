@@ -8,7 +8,7 @@ Out of tree (controller based) implementation for `STACKIT` as a provider for Ga
 
 A Machine Controller Manager (MCM) external provider implementation for STACKIT cloud infrastructure. This provider enables Gardener to manage virtual machines on STACKIT using the declarative Kubernetes API.
 
-The provider was built following the [MCM provider development guidelines](https://github.com/gardener/machine-controller-manager/blob/master/docs/development/cp_support_new.md) and bootstrapped from the [sample provider template](https://github.com/gardener/machine-controller-manager-provider-sampleprovider).Following are the basic principles kept in mind while developing the external plugin.
+The provider was built following the [MCM provider development guidelines](https://github.com/gardener/machine-controller-manager/blob/master/docs/development/cp_support_new.md) and bootstrapped from the [sample provider template](https://github.com/gardener/machine-controller-manager-provider-sampleprovider).
 
 ## Project Structure
 
@@ -59,7 +59,16 @@ This project uses **Hermit** for reproducible development environments and **jus
 hermit shell-hooks
 ```
 
-**just** is the task runner (defined in `justfile`). It provides a cleaner syntax than Make and better task organization:
+**[just](https://github.com/casey/just)** is the task runner (defined in `justfile`):
+
+```
+just build              # Build the provider binary
+just test               # Run unit tests
+just test-e2e           # Run end-to-end tests
+just dev                # Complete local dev setup (cluster + deployment)
+just start              # Run provider locally for debugging
+just docker-build       # Build container image
+```
 
 ```sh
 # List all available commands
@@ -69,27 +78,14 @@ just --list
 just
 ```
 
-### Quick Start
-
-```sh
-just build              # Build the provider binary
-just test               # Run unit tests
-just test-e2e           # Run end-to-end tests
-just dev                # Complete local dev setup (cluster + deployment)
-just start              # Run provider locally for debugging
-just docker-build       # Build container image
-```
-
-**NOTE:** Run `just --list` for more information on all available commands.
-
 ### Deployment
 
 See the [samples/](./samples/) directory for example manifests including:
-- `secret.yaml` - STACKIT credentials configuration
-- `machine-class.yaml` - MachineClass definition
-- `machine.yaml` - Individual Machine example
-- `machine-deployment.yaml` - MachineDeployment for scaled workloads
-- `deployment.yaml` - Provider controller deployment
+- [`secret.yaml`](./samples/secret.yaml) - STACKIT credentials configuration
+- [`machine-class.yaml`](./samples/machine-class.yaml) - MachineClass definition
+- [`machine.yaml`](./samples/machine.yaml) - Individual Machine example
+- [`machine-deployment.yaml`](./samples/machine-deployment.yaml) - MachineDeployment for scaled workloads
+- [`deployment.yaml`](./kubernetes/deployment.yaml) - Provider controller deployment
 
 Deploy using standard kubectl commands:
 
@@ -112,10 +108,23 @@ The provider requires STACKIT credentials to be provided via a Kubernetes Secret
 | Field | Required | Description |
 |-------|----------|-------------|
 | `projectId` | Yes | STACKIT project UUID |
-| `stackitToken` | Yes | STACKIT API authentication token |
+| `serviceAccountKey` | Yes | STACKIT service account credentials (JSON format) |
 | `region` | Yes | STACKIT region (e.g., `eu01-1`, `eu01-2`) |
 | `userData` | No | Default cloud-init user data (can be overridden in ProviderSpec) |
 | `networkId` | No | Default network UUID (can be overridden in ProviderSpec) |
+
+The service account key should be obtained from the STACKIT Portal (Project Settings → Service Accounts → Create Key) and contains JWT credentials and a private key for secure authentication.
+
+### Environment Variables
+
+The provider supports the following environment variables for configuration:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `STACKIT_API_ENDPOINT` | (SDK default) | Override STACKIT API endpoint URL (useful for testing) |
+| `STACKIT_NO_AUTH` | `false` | Skip authentication (for testing with mock servers, set to `true`) |
+
+**Note:** `STACKIT_NO_AUTH=true` is only intended for testing environments with mock servers. It skips the authenticaiton step and communicates with the STACKIT API without authenticating itself. Do not use in production.
 
 ## Configuration Reference
 
@@ -137,19 +146,6 @@ The provider requires STACKIT credentials to be provided via a Kubernetes Secret
 | `serviceAccountMails` | []string | No | Service account email addresses (max 1) |
 | `agent` | AgentSpec | No | STACKIT agent configuration |
 | `metadata` | map[string]interface{} | No | Custom metadata key-value pairs |
-
-## Contributing
-
-Contributions are welcome! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
-
-### Development Workflow
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/my-feature`
-3. Make changes and add tests
-4. Run verification: `just test && just golang::lint`
-5. Commit with meaningful messages
-6. Push and create a Pull Request
 
 ### Local Testing
 

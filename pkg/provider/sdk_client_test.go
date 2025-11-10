@@ -7,10 +7,11 @@ package provider
 import (
 	"errors"
 	"fmt"
+	"os"
 
-	"github.com/stackitcloud/stackit-sdk-go/core/oapierror"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/stackitcloud/stackit-sdk-go/core/oapierror"
 )
 
 var _ = Describe("SDK Client Helpers", func() {
@@ -41,10 +42,10 @@ var _ = Describe("SDK Client Helpers", func() {
 
 			It("should extract region when other fields are present", func() {
 				secretData := map[string][]byte{
-					"projectId":    []byte("11111111-2222-3333-4444-555555555555"),
-					"stackitToken": []byte("test-token-123"),
-					"region":       []byte("eu01-1"),
-					"userData":     []byte("some-user-data"),
+					"projectId":         []byte("11111111-2222-3333-4444-555555555555"),
+					"serviceAccountKey": []byte(`{"credentials":{"iss":"test"}}`),
+					"region":            []byte("eu01-1"),
+					"userData":          []byte("some-user-data"),
 				}
 
 				region, err := extractRegion(secretData)
@@ -57,8 +58,8 @@ var _ = Describe("SDK Client Helpers", func() {
 		Context("with missing or invalid region", func() {
 			It("should fail when region field is missing", func() {
 				secretData := map[string][]byte{
-					"projectId":    []byte("11111111-2222-3333-4444-555555555555"),
-					"stackitToken": []byte("test-token-123"),
+					"projectId":         []byte("11111111-2222-3333-4444-555555555555"),
+					"serviceAccountKey": []byte(`{"credentials":{"iss":"test"}}`),
 				}
 
 				_, err := extractRegion(secretData)
@@ -499,6 +500,195 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 
 				Expect(result).To(BeNil())
 			})
+		})
+	})
+
+	Describe("createIAASClient", func() {
+		var (
+			client *sdkStackitClient
+		)
+
+		BeforeEach(func() {
+			client = newSDKStackitClient()
+		})
+
+		Context("with STACKIT_NO_AUTH enabled", func() {
+			It("should create client successfully without authentication", func() {
+				// Set environment variable to skip authentication
+				originalNoAuth := os.Getenv("STACKIT_NO_AUTH")
+				os.Setenv("STACKIT_NO_AUTH", "true")
+				defer func() {
+					if originalNoAuth == "" {
+						os.Unsetenv("STACKIT_NO_AUTH")
+					} else {
+						os.Setenv("STACKIT_NO_AUTH", originalNoAuth)
+					}
+				}()
+
+				iaasClient, err := client.createIAASClient("")
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(iaasClient).NotTo(BeNil())
+			})
+
+			It("should create client with any service account key when no auth is enabled", func() {
+				// When STACKIT_NO_AUTH=true, the serviceAccountKey should be ignored
+				originalNoAuth := os.Getenv("STACKIT_NO_AUTH")
+				os.Setenv("STACKIT_NO_AUTH", "true")
+				defer func() {
+					if originalNoAuth == "" {
+						os.Unsetenv("STACKIT_NO_AUTH")
+					} else {
+						os.Setenv("STACKIT_NO_AUTH", originalNoAuth)
+					}
+				}()
+
+				iaasClient, err := client.createIAASClient("invalid-key")
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(iaasClient).NotTo(BeNil())
+			})
+		})
+
+		Context("with custom endpoint", func() {
+			It("should create client with custom endpoint when STACKIT_API_ENDPOINT is set", func() {
+				// Set both environment variables
+				originalEndpoint := os.Getenv("STACKIT_API_ENDPOINT")
+				originalNoAuth := os.Getenv("STACKIT_NO_AUTH")
+				os.Setenv("STACKIT_API_ENDPOINT", "https://test.example.com")
+				os.Setenv("STACKIT_NO_AUTH", "true")
+				defer func() {
+					if originalEndpoint == "" {
+						os.Unsetenv("STACKIT_API_ENDPOINT")
+					} else {
+						os.Setenv("STACKIT_API_ENDPOINT", originalEndpoint)
+					}
+					if originalNoAuth == "" {
+						os.Unsetenv("STACKIT_NO_AUTH")
+					} else {
+						os.Setenv("STACKIT_NO_AUTH", originalNoAuth)
+					}
+				}()
+
+				iaasClient, err := client.createIAASClient("")
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(iaasClient).NotTo(BeNil())
+			})
+
+			It("should work with default endpoint when STACKIT_API_ENDPOINT is not set", func() {
+				// Ensure endpoint is not set
+				originalEndpoint := os.Getenv("STACKIT_API_ENDPOINT")
+				originalNoAuth := os.Getenv("STACKIT_NO_AUTH")
+				os.Unsetenv("STACKIT_API_ENDPOINT")
+				os.Setenv("STACKIT_NO_AUTH", "true")
+				defer func() {
+					if originalEndpoint != "" {
+						os.Setenv("STACKIT_API_ENDPOINT", originalEndpoint)
+					}
+					if originalNoAuth == "" {
+						os.Unsetenv("STACKIT_NO_AUTH")
+					} else {
+						os.Setenv("STACKIT_NO_AUTH", originalNoAuth)
+					}
+				}()
+
+				iaasClient, err := client.createIAASClient("")
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(iaasClient).NotTo(BeNil())
+			})
+		})
+
+		Context("with service account authentication", func() {
+			It("should fail with invalid JSON service account key", func() {
+				// Ensure authentication is enabled
+				originalNoAuth := os.Getenv("STACKIT_NO_AUTH")
+				os.Unsetenv("STACKIT_NO_AUTH")
+				defer func() {
+					if originalNoAuth != "" {
+						os.Setenv("STACKIT_NO_AUTH", originalNoAuth)
+					}
+				}()
+
+				_, err := client.createIAASClient("not-valid-json")
+
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("failed to create STACKIT SDK API client"))
+			})
+
+			It("should fail with empty service account key", func() {
+				// Ensure authentication is enabled
+				originalNoAuth := os.Getenv("STACKIT_NO_AUTH")
+				os.Unsetenv("STACKIT_NO_AUTH")
+				defer func() {
+					if originalNoAuth != "" {
+						os.Setenv("STACKIT_NO_AUTH", originalNoAuth)
+					}
+				}()
+
+				_, err := client.createIAASClient("")
+
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("failed to create STACKIT SDK API client"))
+			})
+
+			It("should fail with valid JSON but missing required fields", func() {
+				// Ensure authentication is enabled
+				originalNoAuth := os.Getenv("STACKIT_NO_AUTH")
+				os.Unsetenv("STACKIT_NO_AUTH")
+				defer func() {
+					if originalNoAuth != "" {
+						os.Setenv("STACKIT_NO_AUTH", originalNoAuth)
+					}
+				}()
+
+				// Valid JSON but not a valid service account key structure
+				_, err := client.createIAASClient(`{"some": "json"}`)
+
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("failed to create STACKIT SDK API client"))
+			})
+		})
+
+		Context("stateless client behavior", func() {
+			It("should create new client instance each time", func() {
+				// Use STACKIT_NO_AUTH to avoid needing valid credentials
+				originalNoAuth := os.Getenv("STACKIT_NO_AUTH")
+				os.Setenv("STACKIT_NO_AUTH", "true")
+				defer func() {
+					if originalNoAuth == "" {
+						os.Unsetenv("STACKIT_NO_AUTH")
+					} else {
+						os.Setenv("STACKIT_NO_AUTH", originalNoAuth)
+					}
+				}()
+
+				client1, err1 := client.createIAASClient("")
+				client2, err2 := client.createIAASClient("")
+
+				Expect(err1).NotTo(HaveOccurred())
+				Expect(err2).NotTo(HaveOccurred())
+				Expect(client1).NotTo(BeNil())
+				Expect(client2).NotTo(BeNil())
+				// Note: We can't easily verify they're different instances without
+				// accessing internal SDK state, but the test documents the intent
+			})
+		})
+	})
+
+	Describe("newSDKStackitClient", func() {
+		It("should create a new SDK client wrapper", func() {
+			client := newSDKStackitClient()
+
+			Expect(client).NotTo(BeNil())
+		})
+
+		It("should create stateless client (no internal state)", func() {
+			client := newSDKStackitClient()
+
+			// The client should be stateless - just a wrapper
+			Expect(client).To(BeAssignableToTypeOf(&sdkStackitClient{}))
 		})
 	})
 

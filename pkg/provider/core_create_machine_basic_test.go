@@ -42,7 +42,7 @@ var _ = Describe("CreateMachine", func() {
 		secret = &corev1.Secret{
 			Data: map[string][]byte{
 				"projectId":    []byte("11111111-2222-3333-4444-555555555555"),
-				"stackitToken": []byte("test-token-123"),
+				"serviceAccountKey": []byte(`{"credentials":{"iss":"test"}}`),
 				"region":       []byte("eu01-1"),
 				"networkId":    []byte("770e8400-e29b-41d4-a716-446655440000"),
 			},
