@@ -60,5 +60,73 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 			Expect(errors).NotTo(BeEmpty())
 			Expect(errors[0].Error()).To(ContainSubstring("projectId' must be a valid UUID"))
 		})
+
+		It("should fail when serviceAccountKey is missing from secret", func() {
+			delete(secret.Data, "serviceAccountKey")
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).NotTo(BeEmpty())
+			Expect(errors[0].Error()).To(ContainSubstring("serviceAccountKey"))
+		})
+
+		It("should fail when serviceAccountKey is empty in secret", func() {
+			secret.Data["serviceAccountKey"] = []byte("")
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).NotTo(BeEmpty())
+			Expect(errors[0].Error()).To(ContainSubstring("serviceAccountKey"))
+		})
+
+		It("should fail when serviceAccountKey is not valid JSON", func() {
+			secret.Data["serviceAccountKey"] = []byte("not-valid-json")
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).NotTo(BeEmpty())
+			Expect(errors[0].Error()).To(ContainSubstring("must be valid JSON"))
+		})
+
+		It("should fail when serviceAccountKey is malformed JSON (missing closing brace)", func() {
+			secret.Data["serviceAccountKey"] = []byte(`{"credentials":{"iss":"test"`)
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).NotTo(BeEmpty())
+			Expect(errors[0].Error()).To(ContainSubstring("must be valid JSON"))
+		})
+
+		It("should pass when serviceAccountKey is valid JSON with minimal structure", func() {
+			secret.Data["serviceAccountKey"] = []byte(`{"credentials":{"iss":"test@sa.stackit.cloud"}}`)
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).To(BeEmpty())
+		})
+
+		It("should pass when serviceAccountKey is valid JSON with full structure", func() {
+			secret.Data["serviceAccountKey"] = []byte(`{
+				"credentials": {
+					"iss": "test@sa.stackit.cloud",
+					"sub": "12345678-1234-1234-1234-123456789012",
+					"aud": "stackit"
+				},
+				"privateKey": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQE\n-----END PRIVATE KEY-----"
+			}`)
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).To(BeEmpty())
+		})
+
+		It("should pass when serviceAccountKey is valid JSON array (edge case)", func() {
+			// JSON validation should accept any valid JSON, even if not the expected structure
+			// The SDK will validate the actual content
+			secret.Data["serviceAccountKey"] = []byte(`[]`)
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			// Should not have JSON validation error (though SDK would fail with this content)
+			for _, err := range errors {
+				Expect(err.Error()).NotTo(ContainSubstring("must be valid JSON"))
+			}
+		})
+
+		It("should pass when serviceAccountKey is valid JSON string (edge case)", func() {
+			// JSON validation should accept any valid JSON, even if not the expected structure
+			secret.Data["serviceAccountKey"] = []byte(`"some-string"`)
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			// Should not have JSON validation error (though SDK would fail with this content)
+			for _, err := range errors {
+				Expect(err.Error()).NotTo(ContainSubstring("must be valid JSON"))
+			}
+		})
 	})
 })

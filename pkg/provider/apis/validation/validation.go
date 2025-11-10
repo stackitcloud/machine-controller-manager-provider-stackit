@@ -53,32 +53,32 @@ func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret)
 
 	projectID, ok := secrets.Data["projectId"]
 	if !ok {
-		errors = append(errors, fmt.Errorf("secret must contain 'projectId' field"))
+		errors = append(errors, fmt.Errorf("secret field 'projectId' is required"))
 	} else if len(projectID) == 0 {
-		errors = append(errors, fmt.Errorf("secret 'projectId' cannot be empty"))
+		errors = append(errors, fmt.Errorf("secret field 'projectId' cannot be empty"))
 	} else if !isValidUUID(string(projectID)) {
-		errors = append(errors, fmt.Errorf("secret 'projectId' must be a valid UUID"))
+		errors = append(errors, fmt.Errorf("secret field 'projectId' must be a valid UUID"))
 	}
 
 	// Validate serviceAccountKey (required for authentication)
 	// ServiceAccount Key Flow: JSON string containing service account credentials and private key
 	serviceAccountKey, ok := secrets.Data["serviceAccountKey"]
 	if !ok {
-		errors = append(errors, fmt.Errorf("secret must contain 'serviceAccountKey' field"))
+		errors = append(errors, fmt.Errorf("secret field 'serviceAccountKey' is required"))
 	} else if len(serviceAccountKey) == 0 {
-		errors = append(errors, fmt.Errorf("secret 'serviceAccountKey' cannot be empty"))
+		errors = append(errors, fmt.Errorf("secret field 'serviceAccountKey' cannot be empty"))
 	} else if !isValidJSON(string(serviceAccountKey)) {
-		errors = append(errors, fmt.Errorf("secret 'serviceAccountKey' must be valid JSON (service account credentials)"))
+		errors = append(errors, fmt.Errorf("secret field 'serviceAccountKey' must be valid JSON (service account credentials)"))
 	}
 
 	// Validate region (required for SDK)
 	region, ok := secrets.Data["region"]
 	if !ok {
-		errors = append(errors, fmt.Errorf("secret must contain 'region' field"))
+		errors = append(errors, fmt.Errorf("secret field 'region' is required"))
 	} else if len(region) == 0 {
-		errors = append(errors, fmt.Errorf("secret 'region' cannot be empty"))
+		errors = append(errors, fmt.Errorf("secret field 'region' cannot be empty"))
 	} else if !isValidRegion(string(region)) {
-		errors = append(errors, fmt.Errorf("secret 'region' has invalid format (expected format: eu01-1, eu01-2, etc.)"))
+		errors = append(errors, fmt.Errorf("secret field 'region' has invalid format (expected format: eu01-1, eu01-2, etc.)"))
 	}
 
 	// Validate ProviderSpec
