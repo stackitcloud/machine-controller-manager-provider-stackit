@@ -99,7 +99,7 @@ kubectl apply -f samples/machine.yaml
 
 This provider uses the official [STACKIT Go SDK](https://github.com/stackitcloud/stackit-sdk-go) for all interactions with the STACKIT IaaS API. The SDK provides type-safe API access, built-in authentication handling, and is officially maintained by STACKIT.
 
-The SDK client is stateless and supports different credentials per MachineClass, allowing multi-tenancy scenarios where different machine pools use different STACKIT projects.
+Each provider instance is bound to a single STACKIT project via the service account credentials provided in the Secret. The SDK client is initialized once on first use and automatically handles token refresh. In Gardener deployments, each shoot cluster gets its own control plane with a dedicated MCM and provider instance.
 
 ### Authentication & Credentials
 
@@ -114,6 +114,8 @@ The provider requires STACKIT credentials to be provided via a Kubernetes Secret
 | `networkId` | No | Default network UUID (can be overridden in ProviderSpec) |
 
 The service account key should be obtained from the STACKIT Portal (Project Settings → Service Accounts → Create Key) and contains JWT credentials and a private key for secure authentication.
+
+**Credential Rotation:** The provider captures credentials on first use and reuses the same STACKIT SDK client for all subsequent requests (the SDK automatically handles token refresh). If the Secret is updated with new credentials, the provider pod must be restarted to pick up the changes. This follows the standard Kubernetes pattern for credential rotation.
 
 ### Environment Variables
 

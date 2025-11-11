@@ -71,7 +71,7 @@ var _ = Describe("ListMachines", func() {
 
 	Context("with valid inputs", func() {
 		It("should list machines filtered by MachineClass label", func() {
-			mockClient.listServersFunc = func(ctx context.Context, token, projectID, region string) ([]*Server, error) {
+			mockClient.listServersFunc = func(ctx context.Context, projectID, region string) ([]*Server, error) {
 				return []*Server{
 					{
 						ID:   "server-1",
@@ -111,7 +111,7 @@ var _ = Describe("ListMachines", func() {
 		})
 
 		It("should return empty list when no servers match", func() {
-			mockClient.listServersFunc = func(ctx context.Context, token, projectID, region string) ([]*Server, error) {
+			mockClient.listServersFunc = func(ctx context.Context, projectID, region string) ([]*Server, error) {
 				return []*Server{
 					{
 						ID:   "server-1",
@@ -131,7 +131,7 @@ var _ = Describe("ListMachines", func() {
 		})
 
 		It("should return empty list when no servers exist", func() {
-			mockClient.listServersFunc = func(ctx context.Context, token, projectID, region string) ([]*Server, error) {
+			mockClient.listServersFunc = func(ctx context.Context, projectID, region string) ([]*Server, error) {
 				return []*Server{}, nil
 			}
 
@@ -143,7 +143,7 @@ var _ = Describe("ListMachines", func() {
 		})
 
 		It("should handle servers without labels gracefully", func() {
-			mockClient.listServersFunc = func(ctx context.Context, token, projectID, region string) ([]*Server, error) {
+			mockClient.listServersFunc = func(ctx context.Context, projectID, region string) ([]*Server, error) {
 				return []*Server{
 					{
 						ID:     "server-1",
@@ -172,7 +172,7 @@ var _ = Describe("ListMachines", func() {
 
 	Context("when STACKIT API fails", func() {
 		It("should return Internal error on API failure", func() {
-			mockClient.listServersFunc = func(ctx context.Context, token, projectID, region string) ([]*Server, error) {
+			mockClient.listServersFunc = func(ctx context.Context, projectID, region string) ([]*Server, error) {
 				return nil, fmt.Errorf("API connection failed")
 			}
 

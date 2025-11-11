@@ -95,7 +95,7 @@ var _ = Describe("CreateMachine", func() {
 			var capturedReq *CreateServerRequest
 			var capturedProjectID string
 
-			mockClient.createServerFunc = func(ctx context.Context, token, projectID, region string, req *CreateServerRequest) (*Server, error) {
+			mockClient.createServerFunc = func(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
 				capturedProjectID = projectID
 				capturedReq = req
 				return &Server{
@@ -165,7 +165,7 @@ var _ = Describe("CreateMachine", func() {
 
 	Context("when STACKIT API fails", func() {
 		It("should return Internal error on API failure", func() {
-			mockClient.createServerFunc = func(ctx context.Context, token, projectID, region string, req *CreateServerRequest) (*Server, error) {
+			mockClient.createServerFunc = func(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
 				return nil, fmt.Errorf("API connection failed")
 			}
 

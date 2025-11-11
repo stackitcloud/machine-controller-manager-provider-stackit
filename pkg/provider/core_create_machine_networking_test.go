@@ -80,7 +80,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 			}
 
 			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(ctx context.Context, token, projectID, region string, req *CreateServerRequest) (*Server, error) {
+			mockClient.createServerFunc = func(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
 				capturedReq = req
 				return &Server{
 					ID:     "test-server-id",
@@ -126,7 +126,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 			}
 
 			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(ctx context.Context, token, projectID, region string, req *CreateServerRequest) (*Server, error) {
+			mockClient.createServerFunc = func(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
 				capturedReq = req
 				return &Server{
 					ID:     "test-server-id",
@@ -174,7 +174,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 			}
 
 			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(ctx context.Context, token, projectID, region string, req *CreateServerRequest) (*Server, error) {
+			mockClient.createServerFunc = func(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
 				capturedReq = req
 				return &Server{
 					ID:     "test-server-id",
@@ -215,7 +215,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 			}
 
 			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(ctx context.Context, token, projectID, region string, req *CreateServerRequest) (*Server, error) {
+			mockClient.createServerFunc = func(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
 				capturedReq = req
 				return &Server{
 					ID:     "test-server-id",
@@ -263,7 +263,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 			}
 
 			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(ctx context.Context, token, projectID, region string, req *CreateServerRequest) (*Server, error) {
+			mockClient.createServerFunc = func(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
 				capturedReq = req
 				return &Server{
 					ID:     "test-server-id",
