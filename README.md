@@ -115,6 +115,8 @@ The provider requires STACKIT credentials to be provided via a Kubernetes Secret
 
 The service account key should be obtained from the STACKIT Portal (Project Settings → Service Accounts → Create Key) and contains JWT credentials and a private key for secure authentication.
 
+**Credential Rotation:** The provider captures credentials on first use and reuses the same STACKIT SDK client for all subsequent requests (the SDK automatically handles token refresh). If the Secret is updated with new credentials, the provider pod must be restarted to pick up the changes. This follows the standard Kubernetes pattern for credential rotation.
+
 ### Environment Variables
 
 The provider supports the following environment variables for configuration:
