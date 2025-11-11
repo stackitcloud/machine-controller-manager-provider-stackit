@@ -99,7 +99,7 @@ kubectl apply -f samples/machine.yaml
 
 This provider uses the official [STACKIT Go SDK](https://github.com/stackitcloud/stackit-sdk-go) for all interactions with the STACKIT IaaS API. The SDK provides type-safe API access, built-in authentication handling, and is officially maintained by STACKIT.
 
-The SDK client is stateless and supports different credentials per MachineClass, allowing multi-tenancy scenarios where different machine pools use different STACKIT projects.
+Each provider instance is bound to a single STACKIT project via the service account credentials provided in the Secret. The SDK client is initialized once on first use and automatically handles token refresh. In Gardener deployments, each shoot cluster gets its own control plane with a dedicated MCM and provider instance.
 
 ### Authentication & Credentials
 

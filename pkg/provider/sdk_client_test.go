@@ -503,15 +503,7 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 		})
 	})
 
-	Describe("createIAASClient", func() {
-		var (
-			client *sdkStackitClient
-		)
-
-		BeforeEach(func() {
-			client = newSDKStackitClient()
-		})
-
+	Describe("NewStackitClient", func() {
 		Context("with STACKIT_NO_AUTH enabled", func() {
 			It("should create client successfully without authentication", func() {
 				// Set environment variable to skip authentication
@@ -525,10 +517,11 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 					}
 				}()
 
-				iaasClient, err := client.createIAASClient("")
+				client, err := NewStackitClient("")
 
 				Expect(err).NotTo(HaveOccurred())
-				Expect(iaasClient).NotTo(BeNil())
+				Expect(client).NotTo(BeNil())
+				Expect(client.iaasClient).NotTo(BeNil())
 			})
 
 			It("should create client with any service account key when no auth is enabled", func() {
@@ -543,10 +536,11 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 					}
 				}()
 
-				iaasClient, err := client.createIAASClient("invalid-key")
+				client, err := NewStackitClient("invalid-key")
 
 				Expect(err).NotTo(HaveOccurred())
-				Expect(iaasClient).NotTo(BeNil())
+				Expect(client).NotTo(BeNil())
+				Expect(client.iaasClient).NotTo(BeNil())
 			})
 		})
 
@@ -570,10 +564,11 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 					}
 				}()
 
-				iaasClient, err := client.createIAASClient("")
+				client, err := NewStackitClient("")
 
 				Expect(err).NotTo(HaveOccurred())
-				Expect(iaasClient).NotTo(BeNil())
+				Expect(client).NotTo(BeNil())
+				Expect(client.iaasClient).NotTo(BeNil())
 			})
 
 			It("should work with default endpoint when STACKIT_API_ENDPOINT is not set", func() {
@@ -593,10 +588,11 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 					}
 				}()
 
-				iaasClient, err := client.createIAASClient("")
+				client, err := NewStackitClient("")
 
 				Expect(err).NotTo(HaveOccurred())
-				Expect(iaasClient).NotTo(BeNil())
+				Expect(client).NotTo(BeNil())
+				Expect(client.iaasClient).NotTo(BeNil())
 			})
 		})
 
@@ -611,10 +607,10 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 					}
 				}()
 
-				_, err := client.createIAASClient("not-valid-json")
+				_, err := NewStackitClient("not-valid-json")
 
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("failed to create STACKIT SDK API client"))
+				Expect(err.Error()).To(ContainSubstring("failed to create STACKIT SDK client"))
 			})
 
 			It("should fail with empty service account key", func() {
@@ -627,10 +623,10 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 					}
 				}()
 
-				_, err := client.createIAASClient("")
+				_, err := NewStackitClient("")
 
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("failed to create STACKIT SDK API client"))
+				Expect(err.Error()).To(ContainSubstring("failed to create STACKIT SDK client"))
 			})
 
 			It("should fail with valid JSON but missing required fields", func() {
@@ -644,15 +640,15 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 				}()
 
 				// Valid JSON but not a valid service account key structure
-				_, err := client.createIAASClient(`{"some": "json"}`)
+				_, err := NewStackitClient(`{"some": "json"}`)
 
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("failed to create STACKIT SDK API client"))
+				Expect(err.Error()).To(ContainSubstring("failed to create STACKIT SDK client"))
 			})
 		})
 
-		Context("stateless client behavior", func() {
-			It("should create new client instance each time", func() {
+		Context("client reusability", func() {
+			It("should create client once and reuse IaaS client", func() {
 				// Use STACKIT_NO_AUTH to avoid needing valid credentials
 				originalNoAuth := os.Getenv("STACKIT_NO_AUTH")
 				os.Setenv("STACKIT_NO_AUTH", "true")
@@ -664,8 +660,8 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 					}
 				}()
 
-				client1, err1 := client.createIAASClient("")
-				client2, err2 := client.createIAASClient("")
+				client1, err1 := NewStackitClient("")
+				client2, err2 := NewStackitClient("")
 
 				Expect(err1).NotTo(HaveOccurred())
 				Expect(err2).NotTo(HaveOccurred())
@@ -674,21 +670,6 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 				// Note: We can't easily verify they're different instances without
 				// accessing internal SDK state, but the test documents the intent
 			})
-		})
-	})
-
-	Describe("newSDKStackitClient", func() {
-		It("should create a new SDK client wrapper", func() {
-			client := newSDKStackitClient()
-
-			Expect(client).NotTo(BeNil())
-		})
-
-		It("should create stateless client (no internal state)", func() {
-			client := newSDKStackitClient()
-
-			// The client should be stateless - just a wrapper
-			Expect(client).To(BeAssignableToTypeOf(&sdkStackitClient{}))
 		})
 	})
 

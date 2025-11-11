@@ -17,13 +17,25 @@ import (
 )
 
 // sdkStackitClient is an SDK implementation of StackitClient
-// It is stateless and creates SDK API clients per-request to support
-// different credentials per MachineClass
-type sdkStackitClient struct{}
+// Each instance handles a single STACKIT project (single-tenant design)
+// The IaaS client is created once and reused across all requests
+// The SDK automatically handles token refresh and re-authentication
+type sdkStackitClient struct {
+	iaasClient *iaas.APIClient
+}
 
-// newSDKStackitClient creates a new stateless SDK STACKIT client wrapper
-func newSDKStackitClient() *sdkStackitClient {
-	return &sdkStackitClient{}
+// NewStackitClient creates a new SDK STACKIT client wrapper with the IaaS client
+// The serviceAccountKey is used for authentication (ServiceAccount Key Flow)
+// The client is created once and reused for all subsequent requests
+func NewStackitClient(serviceAccountKey string) (*sdkStackitClient, error) {
+	iaasClient, err := createIAASClient(serviceAccountKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create STACKIT SDK client: %w", err)
+	}
+
+	return &sdkStackitClient{
+		iaasClient: iaasClient,
+	}, nil
 }
 
 var (
@@ -31,14 +43,13 @@ var (
 	ErrServerNotFound = errors.New("server not found")
 )
 
-// createIAASClient creates a new STACKIT SDK IAAS API client for a request
-// This allows different MachineClasses to use different credentials
+// createIAASClient creates a new STACKIT SDK IAAS API client
 //
 // Authentication: Uses ServiceAccount Key Flow (recommended by STACKIT)
 // - Automatically generates JWT tokens from service account credentials
-// - Handles token refresh before expiration
+// - Handles token refresh before expiration (with 5s leeway)
 // - More secure than static tokens (short-lived, rotating)
-func (c *sdkStackitClient) createIAASClient(serviceAccountKey string) (*iaas.APIClient, error) {
+func createIAASClient(serviceAccountKey string) (*iaas.APIClient, error) {
 	// Configure SDK with custom base URL if provided (for testing with mock server)
 	baseURL := os.Getenv("STACKIT_API_ENDPOINT")
 	noAuth := os.Getenv("STACKIT_NO_AUTH") == "true"
@@ -93,13 +104,7 @@ func extractRegion(secretData map[string][]byte) (string, error) {
 }
 
 // CreateServer creates a new server via STACKIT SDK
-func (c *sdkStackitClient) CreateServer(ctx context.Context, serviceAccountKey, projectID, region string, req *CreateServerRequest) (*Server, error) {
-	// Create SDK client for this request
-	iaasClient, err := c.createIAASClient(serviceAccountKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create SDK client: %w", err)
-	}
-
+func (c *sdkStackitClient) CreateServer(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
 	// Convert our request to SDK payload
 	payload := &iaas.CreateServerPayload{
 		Name:        ptr(req.Name),
@@ -213,8 +218,8 @@ func (c *sdkStackitClient) CreateServer(ctx context.Context, serviceAccountKey, 
 		payload.Metadata = convertMetadataToSDK(req.Metadata)
 	}
 
-	// Call SDK
-	sdkServer, err := iaasClient.CreateServer(ctx, projectID, region).
+	// Call SDK using the stored client
+	sdkServer, err := c.iaasClient.CreateServer(ctx, projectID, region).
 		CreateServerPayload(*payload).
 		Execute()
 	if err != nil {
@@ -233,14 +238,8 @@ func (c *sdkStackitClient) CreateServer(ctx context.Context, serviceAccountKey, 
 }
 
 // GetServer retrieves a server by ID via STACKIT SDK
-func (c *sdkStackitClient) GetServer(ctx context.Context, serviceAccountKey, projectID, region, serverID string) (*Server, error) {
-	// Create SDK client for this request
-	iaasClient, err := c.createIAASClient(serviceAccountKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create SDK client: %w", err)
-	}
-
-	sdkServer, err := iaasClient.GetServer(ctx, projectID, region, serverID).Execute()
+func (c *sdkStackitClient) GetServer(ctx context.Context, projectID, region, serverID string) (*Server, error) {
+	sdkServer, err := c.iaasClient.GetServer(ctx, projectID, region, serverID).Execute()
 	if err != nil {
 		// Check if error is 404 Not Found
 		if isNotFoundError(err) {
@@ -261,14 +260,8 @@ func (c *sdkStackitClient) GetServer(ctx context.Context, serviceAccountKey, pro
 }
 
 // DeleteServer deletes a server by ID via STACKIT SDK
-func (c *sdkStackitClient) DeleteServer(ctx context.Context, serviceAccountKey, projectID, region, serverID string) error {
-	// Create SDK client for this request
-	iaasClient, err := c.createIAASClient(serviceAccountKey)
-	if err != nil {
-		return fmt.Errorf("failed to create SDK client: %w", err)
-	}
-
-	err = iaasClient.DeleteServer(ctx, projectID, region, serverID).Execute()
+func (c *sdkStackitClient) DeleteServer(ctx context.Context, projectID, region, serverID string) error {
+	err := c.iaasClient.DeleteServer(ctx, projectID, region, serverID).Execute()
 	if err != nil {
 		// Check if error is 404 Not Found - this is OK (idempotent)
 		if isNotFoundError(err) {
@@ -281,14 +274,8 @@ func (c *sdkStackitClient) DeleteServer(ctx context.Context, serviceAccountKey, 
 }
 
 // ListServers lists all servers in a project via STACKIT SDK
-func (c *sdkStackitClient) ListServers(ctx context.Context, serviceAccountKey, projectID, region string) ([]*Server, error) {
-	// Create SDK client for this request
-	iaasClient, err := c.createIAASClient(serviceAccountKey)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create SDK client: %w", err)
-	}
-
-	sdkResponse, err := iaasClient.ListServers(ctx, projectID, region).Execute()
+func (c *sdkStackitClient) ListServers(ctx context.Context, projectID, region string) ([]*Server, error) {
+	sdkResponse, err := c.iaasClient.ListServers(ctx, projectID, region).Execute()
 	if err != nil {
 		return nil, fmt.Errorf("SDK ListServers failed: %w", err)
 	}

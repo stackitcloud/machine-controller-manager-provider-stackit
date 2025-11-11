@@ -86,7 +86,7 @@ var _ = Describe("DeleteMachine", func() {
 
 	Context("with valid inputs", func() {
 		It("should successfully delete a machine", func() {
-			mockClient.deleteServerFunc = func(ctx context.Context, token, projectID, region, serverID string) error {
+			mockClient.deleteServerFunc = func(ctx context.Context, projectID, region, serverID string) error {
 				return nil
 			}
 
@@ -100,7 +100,7 @@ var _ = Describe("DeleteMachine", func() {
 			var capturedProjectID string
 			var capturedServerID string
 
-			mockClient.deleteServerFunc = func(ctx context.Context, token, projectID, region, serverID string) error {
+			mockClient.deleteServerFunc = func(ctx context.Context, projectID, region, serverID string) error {
 				capturedProjectID = projectID
 				capturedServerID = serverID
 				return nil
@@ -140,7 +140,7 @@ var _ = Describe("DeleteMachine", func() {
 
 	Context("when machine not found", func() {
 		It("should return success if machine does not exist (idempotent)", func() {
-			mockClient.deleteServerFunc = func(ctx context.Context, token, projectID, region, serverID string) error {
+			mockClient.deleteServerFunc = func(ctx context.Context, projectID, region, serverID string) error {
 				return fmt.Errorf("%w: status 404", ErrServerNotFound)
 			}
 
@@ -153,7 +153,7 @@ var _ = Describe("DeleteMachine", func() {
 
 	Context("when STACKIT API fails", func() {
 		It("should return error when API call fails", func() {
-			mockClient.deleteServerFunc = func(ctx context.Context, token, projectID, region, serverID string) error {
+			mockClient.deleteServerFunc = func(ctx context.Context, projectID, region, serverID string) error {
 				return fmt.Errorf("API connection failed")
 			}
 
