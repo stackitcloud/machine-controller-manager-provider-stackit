@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"regexp"
 
-	api "github.com/aoepeople/machine-controller-manager-provider-stackit/pkg/provider/apis"
+	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	corev1 "k8s.io/api/core/v1"
 )
 

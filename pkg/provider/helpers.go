@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"strings"
 
-	api "github.com/aoepeople/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
+	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
 )
 
 // decodeProviderSpec decodes the ProviderSpec from a MachineClass

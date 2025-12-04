@@ -5,10 +5,10 @@
 package validation_test
 
 import (
-	api "github.com/aoepeople/machine-controller-manager-provider-stackit/pkg/provider/apis"
-	. "github.com/aoepeople/machine-controller-manager-provider-stackit/pkg/provider/apis/validation"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
+	. "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis/validation"
 	corev1 "k8s.io/api/core/v1"
 )
 

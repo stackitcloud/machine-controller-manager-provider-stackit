@@ -14,7 +14,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 
-	"github.com/aoepeople/machine-controller-manager-provider-stackit/test/utils"
+	"github.com/stackitcloud/machine-controller-manager-provider-stackit/test/utils"
 )
 
 // Timeout constants used across E2E tests

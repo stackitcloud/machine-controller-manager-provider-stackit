@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/aoepeople/machine-controller-manager-provider-stackit/pkg/spi"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
+	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/spi"
 	"k8s.io/klog"
 )
 
@@ -23,11 +23,11 @@ import (
 // - All subsequent requests reuse the same client (SDK handles token refresh automatically)
 // - Credential rotation requires pod restart (standard Kubernetes pattern)
 type Provider struct {
-	SPI                   spi.SessionProviderInterface
-	client                StackitClient // STACKIT API client (can be mocked for testing)
-	clientOnce            sync.Once     // Ensures client is initialized exactly once
-	clientErr             error         // Stores initialization error if any
-	capturedCredentials   string        // Service account key used for initialization (for defensive checks)
+	SPI                 spi.SessionProviderInterface
+	client              StackitClient // STACKIT API client (can be mocked for testing)
+	clientOnce          sync.Once     // Ensures client is initialized exactly once
+	clientErr           error         // Stores initialization error if any
+	capturedCredentials string        // Service account key used for initialization (for defensive checks)
 }
 
 // NewProvider returns an empty provider object

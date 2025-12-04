@@ -25,14 +25,14 @@ import (
 	"fmt"
 	"os"
 
-	cp "github.com/aoepeople/machine-controller-manager-provider-stackit/pkg/provider"
-	"github.com/aoepeople/machine-controller-manager-provider-stackit/pkg/spi"
 	_ "github.com/gardener/machine-controller-manager/pkg/util/client/metrics/prometheus" // for client metric registration
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/app"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/app/options"
 	_ "github.com/gardener/machine-controller-manager/pkg/util/reflector/prometheus" // for reflector metric registration
 	_ "github.com/gardener/machine-controller-manager/pkg/util/workqueue/prometheus" // for workqueue metric registration
 	"github.com/spf13/pflag"
+	cp "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider"
+	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/spi"
 	"k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 )

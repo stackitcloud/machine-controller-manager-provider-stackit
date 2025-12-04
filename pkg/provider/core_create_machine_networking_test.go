@@ -7,11 +7,11 @@ package provider
 import (
 	"context"
 
-	api "github.com/aoepeople/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -38,9 +38,9 @@ var _ = Describe("CreateMachine - Networking", func() {
 		// Create secret with basic required fields
 		secret = &corev1.Secret{
 			Data: map[string][]byte{
-				"projectId":    []byte("11111111-2222-3333-4444-555555555555"),
+				"projectId":         []byte("11111111-2222-3333-4444-555555555555"),
 				"serviceAccountKey": []byte(`{"credentials":{"iss":"test"}}`),
-				"region":       []byte("eu01-1"),
+				"region":            []byte("eu01-1"),
 			},
 		}
 

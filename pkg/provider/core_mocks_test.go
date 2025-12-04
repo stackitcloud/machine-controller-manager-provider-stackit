@@ -7,7 +7,7 @@ package provider
 import (
 	"context"
 
-	api "github.com/aoepeople/machine-controller-manager-provider-stackit/pkg/provider/apis"
+	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
 )
 
 // mockStackitClient is a mock implementation of StackitClient for testing
