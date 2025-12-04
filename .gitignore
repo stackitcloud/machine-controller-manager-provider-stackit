@@ -1,3 +1,7 @@
+# Ignore tools/bin folder
+hack/tools/bin/*
+!hack/tools/bin/.gitkeep
+
 /args
 /.kube-secrets
 /tmp/*
