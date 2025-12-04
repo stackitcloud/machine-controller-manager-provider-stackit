@@ -19,6 +19,9 @@ endif
 
 include ./hack/tools.mk
 
+.PHONY: all
+all: verify
+
 .PHONY: image
 image: $(KO) ## Builds a single binary specified by TARGET
 	KO_DOCKER_REPO=$(REGISTRY)/$(REPO) \
@@ -52,3 +55,18 @@ check: lint test ## Check everything (lint + test).
 .PHONY: test
 test: ## Run tests.
 	./hack/test.sh ./cmd/... ./pkg/...
+
+.PHONY: verify-fmt
+verify-fmt: fmt ## Verify go code is formatted.
+	@if !(git diff --quiet HEAD); then \
+		echo "unformatted files detected, please run 'make fmt'"; exit 1; \
+	fi
+
+.PHONY: verify-modules
+verify-modules: modules ## Verify go module files are up to date.
+	@if !(git diff --quiet HEAD -- go.sum go.mod); then \
+		echo "go module files are out of date, please run 'make modules'"; exit 1; \
+	fi
+
+.PHONY: verify
+verify: verify-fmt verify-modules check

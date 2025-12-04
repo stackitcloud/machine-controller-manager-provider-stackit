@@ -4,6 +4,8 @@ export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
 OS := $(shell uname -s | tr "[:upper:]" "[:lower:]")
 ARCH := $(shell uname -m)
 
+# renovate: datasource=github-releases depName=incu6us/goimports-reviser
+GOIMPORTS_REVISER_VERSION ?= v3.11.0
 # renovate: datasource=github-releases depName=chainguard-dev/apko
 APKO_VERSION ?= v0.30.27
 # renovate: datasource=github-releases depName=ko-build/ko
@@ -27,6 +29,10 @@ $(TOOLS_BIN_DIR)/.version_%:
 	@version_file=$@; rm -f $${version_file%_*}*
 	@touch $@
 
+GOIMPORTS_REVISER := $(TOOLS_BIN_DIR)/goimports-reviser
+$(GOIMPORTS_REVISER): $(call tool_version_file,$(GOIMPORTS_REVISER),$(GOIMPORTS_REVISER_VERSION))
+	GOBIN=$(abspath $(TOOLS_BIN_DIR)) go install github.com/incu6us/goimports-reviser/v3@$(GOIMPORTS_REVISER_VERSION)
+
 APKO := $(TOOLS_BIN_DIR)/apko
 $(APKO): $(call tool_version_file,$(APKO),$(APKO_VERSION))
 	GOBIN=$(abspath $(TOOLS_BIN_DIR)) go install chainguard.dev/apko@$(APKO_VERSION)
@@ -34,7 +40,7 @@ $(APKO): $(call tool_version_file,$(APKO),$(APKO_VERSION))
 KO := $(TOOLS_BIN_DIR)/ko
 $(KO): $(call tool_version_file,$(KO),$(KO_VERSION))
 	GOBIN=$(abspath $(TOOLS_BIN_DIR)) go install github.com/google/ko@$(KO_VERSION)
-	
+
 GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
 $(GOLANGCI_LINT): $(call tool_version_file,$(GOLANGCI_LINT),$(GOLANGCI_LINT_VERSION))
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(TOOLS_BIN_DIR) $(GOLANGCI_LINT_VERSION)
