@@ -13,6 +13,10 @@ PUSH ?= false
 PLATFORMS ?= amd64 arm64
 IS_DEV ?= true
 
+ifeq ($(IS_DEV), "true")
+  REPO=$(REPO)-dev
+endif
+
 include ./hack/tools.mk
 
 .PHONY: image
