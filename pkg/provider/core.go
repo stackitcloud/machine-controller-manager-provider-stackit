@@ -53,8 +53,8 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	// Extract credentials from Secret
 	projectID := string(req.Secret.Data["project-id"])
 	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
-	var region string
-	if providerSpec.Region == "RegionOne" {
+	region := providerSpec.Region
+	if region == "RegionOne" || region == "" {
 		region = "eu01"
 	}
 
