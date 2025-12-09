@@ -6,12 +6,12 @@ SOURCES := Makefile go.mod go.sum $(shell find $(DEST) -name '*.go' 2>/dev/null)
 VERSION ?= $(shell git describe --dirty --tags --match='v*' 2>/dev/null || git rev-parse --short HEAD)
 REGISTRY ?= ghcr.io
 REPO ?= stackitcloud/machine-controller-manager-provider-stackit
-PUSH ?= false
+PUSH ?= true
 PLATFORMS ?= amd64 arm64
 IS_DEV ?= true
 
-ifeq ($(IS_DEV), "true")
-  REPO=$(REPO)-dev
+ifeq ($(IS_DEV), true)
+  REPO := $(REPO)-dev
 endif
 
 include ./hack/tools.mk
