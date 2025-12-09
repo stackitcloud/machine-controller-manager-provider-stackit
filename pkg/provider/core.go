@@ -220,8 +220,8 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 
 	// Extract credentials from Secret
 	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
-	var region string
-	if providerSpec.Region == "RegionOne" {
+	region := providerSpec.Region
+	if region == "RegionOne" || region == "" {
 		region = "eu01"
 	}
 
@@ -288,8 +288,8 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 
 	// Extract credentials from Secret
 	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
-	var region string
-	if providerSpec.Region == "RegionOne" {
+	region := providerSpec.Region
+	if region == "RegionOne" || region == "" {
 		region = "eu01"
 	}
 
@@ -351,8 +351,8 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 	// Extract credentials from Secret
 	projectID := string(req.Secret.Data["project-id"])
 	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
-	var region string
-	if providerSpec.Region == "RegionOne" {
+	region := providerSpec.Region
+	if region == "RegionOne" || region == "" {
 		region = "eu01"
 	}
 
