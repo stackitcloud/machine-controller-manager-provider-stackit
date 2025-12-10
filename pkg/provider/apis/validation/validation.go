@@ -95,6 +95,12 @@ func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret)
 		errors = append(errors, fmt.Errorf("providerSpec.machineType has invalid format (expected format: c2i.2, m2i.8, etc.)"))
 	}
 
+	if spec.Region == "" {
+		errors = append(errors, fmt.Errorf("providerSpec.region is required"))
+	} else if !isValidRegion(spec.Region) {
+		errors = append(errors, fmt.Errorf("providerSpec.region has invalid format (expected format: eu01-1, eu01-2, etc.)"))
+	}
+
 	// ImageID is required unless BootVolume.Source is specified
 	hasBootVolumeSource := spec.BootVolume != nil && spec.BootVolume.Source != nil
 	if spec.ImageID == "" && !hasBootVolumeSource {
