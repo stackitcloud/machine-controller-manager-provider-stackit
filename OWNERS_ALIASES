@@ -16,6 +16,8 @@ aliases:
   - mstueer
   - OlegVanHorst
   - jamand
+  - breuerfelix
+  - aniruddha2000
   machine-controller-manager-provider-stackit-approvers:
   - dergeberl
   - JuliusSte
@@ -32,3 +34,5 @@ aliases:
   - mstueer
   - OlegVanHorst
   - jamand
+  - breuerfelix
+  - aniruddha2000
