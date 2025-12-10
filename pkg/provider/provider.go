@@ -11,7 +11,7 @@ import (
 
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/spi"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // Provider is the struct that implements the driver interface

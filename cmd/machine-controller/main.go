@@ -32,7 +32,7 @@ import (
 	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/spi"
 	"k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 func main() {
