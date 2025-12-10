@@ -53,6 +53,7 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	// Extract credentials from Secret
 	projectID := string(req.Secret.Data["project-id"])
 	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
+	region := providerSpec.Region
 
 	// Initialize client on first use (lazy initialization)
 	if err := p.ensureClient(serviceAccountKey); err != nil {
@@ -208,8 +209,15 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 		return nil, status.Error(codes.InvalidArgument, "ProviderID is required")
 	}
 
+	// Decode ProviderSpec from MachineClass
+	providerSpec, err := decodeProviderSpec(req.MachineClass)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
 	// Extract credentials from Secret
 	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
+	region := providerSpec.Region
 
 	// Initialize client on first use (lazy initialization)
 	if err := p.ensureClient(serviceAccountKey); err != nil {
@@ -274,8 +282,15 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 		return nil, status.Error(codes.NotFound, "machine does not have a ProviderID yet")
 	}
 
+	// Decode ProviderSpec from MachineClass
+	providerSpec, err := decodeProviderSpec(req.MachineClass)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
 	// Extract credentials from Secret
 	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
+	region := providerSpec.Region
 
 	// Initialize client on first use (lazy initialization)
 	if err := p.ensureClient(serviceAccountKey); err != nil {
@@ -335,9 +350,16 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 	klog.V(2).Infof("List machines request has been received for %q", req.MachineClass.Name)
 	defer klog.V(2).Infof("List machines request has been processed for %q", req.MachineClass.Name)
 
+	// Decode ProviderSpec from MachineClass
+	providerSpec, err := decodeProviderSpec(req.MachineClass)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
 	// Extract credentials from Secret
 	projectID := string(req.Secret.Data["project-id"])
 	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
+	region := providerSpec.Region
 
 	// Initialize client on first use (lazy initialization)
 	if err := p.ensureClient(serviceAccountKey); err != nil {
