@@ -6,7 +6,7 @@ require (
 	github.com/gardener/machine-controller-manager v0.36.0
 	github.com/onsi/ginkgo/v2 v2.27.3
 	github.com/onsi/gomega v1.38.2
-	github.com/spf13/pflag v1.0.5
+	github.com/spf13/pflag v1.0.10
 	github.com/stackitcloud/stackit-sdk-go/core v0.18.0
 	github.com/stackitcloud/stackit-sdk-go/services/iaas v1.0.0
 	k8s.io/api v0.0.0-20190918155943-95b840bb6a1f
