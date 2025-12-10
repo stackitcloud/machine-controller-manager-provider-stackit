@@ -5,6 +5,7 @@
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 
@@ -14,7 +15,7 @@ import (
 
 var _ = Describe("MCM Provider STACKIT", func() {
 	Context("Machine networking configuration", func() {
-		It("should create a Machine with networkId in networking spec", func() {
+		It("should create a Machine with networkId in networking spec", func(ctx context.Context) {
 			secretName := generateResourceName("secret")
 			machineClassName := generateResourceName("machineclass")
 			machineName := generateResourceName("machine")
@@ -35,7 +36,7 @@ stringData:
     runcmd:
       - echo "Machine bootstrapped"
 `, secretName, testNamespace)
-			createAndTrackResource("secret", secretName, testNamespace, secretYAML)
+			createAndTrackResource(ctx, "secret", secretName, testNamespace, secretYAML)
 
 			machineClassYAML := fmt.Sprintf(`
 apiVersion: machine.sapcloud.io/v1alpha1
@@ -55,7 +56,7 @@ secretRef:
   namespace: %s
 provider: STACKIT
 `, machineClassName, testNamespace, secretName, testNamespace)
-			createAndTrackResource("machineclass", machineClassName, testNamespace, machineClassYAML)
+			createAndTrackResource(ctx, "machineclass", machineClassName, testNamespace, machineClassYAML)
 
 			machineYAML := fmt.Sprintf(`
 apiVersion: machine.sapcloud.io/v1alpha1
@@ -68,7 +69,7 @@ spec:
     kind: MachineClass
     name: %s
 `, machineName, testNamespace, machineClassName)
-			createAndTrackResource("machine", machineName, testNamespace, machineYAML)
+			createAndTrackResource(ctx, "machine", machineName, testNamespace, machineYAML)
 
 			By("waiting for Machine to have ProviderID set")
 			Eventually(func() string {
@@ -83,7 +84,7 @@ spec:
 			Expect(err).NotTo(HaveOccurred(), "Should be able to get Machine: %s", string(output))
 		})
 
-		It("should create a Machine with nicIds in networking spec", func() {
+		It("should create a Machine with nicIds in networking spec", func(ctx context.Context) {
 			secretName := generateResourceName("secret")
 			machineClassName := generateResourceName("machineclass")
 			machineName := generateResourceName("machine")
@@ -104,7 +105,7 @@ stringData:
     runcmd:
       - echo "Machine bootstrapped"
 `, secretName, testNamespace)
-			createAndTrackResource("secret", secretName, testNamespace, secretYAML)
+			createAndTrackResource(ctx, "secret", secretName, testNamespace, secretYAML)
 
 			machineClassYAML := fmt.Sprintf(`
 apiVersion: machine.sapcloud.io/v1alpha1
@@ -126,7 +127,7 @@ secretRef:
   namespace: %s
 provider: STACKIT
 `, machineClassName, testNamespace, secretName, testNamespace)
-			createAndTrackResource("machineclass", machineClassName, testNamespace, machineClassYAML)
+			createAndTrackResource(ctx, "machineclass", machineClassName, testNamespace, machineClassYAML)
 
 			machineYAML := fmt.Sprintf(`
 apiVersion: machine.sapcloud.io/v1alpha1
@@ -139,7 +140,7 @@ spec:
     kind: MachineClass
     name: %s
 `, machineName, testNamespace, machineClassName)
-			createAndTrackResource("machine", machineName, testNamespace, machineYAML)
+			createAndTrackResource(ctx, "machine", machineName, testNamespace, machineYAML)
 
 			By("waiting for Machine to have ProviderID set")
 			Eventually(func() string {
@@ -154,7 +155,7 @@ spec:
 			Expect(err).NotTo(HaveOccurred(), "Should be able to get Machine: %s", string(output))
 		})
 
-		It("should create a Machine with securityGroups", func() {
+		It("should create a Machine with securityGroups", func(ctx context.Context) {
 			secretName := generateResourceName("secret")
 			machineClassName := generateResourceName("machineclass")
 			machineName := generateResourceName("machine")
@@ -175,7 +176,7 @@ stringData:
     runcmd:
       - echo "Machine bootstrapped"
 `, secretName, testNamespace)
-			createAndTrackResource("secret", secretName, testNamespace, secretYAML)
+			createAndTrackResource(ctx, "secret", secretName, testNamespace, secretYAML)
 
 			machineClassYAML := fmt.Sprintf(`
 apiVersion: machine.sapcloud.io/v1alpha1
@@ -198,7 +199,7 @@ secretRef:
   namespace: %s
 provider: STACKIT
 `, machineClassName, testNamespace, secretName, testNamespace)
-			createAndTrackResource("machineclass", machineClassName, testNamespace, machineClassYAML)
+			createAndTrackResource(ctx, "machineclass", machineClassName, testNamespace, machineClassYAML)
 
 			machineYAML := fmt.Sprintf(`
 apiVersion: machine.sapcloud.io/v1alpha1
@@ -211,7 +212,7 @@ spec:
     kind: MachineClass
     name: %s
 `, machineName, testNamespace, machineClassName)
-			createAndTrackResource("machine", machineName, testNamespace, machineYAML)
+			createAndTrackResource(ctx, "machine", machineName, testNamespace, machineYAML)
 
 			By("waiting for Machine to have ProviderID set")
 			Eventually(func() string {

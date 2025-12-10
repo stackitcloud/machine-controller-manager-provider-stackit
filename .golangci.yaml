@@ -117,7 +117,7 @@ linters:
       - linters:
           - revive
         text: 'var-naming: avoid meaningless package names'
-        path: 'pkg/csi/util/*'
+        path: 'test/utils/*'
     paths:
       - third_party$
       - builtin$

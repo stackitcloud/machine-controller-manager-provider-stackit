@@ -12,7 +12,7 @@ import (
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/codes"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/status"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	corev1 "k8s.io/api/core/v1"
@@ -71,7 +71,7 @@ var _ = Describe("ListMachines", func() {
 
 	Context("with valid inputs", func() {
 		It("should list machines filtered by MachineClass label", func() {
-			mockClient.listServersFunc = func(ctx context.Context, projectID, region string) ([]*Server, error) {
+			mockClient.listServersFunc = func(_ context.Context, _, _ string) ([]*Server, error) {
 				return []*Server{
 					{
 						ID:   "server-1",
@@ -111,7 +111,7 @@ var _ = Describe("ListMachines", func() {
 		})
 
 		It("should return empty list when no servers match", func() {
-			mockClient.listServersFunc = func(ctx context.Context, projectID, region string) ([]*Server, error) {
+			mockClient.listServersFunc = func(_ context.Context, _, _ string) ([]*Server, error) {
 				return []*Server{
 					{
 						ID:   "server-1",
@@ -131,7 +131,7 @@ var _ = Describe("ListMachines", func() {
 		})
 
 		It("should return empty list when no servers exist", func() {
-			mockClient.listServersFunc = func(ctx context.Context, projectID, region string) ([]*Server, error) {
+			mockClient.listServersFunc = func(_ context.Context, _, _ string) ([]*Server, error) {
 				return []*Server{}, nil
 			}
 
@@ -143,7 +143,7 @@ var _ = Describe("ListMachines", func() {
 		})
 
 		It("should handle servers without labels gracefully", func() {
-			mockClient.listServersFunc = func(ctx context.Context, projectID, region string) ([]*Server, error) {
+			mockClient.listServersFunc = func(_ context.Context, _, _ string) ([]*Server, error) {
 				return []*Server{
 					{
 						ID:     "server-1",
@@ -172,7 +172,7 @@ var _ = Describe("ListMachines", func() {
 
 	Context("when STACKIT API fails", func() {
 		It("should return Internal error on API failure", func() {
-			mockClient.listServersFunc = func(ctx context.Context, projectID, region string) ([]*Server, error) {
+			mockClient.listServersFunc = func(_ context.Context, _, _ string) ([]*Server, error) {
 				return nil, fmt.Errorf("API connection failed")
 			}
 

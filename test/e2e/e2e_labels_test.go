@@ -5,6 +5,7 @@
 package e2e
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os/exec"
@@ -17,7 +18,7 @@ import (
 
 var _ = Describe("MCM Provider STACKIT", func() {
 	Context("Machine labels", func() {
-		It("should list Machines with proper filtering", func() {
+		It("should list Machines with proper filtering", func(ctx context.Context) {
 			// This test creates multiple machines with different labels and verifies
 			// that ListMachines functionality works correctly by checking the provider
 			// can identify and filter machines based on their labels.
@@ -42,7 +43,7 @@ stringData:
     runcmd:
       - echo "Machine bootstrapped"
 `, secretName, testNamespace)
-			createAndTrackResource("secret", secretName, testNamespace, secretYAML)
+			createAndTrackResource(ctx, "secret", secretName, testNamespace, secretYAML)
 
 			// Create first MachineClass with web-server labels
 			machineClassName1 := generateResourceName("machineclass")
@@ -66,7 +67,7 @@ secretRef:
   namespace: %s
 provider: STACKIT
 `, machineClassName1, testNamespace, secretName, testNamespace)
-			createAndTrackResource("machineclass", machineClassName1, testNamespace, machineClassYAML1)
+			createAndTrackResource(ctx, "machineclass", machineClassName1, testNamespace, machineClassYAML1)
 
 			// Create second MachineClass with database labels
 			machineClassName2 := generateResourceName("machineclass")
@@ -90,7 +91,7 @@ secretRef:
   namespace: %s
 provider: STACKIT
 `, machineClassName2, testNamespace, secretName, testNamespace)
-			createAndTrackResource("machineclass", machineClassName2, testNamespace, machineClassYAML2)
+			createAndTrackResource(ctx, "machineclass", machineClassName2, testNamespace, machineClassYAML2)
 
 			// Create first machine using web-server MachineClass
 			machineName1 := generateResourceName("machine")
@@ -110,7 +111,7 @@ spec:
     kind: MachineClass
     name: %s
 `, machineName1, testNamespace, machineClassName1)
-			createAndTrackResource("machine", machineName1, testNamespace, machineYAML1)
+			createAndTrackResource(ctx, "machine", machineName1, testNamespace, machineYAML1)
 
 			// Create second machine using database MachineClass
 			machineName2 := generateResourceName("machine")
@@ -130,7 +131,7 @@ spec:
     kind: MachineClass
     name: %s
 `, machineName2, testNamespace, machineClassName2)
-			createAndTrackResource("machine", machineName2, testNamespace, machineYAML2)
+			createAndTrackResource(ctx, "machine", machineName2, testNamespace, machineYAML2)
 
 			// Wait for both machines to have ProviderIDs set
 			By("waiting for first Machine to have ProviderID set")
@@ -195,7 +196,7 @@ spec:
 			Expect(strings.TrimSpace(string(output))).NotTo(ContainSubstring(machineName1))
 		})
 
-		It("should propagate labels to STACKIT API calls", func() {
+		It("should propagate labels to STACKIT API calls", func(ctx context.Context) {
 			// This test verifies that labels defined in MachineClass.providerSpec.labels
 			// are properly passed through to the STACKIT API when creating servers.
 			// We check this by examining the mock IAAS server logs for label data.
@@ -222,7 +223,7 @@ stringData:
     runcmd:
       - echo "Machine bootstrapped"
 `, secretName, testNamespace)
-			createAndTrackResource("secret", secretName, testNamespace, secretYAML)
+			createAndTrackResource(ctx, "secret", secretName, testNamespace, secretYAML)
 
 			// Create MachineClass with specific test labels that should propagate
 			machineClassYAML := fmt.Sprintf(`
@@ -246,7 +247,7 @@ secretRef:
   namespace: %s
 provider: STACKIT
 `, machineClassName, testNamespace, secretName, testNamespace)
-			createAndTrackResource("machineclass", machineClassName, testNamespace, machineClassYAML)
+			createAndTrackResource(ctx, "machineclass", machineClassName, testNamespace, machineClassYAML)
 
 			// Create Machine
 			machineYAML := fmt.Sprintf(`
@@ -264,7 +265,7 @@ spec:
     kind: MachineClass
     name: %s
 `, machineName, testNamespace, machineClassName)
-			createAndTrackResource("machine", machineName, testNamespace, machineYAML)
+			createAndTrackResource(ctx, "machine", machineName, testNamespace, machineYAML)
 
 			// Wait for Machine to be processed (ProviderID set indicates CreateMachine was called)
 			By("waiting for Machine to have ProviderID set (indicating CreateMachine was called)")
@@ -334,7 +335,7 @@ spec:
     command: ["sleep", "300"]
   restartPolicy: Never
 `, curlPodName, testNamespace)
-			createAndTrackResource("pod", curlPodName, testNamespace, curlPod)
+			createAndTrackResource(ctx, "pod", curlPodName, testNamespace, curlPod)
 
 			Eventually(func() string {
 				cmd := exec.Command("kubectl", "get", "pod", curlPodName, "-n", testNamespace, "-o", "jsonpath={.status.phase}")
@@ -371,7 +372,7 @@ spec:
 			// This mock test verifies the code path works end-to-end.
 		})
 
-		It("should create Machine without user-provided labels", func() {
+		It("should create Machine without user-provided labels", func(ctx context.Context) {
 			// KNOWN ISSUE: Still fails after SDK migration - different root cause than originally suspected
 			//
 			// Original hypothesis: HTTP client issue with missing labels field
@@ -420,7 +421,7 @@ stringData:
     runcmd:
       - echo "Machine bootstrapped"
 `, secretName, testNamespace)
-			createAndTrackResource("secret", secretName, testNamespace, secretYAML)
+			createAndTrackResource(ctx, "secret", secretName, testNamespace, secretYAML)
 
 			// Create MachineClass WITHOUT labels in ProviderSpec
 			machineClassYAML := fmt.Sprintf(`
@@ -438,7 +439,7 @@ secretRef:
   namespace: %s
 provider: STACKIT
 `, machineClassName, testNamespace, secretName, testNamespace)
-			createAndTrackResource("machineclass", machineClassName, testNamespace, machineClassYAML)
+			createAndTrackResource(ctx, "machineclass", machineClassName, testNamespace, machineClassYAML)
 
 			// Create Machine
 			machineYAML := fmt.Sprintf(`
@@ -454,7 +455,7 @@ spec:
     kind: MachineClass
     name: %s
 `, machineName, testNamespace, machineClassName)
-			createAndTrackResource("machine", machineName, testNamespace, machineYAML)
+			createAndTrackResource(ctx, "machine", machineName, testNamespace, machineYAML)
 
 			// Wait for Machine to have ProviderID set (indicates successful creation)
 			By("waiting for Machine to be created without labels")

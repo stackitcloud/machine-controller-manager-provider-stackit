@@ -5,6 +5,7 @@
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -13,7 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("MCM Provider STACKIT", func() {
+var _ = Describe("MCM Provider STACKIT", func(ctx context.Context) {
 	Context("Machine lifecycle", func() {
 		It("should create a Machine and call IAAS API", func() {
 			secretName := generateResourceName("secret")
@@ -37,7 +38,7 @@ stringData:
     runcmd:
       - echo "Machine bootstrapped"
 `, secretName, testNamespace)
-			createAndTrackResource("secret", secretName, testNamespace, secretYAML)
+			createAndTrackResource(ctx, "secret", secretName, testNamespace, secretYAML)
 
 			machineClassYAML := fmt.Sprintf(`
 apiVersion: machine.sapcloud.io/v1alpha1
@@ -59,7 +60,7 @@ secretRef:
   namespace: %s
 provider: STACKIT
 `, machineClassName, testNamespace, secretName, testNamespace)
-			createAndTrackResource("machineclass", machineClassName, testNamespace, machineClassYAML)
+			createAndTrackResource(ctx, "machineclass", machineClassName, testNamespace, machineClassYAML)
 
 			machineYAML := fmt.Sprintf(`
 apiVersion: machine.sapcloud.io/v1alpha1
@@ -77,7 +78,7 @@ spec:
     kind: MachineClass
     name: %s
 `, machineName, testNamespace, machineClassName)
-			createAndTrackResource("machine", machineName, testNamespace, machineYAML)
+			createAndTrackResource(ctx, "machine", machineName, testNamespace, machineYAML)
 
 			By("waiting for Machine to have ProviderID set")
 			Eventually(func() string {
@@ -143,7 +144,7 @@ stringData:
     runcmd:
       - echo "Machine bootstrapped"
 `, secretName, testNamespace)
-			createAndTrackResource("secret", secretName, testNamespace, secretYAML)
+			createAndTrackResource(ctx, "secret", secretName, testNamespace, secretYAML)
 
 			machineClassYAML := fmt.Sprintf(`
 apiVersion: machine.sapcloud.io/v1alpha1
@@ -166,7 +167,7 @@ secretRef:
   namespace: %s
 provider: STACKIT
 `, machineClassName, testNamespace, secretName, testNamespace)
-			createAndTrackResource("machineclass", machineClassName, testNamespace, machineClassYAML)
+			createAndTrackResource(ctx, "machineclass", machineClassName, testNamespace, machineClassYAML)
 
 			machineYAML := fmt.Sprintf(`
 apiVersion: machine.sapcloud.io/v1alpha1
@@ -185,7 +186,7 @@ spec:
     kind: MachineClass
     name: %s
 `, machineName, testNamespace, machineClassName)
-			createAndTrackResource("machine", machineName, testNamespace, machineYAML)
+			createAndTrackResource(ctx, "machine", machineName, testNamespace, machineYAML)
 
 			By("waiting for Machine to have ProviderID set (via CreateMachine)")
 			Eventually(func() string {
@@ -239,7 +240,7 @@ stringData:
     runcmd:
       - echo "Machine bootstrapped"
 `, secretName, testNamespace)
-			createAndTrackResource("secret", secretName, testNamespace, secretYAML)
+			createAndTrackResource(ctx, "secret", secretName, testNamespace, secretYAML)
 
 			machineClassYAML := fmt.Sprintf(`
 apiVersion: machine.sapcloud.io/v1alpha1
@@ -263,7 +264,7 @@ secretRef:
   namespace: %s
 provider: STACKIT
 `, machineClassName, testNamespace, secretName, testNamespace)
-			createAndTrackResource("machineclass", machineClassName, testNamespace, machineClassYAML)
+			createAndTrackResource(ctx, "machineclass", machineClassName, testNamespace, machineClassYAML)
 
 			machineYAML := fmt.Sprintf(`
 apiVersion: machine.sapcloud.io/v1alpha1
@@ -282,7 +283,7 @@ spec:
     kind: MachineClass
     name: %s
 `, machineName, testNamespace, machineClassName)
-			createAndTrackResource("machine", machineName, testNamespace, machineYAML)
+			createAndTrackResource(ctx, "machine", machineName, testNamespace, machineYAML)
 
 			By("waiting for Machine to have ProviderID set (via CreateMachine)")
 			Eventually(func() string {
