@@ -3,7 +3,7 @@
 #
 # Dockerfile for building binary inside Docker (exports to host)
 
-FROM golang:1.25.3 AS builder
+FROM golang:1.25.5 AS builder
 WORKDIR /workspace
 COPY . .
 RUN ./scripts/build.sh
