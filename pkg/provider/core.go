@@ -54,9 +54,6 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	projectID := string(req.Secret.Data["project-id"])
 	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
 	region := providerSpec.Region
-	if region == "RegionOne" || region == "" {
-		region = "eu01"
-	}
 
 	// Initialize client on first use (lazy initialization)
 	if err := p.ensureClient(serviceAccountKey); err != nil {
@@ -221,9 +218,6 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 	// Extract credentials from Secret
 	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
 	region := providerSpec.Region
-	if region == "RegionOne" || region == "" {
-		region = "eu01"
-	}
 
 	// Initialize client on first use (lazy initialization)
 	if err := p.ensureClient(serviceAccountKey); err != nil {
@@ -289,9 +283,6 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 	// Extract credentials from Secret
 	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
 	region := providerSpec.Region
-	if region == "RegionOne" || region == "" {
-		region = "eu01"
-	}
 
 	// Initialize client on first use (lazy initialization)
 	if err := p.ensureClient(serviceAccountKey); err != nil {
@@ -352,9 +343,6 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 	projectID := string(req.Secret.Data["project-id"])
 	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
 	region := providerSpec.Region
-	if region == "RegionOne" || region == "" {
-		region = "eu01"
-	}
 
 	// Initialize client on first use (lazy initialization)
 	if err := p.ensureClient(serviceAccountKey); err != nil {
