@@ -1,0 +1,4 @@
+reviewers:
+- machine-controller-manager-provider-stackit-reviewers
+approvers:
+- machine-controller-manager-provider-stackit-approvers
