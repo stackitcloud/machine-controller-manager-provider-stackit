@@ -12,7 +12,7 @@ import (
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/codes"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/status"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	corev1 "k8s.io/api/core/v1"
@@ -86,7 +86,7 @@ var _ = Describe("GetMachineStatus", func() {
 
 	Context("with valid inputs", func() {
 		It("should successfully get machine status when server exists", func() {
-			mockClient.getServerFunc = func(ctx context.Context, projectID, region, serverID string) (*Server, error) {
+			mockClient.getServerFunc = func(_ context.Context, _, _, serverID string) (*Server, error) {
 				return &Server{
 					ID:     serverID,
 					Name:   "test-machine",
@@ -106,7 +106,7 @@ var _ = Describe("GetMachineStatus", func() {
 			var capturedProjectID string
 			var capturedServerID string
 
-			mockClient.getServerFunc = func(ctx context.Context, projectID, region, serverID string) (*Server, error) {
+			mockClient.getServerFunc = func(_ context.Context, projectID, _, serverID string) (*Server, error) {
 				capturedProjectID = projectID
 				capturedServerID = serverID
 				return &Server{
@@ -161,7 +161,7 @@ var _ = Describe("GetMachineStatus", func() {
 
 	Context("when server does not exist", func() {
 		It("should return NotFound when server is not found", func() {
-			mockClient.getServerFunc = func(ctx context.Context, projectID, region, serverID string) (*Server, error) {
+			mockClient.getServerFunc = func(_ context.Context, _, _, _ string) (*Server, error) {
 				return nil, fmt.Errorf("%w: status 404", ErrServerNotFound)
 			}
 
@@ -176,7 +176,7 @@ var _ = Describe("GetMachineStatus", func() {
 
 	Context("when STACKIT API fails", func() {
 		It("should return Internal error on API failure", func() {
-			mockClient.getServerFunc = func(ctx context.Context, projectID, region, serverID string) (*Server, error) {
+			mockClient.getServerFunc = func(_ context.Context, _, _, _ string) (*Server, error) {
 				return nil, fmt.Errorf("API connection failed")
 			}
 

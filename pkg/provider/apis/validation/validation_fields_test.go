@@ -5,7 +5,7 @@
 package validation_test
 
 import (
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	. "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis/validation"

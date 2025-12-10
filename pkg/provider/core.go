@@ -31,6 +31,8 @@ import (
 // Error codes:
 //   - InvalidArgument: Invalid ProviderSpec or missing required fields
 //   - Internal: Failed to create server or communicate with STACKIT API
+//
+//nolint:gocyclo,funlen//TODO:refactor
 func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineRequest) (*driver.CreateMachineResponse, error) {
 	// Log messages to track request
 	klog.V(2).Infof("Machine creation request has been received for %q", req.Machine.Name)
@@ -377,7 +379,7 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 //
 // Returns:
 //   - Unimplemented: This functionality is not required for STACKIT provider
-func (p *Provider) GetVolumeIDs(ctx context.Context, req *driver.GetVolumeIDsRequest) (*driver.GetVolumeIDsResponse, error) {
+func (p *Provider) GetVolumeIDs(_ context.Context, req *driver.GetVolumeIDsRequest) (*driver.GetVolumeIDsResponse, error) {
 	// Log messages to track start and end of request
 	klog.V(2).Infof("GetVolumeIDs request has been received for %q", req.PVSpecs)
 	defer klog.V(2).Infof("GetVolumeIDs request has been processed successfully for %q", req.PVSpecs)
@@ -395,7 +397,7 @@ func (p *Provider) GetVolumeIDs(ctx context.Context, req *driver.GetVolumeIDsReq
 //
 // Returns:
 //   - Unimplemented: No migration required for STACKIT provider
-func (p *Provider) GenerateMachineClassForMigration(ctx context.Context, req *driver.GenerateMachineClassForMigrationRequest) (*driver.GenerateMachineClassForMigrationResponse, error) {
+func (p *Provider) GenerateMachineClassForMigration(_ context.Context, req *driver.GenerateMachineClassForMigrationRequest) (*driver.GenerateMachineClassForMigrationResponse, error) {
 	// Log messages to track start and end of request
 	klog.V(2).Infof("MigrateMachineClass request has been received for %q", req.ClassSpec)
 	defer klog.V(2).Infof("MigrateMachineClass request has been processed successfully for %q", req.ClassSpec)

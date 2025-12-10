@@ -5,6 +5,7 @@
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 
@@ -14,7 +15,7 @@ import (
 
 var _ = Describe("MCM Provider STACKIT", func() {
 	Context("Machine availability zone configuration", func() {
-		It("should create a Machine with availabilityZone", func() {
+		It("should create a Machine with availabilityZone", func(ctx context.Context) {
 			secretName := generateResourceName("secret")
 			machineClassName := generateResourceName("machineclass")
 			machineName := generateResourceName("machine")
@@ -37,7 +38,7 @@ stringData:
     runcmd:
       - echo "Machine bootstrapped"
 `, secretName, testNamespace)
-			createAndTrackResource("secret", secretName, testNamespace, secretYAML)
+			createAndTrackResource(ctx, "secret", secretName, testNamespace, secretYAML)
 
 			// Create MachineClass with availabilityZone
 			machineClassYAML := fmt.Sprintf(`
@@ -55,7 +56,7 @@ secretRef:
   namespace: %s
 provider: STACKIT
 `, machineClassName, testNamespace, secretName, testNamespace)
-			createAndTrackResource("machineclass", machineClassName, testNamespace, machineClassYAML)
+			createAndTrackResource(ctx, "machineclass", machineClassName, testNamespace, machineClassYAML)
 
 			// Create Machine
 			machineYAML := fmt.Sprintf(`
@@ -69,7 +70,7 @@ spec:
     kind: MachineClass
     name: %s
 `, machineName, testNamespace, machineClassName)
-			createAndTrackResource("machine", machineName, testNamespace, machineYAML)
+			createAndTrackResource(ctx, "machine", machineName, testNamespace, machineYAML)
 
 			// Wait for Machine to get a ProviderID (indicates successful creation)
 			By("waiting for Machine to have ProviderID set")

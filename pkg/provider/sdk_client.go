@@ -16,24 +16,24 @@ import (
 	"github.com/stackitcloud/stackit-sdk-go/services/iaas"
 )
 
-// sdkStackitClient is an SDK implementation of StackitClient
+// SdkStackitClient is an SDK implementation of StackitClient
 // Each instance handles a single STACKIT project (single-tenant design)
 // The IaaS client is created once and reused across all requests
 // The SDK automatically handles token refresh and re-authentication
-type sdkStackitClient struct {
+type SdkStackitClient struct {
 	iaasClient *iaas.APIClient
 }
 
 // NewStackitClient creates a new SDK STACKIT client wrapper with the IaaS client
 // The serviceAccountKey is used for authentication (ServiceAccount Key Flow)
 // The client is created once and reused for all subsequent requests
-func NewStackitClient(serviceAccountKey string) (*sdkStackitClient, error) {
+func NewStackitClient(serviceAccountKey string) (*SdkStackitClient, error) {
 	iaasClient, err := createIAASClient(serviceAccountKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create STACKIT SDK client: %w", err)
 	}
 
-	return &sdkStackitClient{
+	return &SdkStackitClient{
 		iaasClient: iaasClient,
 	}, nil
 }
@@ -104,7 +104,9 @@ func extractRegion(secretData map[string][]byte) (string, error) {
 }
 
 // CreateServer creates a new server via STACKIT SDK
-func (c *sdkStackitClient) CreateServer(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
+//
+//nolint:gocyclo//TODO:refactor
+func (c *SdkStackitClient) CreateServer(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
 	// Convert our request to SDK payload
 	payload := &iaas.CreateServerPayload{
 		Name:        ptr(req.Name),
@@ -238,7 +240,7 @@ func (c *sdkStackitClient) CreateServer(ctx context.Context, projectID, region s
 }
 
 // GetServer retrieves a server by ID via STACKIT SDK
-func (c *sdkStackitClient) GetServer(ctx context.Context, projectID, region, serverID string) (*Server, error) {
+func (c *SdkStackitClient) GetServer(ctx context.Context, projectID, region, serverID string) (*Server, error) {
 	sdkServer, err := c.iaasClient.GetServer(ctx, projectID, region, serverID).Execute()
 	if err != nil {
 		// Check if error is 404 Not Found
@@ -260,7 +262,7 @@ func (c *sdkStackitClient) GetServer(ctx context.Context, projectID, region, ser
 }
 
 // DeleteServer deletes a server by ID via STACKIT SDK
-func (c *sdkStackitClient) DeleteServer(ctx context.Context, projectID, region, serverID string) error {
+func (c *SdkStackitClient) DeleteServer(ctx context.Context, projectID, region, serverID string) error {
 	err := c.iaasClient.DeleteServer(ctx, projectID, region, serverID).Execute()
 	if err != nil {
 		// Check if error is 404 Not Found - this is OK (idempotent)
@@ -274,7 +276,7 @@ func (c *sdkStackitClient) DeleteServer(ctx context.Context, projectID, region, 
 }
 
 // ListServers lists all servers in a project via STACKIT SDK
-func (c *sdkStackitClient) ListServers(ctx context.Context, projectID, region string) ([]*Server, error) {
+func (c *SdkStackitClient) ListServers(ctx context.Context, projectID, region string) ([]*Server, error) {
 	sdkResponse, err := c.iaasClient.ListServers(ctx, projectID, region).Execute()
 	if err != nil {
 		return nil, fmt.Errorf("SDK ListServers failed: %w", err)
@@ -283,7 +285,9 @@ func (c *sdkStackitClient) ListServers(ctx context.Context, projectID, region st
 	// Convert SDK servers to our Server type
 	servers := make([]*Server, 0)
 	if sdkResponse.Items != nil {
-		for _, sdkServer := range *sdkResponse.Items {
+		for i := range *sdkResponse.Items {
+			sdkServer := &(*sdkResponse.Items)[i]
+
 			server := &Server{
 				ID:     getStringValue(sdkServer.Id),
 				Name:   getStringValue(sdkServer.Name),

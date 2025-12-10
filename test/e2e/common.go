@@ -5,6 +5,7 @@
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"os/exec"
@@ -94,9 +95,9 @@ func trackResource(resourceType, resourceName, namespace string) {
 }
 
 // createAndTrackResource creates a Kubernetes resource and tracks it for cleanup
-func createAndTrackResource(resourceType, resourceName, namespace, yamlContent string) {
+func createAndTrackResource(ctx context.Context, resourceType, resourceName, namespace, yamlContent string) {
 	ginkgo.By(fmt.Sprintf("creating %s: %s", resourceType, resourceName))
-	cmd := exec.Command("kubectl", "apply", "-f", "-")
+	cmd := exec.CommandContext(ctx, "kubectl", "apply", "-f", "-")
 	cmd.Stdin = strings.NewReader(yamlContent)
 	_, err := utils.Run(cmd)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("Failed to create %s: %s", resourceType, resourceName))
@@ -107,9 +108,9 @@ func createAndTrackResource(resourceType, resourceName, namespace, yamlContent s
 // verifyK8sResourceExists verifies that a Kubernetes resource exists
 // This is a common pattern used across multiple E2E tests
 // nolint:unused // Reserved for future E2E tests
-func verifyK8sResourceExists(resourceType, resourceName, namespace string) {
+func verifyK8sResourceExists(ctx context.Context, resourceType, resourceName, namespace string) {
 	ginkgo.By(fmt.Sprintf("ensuring %s resource exists: %s", resourceType, resourceName))
-	cmd := exec.Command("kubectl", "get", resourceType, resourceName, "-n", namespace)
+	cmd := exec.CommandContext(ctx, "kubectl", "get", resourceType, resourceName, "-n", namespace)
 	_, err := utils.Run(cmd)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("%s resource should exist before deletion test",
 		resourceType))
@@ -117,7 +118,7 @@ func verifyK8sResourceExists(resourceType, resourceName, namespace string) {
 
 // verifyK8sResourceDeleted verifies that a Kubernetes resource is deleted within the timeout
 // This is a common pattern used across multiple E2E tests
-func verifyK8sResourceDeleted(resourceType, resourceName, namespace string, timeout ...time.Duration) {
+func verifyK8sResourceDeleted(ctx context.Context, resourceType, resourceName, namespace string, timeout ...time.Duration) {
 	deleteTimeout := MediumTimeout // Default timeout
 	if len(timeout) > 0 {
 		deleteTimeout = timeout[0]
@@ -125,7 +126,7 @@ func verifyK8sResourceDeleted(resourceType, resourceName, namespace string, time
 
 	ginkgo.By(fmt.Sprintf("verifying %s resource is removed: %s", resourceType, resourceName))
 	gomega.Eventually(func() bool {
-		cmd := exec.Command("kubectl", "get", resourceType, resourceName, "-n", namespace)
+		cmd := exec.CommandContext(ctx, "kubectl", "get", resourceType, resourceName, "-n", namespace)
 		_, err := utils.Run(cmd)
 		return err != nil // Error means resource not found
 	}, deleteTimeout, StandardPoll).Should(gomega.BeTrue(), fmt.Sprintf("%s resource should be deleted",
@@ -134,24 +135,24 @@ func verifyK8sResourceDeleted(resourceType, resourceName, namespace string, time
 
 // deleteK8sResource deletes a Kubernetes resource
 // This is a common pattern used across multiple E2E tests
-func deleteK8sResource(resourceType, resourceName, namespace string) {
+func deleteK8sResource(ctx context.Context, resourceType, resourceName, namespace string) {
 	ginkgo.By(fmt.Sprintf("deleting the %s custom resource: %s", resourceType, resourceName))
-	cmd := exec.Command("kubectl", "delete", resourceType, resourceName, "-n", namespace, "--wait=false")
+	cmd := exec.CommandContext(ctx, "kubectl", "delete", resourceType, resourceName, "-n", namespace, "--wait=false")
 	_, err := utils.Run(cmd)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("%s resource should be deleted successfully",
 		resourceType))
 
 	// For machines, remove finalizers if stuck (IAAS API may return errors preventing cleanup)
 	if resourceType == "machine" {
-		removeMachineFinalizers(resourceName, namespace)
+		removeMachineFinalizers(ctx, resourceName, namespace)
 	}
 }
 
 // removeMachineFinalizers removes finalizers from a machine to force cleanup
 // This is needed because IAAS API may return errors (e.g., 400) preventing normal deletion
-func removeMachineFinalizers(machineName, namespace string) {
+func removeMachineFinalizers(ctx context.Context, machineName, namespace string) {
 	ginkgo.By(fmt.Sprintf("removing finalizers from machine: %s", machineName))
-	cmd := exec.Command("kubectl", "patch", "machine", machineName, "-n", namespace,
+	cmd := exec.CommandContext(ctx, "kubectl", "patch", "machine", machineName, "-n", namespace,
 		"--type=json", "-p=[{\"op\":\"remove\",\"path\":\"/metadata/finalizers\"}]")
 	_, _ = utils.Run(cmd) // Ignore errors - machine may already be gone
 }

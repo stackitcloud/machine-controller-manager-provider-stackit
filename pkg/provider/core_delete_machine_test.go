@@ -12,7 +12,7 @@ import (
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/codes"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/status"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	corev1 "k8s.io/api/core/v1"
@@ -86,7 +86,7 @@ var _ = Describe("DeleteMachine", func() {
 
 	Context("with valid inputs", func() {
 		It("should successfully delete a machine", func() {
-			mockClient.deleteServerFunc = func(ctx context.Context, projectID, region, serverID string) error {
+			mockClient.deleteServerFunc = func(_ context.Context, _, _, _ string) error {
 				return nil
 			}
 
@@ -100,7 +100,7 @@ var _ = Describe("DeleteMachine", func() {
 			var capturedProjectID string
 			var capturedServerID string
 
-			mockClient.deleteServerFunc = func(ctx context.Context, projectID, region, serverID string) error {
+			mockClient.deleteServerFunc = func(_ context.Context, projectID, _, serverID string) error {
 				capturedProjectID = projectID
 				capturedServerID = serverID
 				return nil
@@ -140,7 +140,7 @@ var _ = Describe("DeleteMachine", func() {
 
 	Context("when machine not found", func() {
 		It("should return success if machine does not exist (idempotent)", func() {
-			mockClient.deleteServerFunc = func(ctx context.Context, projectID, region, serverID string) error {
+			mockClient.deleteServerFunc = func(_ context.Context, _, _, _ string) error {
 				return fmt.Errorf("%w: status 404", ErrServerNotFound)
 			}
 
@@ -153,7 +153,7 @@ var _ = Describe("DeleteMachine", func() {
 
 	Context("when STACKIT API fails", func() {
 		It("should return error when API call fails", func() {
-			mockClient.deleteServerFunc = func(ctx context.Context, projectID, region, serverID string) error {
+			mockClient.deleteServerFunc = func(_ context.Context, _, _, _ string) error {
 				return fmt.Errorf("API connection failed")
 			}
 

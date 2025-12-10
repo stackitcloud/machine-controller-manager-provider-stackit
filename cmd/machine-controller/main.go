@@ -22,9 +22,6 @@ Modifications Copyright (c) 2017 SAP SE or an SAP affiliate company. All rights 
 package main
 
 import (
-	"fmt"
-	"os"
-
 	_ "github.com/gardener/machine-controller-manager/pkg/util/client/metrics/prometheus" // for client metric registration
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/app"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/app/options"
@@ -35,10 +32,10 @@ import (
 	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/spi"
 	"k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
+	"k8s.io/klog"
 )
 
 func main() {
-
 	s := options.NewMCServer()
 	s.AddFlags(pflag.CommandLine)
 
@@ -49,8 +46,6 @@ func main() {
 	provider := cp.NewProvider(&spi.PluginSPIImpl{})
 
 	if err := app.Run(s, provider); err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		os.Exit(1)
+		klog.Fatalf("failed to run application: %v", err)
 	}
-
 }

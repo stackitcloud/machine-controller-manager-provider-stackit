@@ -5,6 +5,7 @@
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -75,7 +76,7 @@ var _ = BeforeSuite(func() {
 	_, _ = fmt.Fprintf(GinkgoWriter, "E2E environment setup complete\n")
 })
 
-var _ = AfterSuite(func() {
+var _ = AfterSuite(func(ctx context.Context) {
 	skipResourceCleanup := os.Getenv("SKIP_RESOURCE_CLEANUP") == "true"
 	skipClusterCleanup := os.Getenv("SKIP_CLUSTER_CLEANUP") == "true"
 
@@ -98,8 +99,8 @@ var _ = AfterSuite(func() {
 		// from stopping cleanup of remaining resources
 		func(res TestResource) {
 			defer GinkgoRecover()
-			deleteK8sResource(res.Type, res.Name, res.Namespace)
-			verifyK8sResourceDeleted(res.Type, res.Name, res.Namespace)
+			deleteK8sResource(ctx, res.Type, res.Name, res.Namespace)
+			verifyK8sResourceDeleted(ctx, res.Type, res.Name, res.Namespace)
 		}(resource)
 	}
 

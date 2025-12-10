@@ -31,9 +31,9 @@ type Provider struct {
 }
 
 // NewProvider returns an empty provider object
-func NewProvider(spi spi.SessionProviderInterface) driver.Driver {
+func NewProvider(i spi.SessionProviderInterface) driver.Driver {
 	return &Provider{
-		SPI: spi,
+		SPI: i,
 	}
 }
 

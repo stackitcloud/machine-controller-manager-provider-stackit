@@ -65,6 +65,8 @@ func ptr[T any](v T) *T {
 }
 
 // convertLabelsToSDK converts map[string]string to *map[string]interface{} for SDK
+//
+//nolint:gocritic // SDK requires *map
 func convertLabelsToSDK(labels map[string]string) *map[string]interface{} {
 	if labels == nil {
 		return nil
@@ -78,6 +80,8 @@ func convertLabelsToSDK(labels map[string]string) *map[string]interface{} {
 }
 
 // convertLabelsFromSDK converts *map[string]interface{} from SDK to map[string]string
+//
+//nolint:gocritic // SDK requires *map
 func convertLabelsFromSDK(labels *map[string]interface{}) map[string]string {
 	if labels == nil {
 		return nil
@@ -101,6 +105,8 @@ func convertStringSliceToSDK(slice []string) *[]string {
 }
 
 // convertMetadataToSDK converts map[string]interface{} to *map[string]interface{} for SDK
+//
+//nolint:gocritic // SDK requires *map
 func convertMetadataToSDK(metadata map[string]interface{}) *map[string]interface{} {
 	if metadata == nil {
 		return nil

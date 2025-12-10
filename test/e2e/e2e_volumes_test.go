@@ -5,6 +5,7 @@
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 
@@ -15,7 +16,7 @@ import (
 )
 
 var _ = Describe("MCM Provider STACKIT", func() {
-	Context("Machine volume configuration", func() {
+	Context("Machine volume configuration", func(ctx context.Context) {
 		It("should create a Machine with BootVolume configuration", func() {
 			secretName := generateResourceName("secret")
 			machineClassName := generateResourceName("machineclass")
@@ -39,7 +40,7 @@ stringData:
     runcmd:
       - echo "Base bootstrap from Secret"
 `, secretName, testNamespace)
-			createAndTrackResource("secret", secretName, testNamespace, secretYAML)
+			createAndTrackResource(ctx, "secret", secretName, testNamespace, secretYAML)
 
 			// MachineClass with BootVolume configuration
 			machineClassYAML := fmt.Sprintf(`
@@ -61,7 +62,7 @@ secretRef:
   namespace: %s
 provider: STACKIT
 `, machineClassName, testNamespace, secretName, testNamespace)
-			createAndTrackResource("machineclass", machineClassName, testNamespace, machineClassYAML)
+			createAndTrackResource(ctx, "machineclass", machineClassName, testNamespace, machineClassYAML)
 
 			machineYAML := fmt.Sprintf(`
 apiVersion: machine.sapcloud.io/v1alpha1
@@ -74,7 +75,7 @@ spec:
     kind: MachineClass
     name: %s
 `, machineName, testNamespace, machineClassName)
-			createAndTrackResource("machine", machineName, testNamespace, machineYAML)
+			createAndTrackResource(ctx, "machine", machineName, testNamespace, machineYAML)
 
 			By("waiting for Machine to get a ProviderID")
 			Eventually(func() string {
@@ -113,7 +114,7 @@ stringData:
     runcmd:
       - echo "Base bootstrap from Secret"
 `, secretName, testNamespace)
-			createAndTrackResource("secret", secretName, testNamespace, secretYAML)
+			createAndTrackResource(ctx, "secret", secretName, testNamespace, secretYAML)
 
 			// MachineClass with additional volumes
 			machineClassYAML := fmt.Sprintf(`
@@ -135,7 +136,7 @@ secretRef:
   namespace: %s
 provider: STACKIT
 `, machineClassName, testNamespace, secretName, testNamespace)
-			createAndTrackResource("machineclass", machineClassName, testNamespace, machineClassYAML)
+			createAndTrackResource(ctx, "machineclass", machineClassName, testNamespace, machineClassYAML)
 
 			machineYAML := fmt.Sprintf(`
 apiVersion: machine.sapcloud.io/v1alpha1
@@ -148,7 +149,7 @@ spec:
     kind: MachineClass
     name: %s
 `, machineName, testNamespace, machineClassName)
-			createAndTrackResource("machine", machineName, testNamespace, machineYAML)
+			createAndTrackResource(ctx, "machine", machineName, testNamespace, machineYAML)
 
 			By("waiting for Machine to get a ProviderID")
 			Eventually(func() string {
@@ -187,7 +188,7 @@ stringData:
     runcmd:
       - echo "Base bootstrap from Secret"
 `, secretName, testNamespace)
-			createAndTrackResource("secret", secretName, testNamespace, secretYAML)
+			createAndTrackResource(ctx, "secret", secretName, testNamespace, secretYAML)
 
 			// MachineClass with both BootVolume and Volumes
 			machineClassYAML := fmt.Sprintf(`
@@ -211,7 +212,7 @@ secretRef:
   namespace: %s
 provider: STACKIT
 `, machineClassName, testNamespace, secretName, testNamespace)
-			createAndTrackResource("machineclass", machineClassName, testNamespace, machineClassYAML)
+			createAndTrackResource(ctx, "machineclass", machineClassName, testNamespace, machineClassYAML)
 
 			machineYAML := fmt.Sprintf(`
 apiVersion: machine.sapcloud.io/v1alpha1
@@ -224,7 +225,7 @@ spec:
     kind: MachineClass
     name: %s
 `, machineName, testNamespace, machineClassName)
-			createAndTrackResource("machine", machineName, testNamespace, machineYAML)
+			createAndTrackResource(ctx, "machine", machineName, testNamespace, machineYAML)
 
 			By("waiting for Machine to get a ProviderID")
 			Eventually(func() string {
@@ -263,7 +264,7 @@ stringData:
     runcmd:
       - echo "Base bootstrap from Secret"
 `, secretName, testNamespace)
-			createAndTrackResource("secret", secretName, testNamespace, secretYAML)
+			createAndTrackResource(ctx, "secret", secretName, testNamespace, secretYAML)
 
 			// MachineClass WITHOUT imageId, using bootVolume.source instead
 			// This tests the critical "imageId OR bootVolume.source" validation logic
@@ -288,7 +289,7 @@ secretRef:
   namespace: %s
 provider: STACKIT
 `, machineClassName, testNamespace, secretName, testNamespace)
-			createAndTrackResource("machineclass", machineClassName, testNamespace, machineClassYAML)
+			createAndTrackResource(ctx, "machineclass", machineClassName, testNamespace, machineClassYAML)
 
 			machineYAML := fmt.Sprintf(`
 apiVersion: machine.sapcloud.io/v1alpha1
@@ -301,7 +302,7 @@ spec:
     kind: MachineClass
     name: %s
 `, machineName, testNamespace, machineClassName)
-			createAndTrackResource("machine", machineName, testNamespace, machineYAML)
+			createAndTrackResource(ctx, "machine", machineName, testNamespace, machineYAML)
 
 			By("waiting for Machine to get a ProviderID")
 			Eventually(func() string {

@@ -5,6 +5,7 @@
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -47,7 +48,7 @@ var _ = Describe("MCM Provider STACKIT", func() {
 			}
 		})
 
-		It("should be able to access IAAS mock API", func() {
+		It("should be able to access IAAS mock API", func(ctx context.Context) {
 			curlPodName := generateResourceName("curl-test")
 			curlPod := fmt.Sprintf(`
 apiVersion: v1
@@ -63,7 +64,7 @@ spec:
   restartPolicy: Never
 `, curlPodName, testNamespace)
 
-			createAndTrackResource("pod", curlPodName, testNamespace, curlPod)
+			createAndTrackResource(ctx, "pod", curlPodName, testNamespace, curlPod)
 
 			Eventually(func() string {
 				cmd := exec.Command("kubectl", "get", "pod", curlPodName, "-n", testNamespace, "-o", "jsonpath={.status.phase}")
@@ -71,7 +72,7 @@ spec:
 				return strings.TrimSpace(string(output))
 			}, 60*time.Second, 2*time.Second).Should(Equal("Running"))
 
-			cmd := exec.Command("kubectl", "exec", curlPodName, "-n", testNamespace, "--",
+			cmd := exec.CommandContext(ctx, "kubectl", "exec", curlPodName, "-n", testNamespace, "--",
 				"curl", "-s", "-o", "/dev/null", "-w", "%{http_code}",
 				"http://iaas.stackitcloud.svc.cluster.local")
 			output, err := cmd.CombinedOutput()

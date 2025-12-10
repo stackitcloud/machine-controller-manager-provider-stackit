@@ -5,6 +5,7 @@
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 
@@ -15,7 +16,7 @@ import (
 )
 
 var _ = Describe("MCM Provider STACKIT", func() {
-	Context("Machine userData configuration", func() {
+	Context("Machine userData configuration", func(ctx context.Context) {
 		It("should create a Machine with userData in ProviderSpec", func() {
 			secretName := generateResourceName("secret")
 			machineClassName := generateResourceName("machineclass")
@@ -39,7 +40,7 @@ stringData:
     runcmd:
       - echo "Base bootstrap from Secret"
 `, secretName, testNamespace)
-			createAndTrackResource("secret", secretName, testNamespace, secretYAML)
+			createAndTrackResource(ctx, "secret", secretName, testNamespace, secretYAML)
 
 			// MachineClass with userData in providerSpec (overrides Secret.userData)
 			machineClassYAML := fmt.Sprintf(`
@@ -62,7 +63,7 @@ secretRef:
   namespace: %s
 provider: STACKIT
 `, machineClassName, testNamespace, secretName, testNamespace)
-			createAndTrackResource("machineclass", machineClassName, testNamespace, machineClassYAML)
+			createAndTrackResource(ctx, "machineclass", machineClassName, testNamespace, machineClassYAML)
 
 			machineYAML := fmt.Sprintf(`
 apiVersion: machine.sapcloud.io/v1alpha1
@@ -75,7 +76,7 @@ spec:
     kind: MachineClass
     name: %s
 `, machineName, testNamespace, machineClassName)
-			createAndTrackResource("machine", machineName, testNamespace, machineYAML)
+			createAndTrackResource(ctx, "machine", machineName, testNamespace, machineYAML)
 
 			By("waiting for Machine to get a ProviderID")
 			Eventually(func() string {
@@ -114,7 +115,7 @@ stringData:
     runcmd:
       - echo "UserData from Secret"
 `, secretName, testNamespace)
-			createAndTrackResource("secret", secretName, testNamespace, secretYAML)
+			createAndTrackResource(ctx, "secret", secretName, testNamespace, secretYAML)
 
 			// MachineClass without userData in providerSpec
 			machineClassYAML := fmt.Sprintf(`
@@ -133,7 +134,7 @@ secretRef:
   namespace: %s
 provider: STACKIT
 `, machineClassName, testNamespace, secretName, testNamespace)
-			createAndTrackResource("machineclass", machineClassName, testNamespace, machineClassYAML)
+			createAndTrackResource(ctx, "machineclass", machineClassName, testNamespace, machineClassYAML)
 
 			machineYAML := fmt.Sprintf(`
 apiVersion: machine.sapcloud.io/v1alpha1
@@ -146,7 +147,7 @@ spec:
     kind: MachineClass
     name: %s
 `, machineName, testNamespace, machineClassName)
-			createAndTrackResource("machine", machineName, testNamespace, machineYAML)
+			createAndTrackResource(ctx, "machine", machineName, testNamespace, machineYAML)
 
 			By("waiting for Machine to get a ProviderID")
 			Eventually(func() string {
@@ -185,7 +186,7 @@ stringData:
     runcmd:
       - echo "UserData from Secret (should be ignored)"
 `, secretName, testNamespace)
-			createAndTrackResource("secret", secretName, testNamespace, secretYAML)
+			createAndTrackResource(ctx, "secret", secretName, testNamespace, secretYAML)
 
 			// MachineClass with userData in providerSpec (should take precedence)
 			machineClassYAML := fmt.Sprintf(`
@@ -208,7 +209,7 @@ secretRef:
   namespace: %s
 provider: STACKIT
 `, machineClassName, testNamespace, secretName, testNamespace)
-			createAndTrackResource("machineclass", machineClassName, testNamespace, machineClassYAML)
+			createAndTrackResource(ctx, "machineclass", machineClassName, testNamespace, machineClassYAML)
 
 			machineYAML := fmt.Sprintf(`
 apiVersion: machine.sapcloud.io/v1alpha1
@@ -221,7 +222,7 @@ spec:
     kind: MachineClass
     name: %s
 `, machineName, testNamespace, machineClassName)
-			createAndTrackResource("machine", machineName, testNamespace, machineYAML)
+			createAndTrackResource(ctx, "machine", machineName, testNamespace, machineYAML)
 
 			By("waiting for Machine to get a ProviderID")
 			Eventually(func() string {

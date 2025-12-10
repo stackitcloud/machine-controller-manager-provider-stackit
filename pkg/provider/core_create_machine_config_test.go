@@ -9,7 +9,7 @@ import (
 
 	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	corev1 "k8s.io/api/core/v1"
@@ -89,7 +89,7 @@ var _ = Describe("CreateMachine", func() {
 			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
 
 			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
+			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
 				capturedReq = req
 				return &Server{
 					ID:     "test-server-id",
@@ -107,7 +107,7 @@ var _ = Describe("CreateMachine", func() {
 
 		It("should not send KeypairName when empty", func() {
 			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
+			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
 				capturedReq = req
 				return &Server{
 					ID:     "test-server-id",
@@ -135,7 +135,7 @@ var _ = Describe("CreateMachine", func() {
 			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
 
 			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
+			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
 				capturedReq = req
 				return &Server{
 					ID:     "test-server-id",
@@ -153,7 +153,7 @@ var _ = Describe("CreateMachine", func() {
 
 		It("should not send AvailabilityZone when empty", func() {
 			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
+			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
 				capturedReq = req
 				return &Server{
 					ID:     "test-server-id",
@@ -181,7 +181,7 @@ var _ = Describe("CreateMachine", func() {
 			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
 
 			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
+			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
 				capturedReq = req
 				return &Server{
 					ID:     "test-server-id",
@@ -199,7 +199,7 @@ var _ = Describe("CreateMachine", func() {
 
 		It("should not send AffinityGroup when empty", func() {
 			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
+			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
 				capturedReq = req
 				return &Server{
 					ID:     "test-server-id",
@@ -227,7 +227,7 @@ var _ = Describe("CreateMachine", func() {
 			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
 
 			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
+			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
 				capturedReq = req
 				return &Server{
 					ID:     "test-server-id",
@@ -247,7 +247,7 @@ var _ = Describe("CreateMachine", func() {
 
 		It("should not send ServiceAccountMails when empty", func() {
 			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
+			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
 				capturedReq = req
 				return &Server{
 					ID:     "test-server-id",
@@ -276,7 +276,7 @@ var _ = Describe("CreateMachine", func() {
 			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
 
 			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
+			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
 				capturedReq = req
 				return &Server{
 					ID:     "test-server-id",
@@ -295,7 +295,7 @@ var _ = Describe("CreateMachine", func() {
 
 		It("should not send Agent when nil", func() {
 			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
+			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
 				capturedReq = req
 				return &Server{
 					ID:     "test-server-id",
@@ -325,7 +325,7 @@ var _ = Describe("CreateMachine", func() {
 			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
 
 			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
+			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
 				capturedReq = req
 				return &Server{
 					ID:     "test-server-id",
@@ -348,7 +348,7 @@ var _ = Describe("CreateMachine", func() {
 
 		It("should not send Metadata when nil", func() {
 			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
+			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
 				capturedReq = req
 				return &Server{
 					ID:     "test-server-id",

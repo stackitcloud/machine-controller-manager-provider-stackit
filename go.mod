@@ -4,7 +4,6 @@ go 1.23.0
 
 require (
 	github.com/gardener/machine-controller-manager v0.36.0
-	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/ginkgo/v2 v2.27.2
 	github.com/onsi/gomega v1.38.2
 	github.com/spf13/pflag v1.0.5
@@ -21,7 +20,6 @@ require (
 	github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/evanphx/json-patch v4.2.0+incompatible // indirect
-	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d // indirect
@@ -39,7 +37,6 @@ require (
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
-	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/prometheus/client_golang v1.5.1 // indirect
 	github.com/prometheus/client_model v0.0.0-20180712105110-5c3871d89910 // indirect
 	github.com/prometheus/common v0.0.0-20181126121408-4724e9255275 // indirect
@@ -59,7 +56,6 @@ require (
 	google.golang.org/appengine v1.5.0 // indirect
 	google.golang.org/protobuf v1.36.7 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/apiserver v0.0.0-20190918160949-bfa5e2e684ad // indirect
 	k8s.io/client-go v0.0.0-20190918160344-1fbdaa4c8d90 // indirect

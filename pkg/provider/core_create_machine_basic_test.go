@@ -12,7 +12,7 @@ import (
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/codes"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/status"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	corev1 "k8s.io/api/core/v1"
@@ -95,7 +95,7 @@ var _ = Describe("CreateMachine", func() {
 			var capturedReq *CreateServerRequest
 			var capturedProjectID string
 
-			mockClient.createServerFunc = func(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
+			mockClient.createServerFunc = func(_ context.Context, projectID, _ string, req *CreateServerRequest) (*Server, error) {
 				capturedProjectID = projectID
 				capturedReq = req
 				return &Server{
@@ -165,7 +165,7 @@ var _ = Describe("CreateMachine", func() {
 
 	Context("when STACKIT API fails", func() {
 		It("should return Internal error on API failure", func() {
-			mockClient.createServerFunc = func(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
+			mockClient.createServerFunc = func(_ context.Context, _, _ string, _ *CreateServerRequest) (*Server, error) {
 				return nil, fmt.Errorf("API connection failed")
 			}
 
