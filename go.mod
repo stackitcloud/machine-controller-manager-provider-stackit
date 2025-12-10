@@ -1,4 +1,4 @@
-module github.com/aoepeople/machine-controller-manager-provider-stackit
+module github.com/stackitcloud/machine-controller-manager-provider-stackit
 
 go 1.23.0
 

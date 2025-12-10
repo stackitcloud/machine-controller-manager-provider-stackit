@@ -11,10 +11,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/aoepeople/machine-controller-manager-provider-stackit/pkg/provider/apis/validation"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/codes"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/status"
+	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis/validation"
 	"k8s.io/klog"
 )
 

@@ -8,13 +8,13 @@ import (
 	"context"
 	"fmt"
 
-	api "github.com/aoepeople/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/codes"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/status"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -41,10 +41,10 @@ var _ = Describe("DeleteMachine", func() {
 		// Create secret with projectId
 		secret = &corev1.Secret{
 			Data: map[string][]byte{
-				"projectId":    []byte("11111111-2222-3333-4444-555555555555"),
+				"projectId":         []byte("11111111-2222-3333-4444-555555555555"),
 				"serviceAccountKey": []byte(`{"credentials":{"iss":"test"}}`),
-				"region":       []byte("eu01-1"),
-				"networkId":    []byte("770e8400-e29b-41d4-a716-446655440000"),
+				"region":            []byte("eu01-1"),
+				"networkId":         []byte("770e8400-e29b-41d4-a716-446655440000"),
 			},
 		}
 

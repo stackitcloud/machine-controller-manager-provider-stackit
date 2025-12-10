@@ -1,0 +1,38 @@
+aliases:
+  machine-controller-manager-provider-stackit-reviewers:
+  - dergeberl
+  - JuliusSte
+  - Kumm-Kai
+  - maboehm
+  - nschad
+  - rapsnx
+  - robinschneider
+  - timebertt
+  - duciwuci
+  - hown3d
+  - xoxys
+  - ftl
+  - hasit97
+  - mstueer
+  - OlegVanHorst
+  - jamand
+  - breuerfelix
+  - aniruddha2000
+  machine-controller-manager-provider-stackit-approvers:
+  - dergeberl
+  - JuliusSte
+  - Kumm-Kai
+  - maboehm
+  - nschad
+  - rapsnx
+  - robinschneider
+  - timebertt
+  - hown3d
+  - xoxys
+  - ftl
+  - hasit97
+  - mstueer
+  - OlegVanHorst
+  - jamand
+  - breuerfelix
+  - aniruddha2000

@@ -1,6 +1,6 @@
 # machine-controller-manager-provider-stackit
 
-[![REUSE status](https://api.reuse.software/badge/github.com/aoepeople/machine-controller-manager-provider-stackit)](https://api.reuse.software/info/github.com/aoepeople/machine-controller-manager-provider-stackit)
+[![REUSE status](https://api.reuse.software/badge/github.com/stackitcloud/machine-controller-manager-provider-stackit)](https://api.reuse.software/info/github.com/stackitcloud/machine-controller-manager-provider-stackit)
 
 [![REUSE status](https://api.reuse.software/badge/github.com/aoepeople/machine-controller-manager-provider-stackit)](https://api.reuse.software/info/github.com/aoepeople/machine-controller-manager-provider-stackit)
 
