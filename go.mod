@@ -4,7 +4,7 @@ go 1.23.0
 
 require (
 	github.com/gardener/machine-controller-manager v0.36.0
-	github.com/onsi/ginkgo/v2 v2.27.2
+	github.com/onsi/ginkgo/v2 v2.27.3
 	github.com/onsi/gomega v1.38.2
 	github.com/spf13/pflag v1.0.5
 	github.com/stackitcloud/stackit-sdk-go/core v0.18.0
