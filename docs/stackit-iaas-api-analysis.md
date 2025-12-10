@@ -11,17 +11,18 @@ This document analyzes the STACKIT IAAS API to inform the design of our Machine 
 
 ### Core CRUD Operations
 
-| Operation | HTTP Method | Endpoint | MCM Method |
-|-----------|-------------|----------|------------|
-| List servers | GET | `/v1/projects/{projectId}/servers` | ListMachines() |
-| Create server | POST | `/v1/projects/{projectId}/servers` | CreateMachine() |
-| Get server | GET | `/v1/projects/{projectId}/servers/{serverId}` | GetMachineStatus() |
-| Update server | PATCH | `/v1/projects/{projectId}/servers/{serverId}` | (optional) |
-| Delete server | DELETE | `/v1/projects/{projectId}/servers/{serverId}` | DeleteMachine() |
+| Operation     | HTTP Method | Endpoint                                      | MCM Method         |
+| ------------- | ----------- | --------------------------------------------- | ------------------ |
+| List servers  | GET         | `/v1/projects/{projectId}/servers`            | ListMachines()     |
+| Create server | POST        | `/v1/projects/{projectId}/servers`            | CreateMachine()    |
+| Get server    | GET         | `/v1/projects/{projectId}/servers/{serverId}` | GetMachineStatus() |
+| Update server | PATCH       | `/v1/projects/{projectId}/servers/{serverId}` | (optional)         |
+| Delete server | DELETE      | `/v1/projects/{projectId}/servers/{serverId}` | DeleteMachine()    |
 
 ### Lifecycle Operations
 
 Additional endpoints available (may be useful for future enhancements):
+
 - `/v1/projects/{projectId}/servers/{serverId}/start` - Start stopped server
 - `/v1/projects/{projectId}/servers/{serverId}/stop` - Stop running server
 - `/v1/projects/{projectId}/servers/{serverId}/reboot` - Reboot server
@@ -49,37 +50,44 @@ Additional endpoints available (may be useful for future enhancements):
 ## CreateServerPayload Schema
 
 ### Required Fields
+
 - **`name`** (string) - Server name (MCM will use Machine CR name)
 - **`machineType`** (string) - Machine/instance type (e.g., "c2i.2", "m2i.8")
 
 ### Optional Fields
 
 **Compute Configuration:**
+
 - `imageId` (UUID) - OS image to use for boot disk
 - `availabilityZone` (string) - Availability zone for server placement
 - `affinityGroup` (UUID) - Affinity/anti-affinity group for server placement
 
 **Storage Configuration:**
+
 - `bootVolume` (object) - Boot disk configuration
   - Likely includes size, type, etc. (TBD: check nested schema)
 - `volumes` (UUID[]) - Additional volume IDs to attach at creation
 
 **Networking Configuration:**
+
 - `networking` (object) - Network configuration
   - Two variants: `CreateServerNetworking` or `CreateServerNetworkingWithNics`
   - TBD: Investigate exact structure
 - `securityGroups` (string[]) - Security group names (writeOnly)
 
 **Access Configuration:**
+
 - `keypairName` (string) - SSH keypair name for access
 - `serviceAccountMails` (string[]) - Service account emails for server identity
 
 **Metadata & Customization:**
+
 - `labels` (object/map) - Key-value labels for tagging and identification
 - `metadata` (object/map) - Additional metadata
 - `userData` (string) - Cloud-init/user data script (base64 encoded?)
 
 **Agent Configuration:**
+
 - `agent` (object) - STACKIT agent configuration
   - TBD: Investigate purpose and structure
 
@@ -88,44 +96,53 @@ Additional endpoints available (may be useful for future enhancements):
 These fields are returned when getting/listing servers but cannot be set on creation:
 
 **Identifiers & Status:**
+
 - `id` (UUID) - Server unique identifier
 - `status` (string) - Server lifecycle status
 - `powerStatus` (string) - Power state of the server
 
 **Network Information:**
+
 - `nics` (array) - Network interface card details
 
 **Timestamps:**
+
 - `createdAt` (ISO 8601) - Server creation timestamp
 - `launchedAt` (ISO 8601) - Server launch timestamp
 - `updatedAt` (ISO 8601) - Last update timestamp
 
 **Maintenance & Errors:**
+
 - `maintenanceWindow` (object) - Maintenance schedule
 - `errorMessage` (string) - Error details if server is in error state
 
 ## Supporting Resources
 
 ### Machine Types
+
 - Endpoint: `/v1/projects/{projectId}/machine-types`
 - Get specific type: `/v1/projects/{projectId}/machine-types/{machineType}`
 - Used to validate `machineType` field
 
 ### Images
+
 - Endpoint: `/v1/projects/{projectId}/images`
 - Get specific image: `/v1/projects/{projectId}/images/{imageId}`
 - Used to validate `imageId` field
 
 ### Keypairs
+
 - Endpoint: `/v1/keypairs`
 - Get specific keypair: `/v1/keypairs/{keypairName}`
 - Used to validate `keypairName` field
 
 ### Networks
+
 - Endpoint: `/v1/projects/{projectId}/networks`
 - Required for networking configuration
 
 ### Availability Zones
+
 - Endpoint: `/v1/availability-zones`
 - Used to validate `availabilityZone` field
 
@@ -187,6 +204,7 @@ Format: `stackit://<projectId>/<serverId>`
 Example: `stackit://my-project-123/550e8400-e29b-41d4-a716-446655440000`
 
 **Rationale:**
+
 - Unique across STACKIT projects
 - Contains both project and server ID for easy API calls
 - Follows pattern used by other cloud providers (aws://, azure://)
@@ -195,14 +213,15 @@ Example: `stackit://my-project-123/550e8400-e29b-41d4-a716-446655440000`
 
 Use the `labels` field for MCM identification and mapping:
 
-| Label Key | Value | Purpose |
-|-----------|-------|---------|
-| `mcm.gardener.cloud/cluster` | Cluster ID | Identify which cluster owns this server |
-| `mcm.gardener.cloud/machine` | Machine CR name | Map server to Kubernetes Machine |
+| Label Key                         | Value             | Purpose                                         |
+| --------------------------------- | ----------------- | ----------------------------------------------- |
+| `mcm.gardener.cloud/cluster`      | Cluster ID        | Identify which cluster owns this server         |
+| `mcm.gardener.cloud/machine`      | Machine CR name   | Map server to Kubernetes Machine                |
 | `mcm.gardener.cloud/machineclass` | MachineClass name | Map server to MachineClass for orphan detection |
-| `mcm.gardener.cloud/role` | "node" | Identify as cluster node |
+| `mcm.gardener.cloud/role`         | "node"            | Identify as cluster node                        |
 
 Example labels:
+
 ```json
 {
   "mcm.gardener.cloud/cluster": "shoot-dev-01",
@@ -213,6 +232,7 @@ Example labels:
 ```
 
 **Critical for:**
+
 - ListMachines() - Filter servers by MachineClass
 - Orphan VM detection - Identify servers without corresponding Machine CRs
 - Debugging - Trace servers back to Kubernetes objects
@@ -222,11 +242,13 @@ Example labels:
 Need to map STACKIT server status values to MCM/Kubernetes states.
 
 **TODO:** Document exact status values from:
+
 1. Real STACKIT API documentation
 2. Testing with mock server
 3. Observing real server lifecycle
 
 Expected status values (to be confirmed):
+
 - `CREATING` / `BUILDING` - Server is being created
 - `ACTIVE` / `RUNNING` - Server is running
 - `STOPPED` / `SHUTOFF` - Server is stopped
@@ -235,6 +257,7 @@ Expected status values (to be confirmed):
 - `UNKNOWN` - Status cannot be determined
 
 **MCM Status Codes:**
+
 - Use `codes.OK` for running servers
 - Use `codes.NotFound` for deleted/not-found servers
 - Use `codes.Unknown` for error states
@@ -245,11 +268,13 @@ Expected status values (to be confirmed):
 **Project ID:** Required in all API paths (`/v1/projects/{projectId}/...`)
 
 **Authentication Methods (TBD):**
+
 - API tokens
 - Service account credentials
 - OAuth 2.0
 
 **Secret Structure (proposed):**
+
 ```yaml
 apiVersion: v1
 kind: Secret
@@ -266,6 +291,7 @@ stringData:
 ```
 
 **Environment Variables (for e2e tests):**
+
 - `STACKIT_API_ENDPOINT` - API base URL
 - `STACKIT_PROJECT_ID` - Project ID
 - `STACKIT_NO_AUTH=true` - Bypass auth for mock server
@@ -273,6 +299,7 @@ stringData:
 ## Next Steps
 
 ### Immediate (Phase 1.2 - API Research)
+
 - [ ] Investigate nested schemas:
   - [ ] `BootVolume` structure
   - [ ] `CreateServerNetworking` vs `CreateServerNetworkingWithNics`
@@ -290,6 +317,7 @@ stringData:
   - [ ] Delete server
 
 ### Phase 1.3 - ProviderSpec Design
+
 - [ ] Define complete ProviderSpec with all nested types
 - [ ] Create example `samples/machine-class.yaml`
 - [ ] Create example `samples/secret.yaml`
@@ -297,6 +325,7 @@ stringData:
 - [ ] Write validation unit tests (TDD)
 
 ### Phase 1.4 - Technical Design
+
 - [ ] Document error handling strategy
 - [ ] Define retry/backoff policies
 - [ ] Create sequence diagrams for:

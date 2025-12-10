@@ -1,35 +1,24 @@
-# Ignore tools/bin folder
-hack/tools/bin/*
-!hack/tools/bin/.gitkeep
-
-/args
-/.kube-secrets
-/tmp/*
-/dev
-/logs
-
 .vscode
 .idea
-*.DS_Store
-*amd64
-*.html
-main
+/dev
+/secrets
+/hack/tools/bin/*
+!/hack/tools/bin/.gitkeep
+cover.out
+cover.html
+.envrc
 
-# Output of the go coverage tool
-*coverprofile.out*
-*.out
+# test binaries and reports
+*.test
+junit.xml
 
-# Build artifacts
-build/
+# files related to ondemand plugin
+quotas*
+hmac
 
-# Hermit
-.hermit/
+cloud.yaml
+__debug_*
 
-# Vendir
-.vendir-tmp*/
-vendir.lock.yml
-
-# Localdev
-.craig
-CLAUDE.md
-.claude
+test/e2e/inventory*
+test/e2e/sa-key*
+test/e2e/kubeconfig*

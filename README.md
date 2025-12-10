@@ -1,8 +1,6 @@
 # machine-controller-manager-provider-stackit
 
-[![REUSE status](https://api.reuse.software/badge/github.com/stackitcloud/machine-controller-manager-provider-stackit)](https://api.reuse.software/info/github.com/stackitcloud/machine-controller-manager-provider-stackit)
-
-[![REUSE status](https://api.reuse.software/badge/github.com/aoepeople/machine-controller-manager-provider-stackit)](https://api.reuse.software/info/github.com/aoepeople/machine-controller-manager-provider-stackit)
+[![GitHub License](https://img.shields.io/github/license/stackitcloud/stackit-sdk-go)](https://www.apache.org/licenses/LICENSE-2.0)
 
 Out of tree (controller based) implementation for `STACKIT` as a provider for Gardener.
 
@@ -12,7 +10,7 @@ The provider was built following the [MCM provider development guidelines](https
 
 ## Project Structure
 
-```
+```sh
 machine-controller-manager-provider-stackit/
 ├── cmd/
 │   └── machine-controller/
@@ -39,48 +37,10 @@ machine-controller-manager-provider-stackit/
 
 ## Getting Started
 
-### Prerequisites
-
-- **[Hermit](https://cashapp.github.io/hermit/)** - Environment manager that provides isolated, reproducible tooling
-- Access to a STACKIT project with API credentials
-- Docker (for building container images)
-
-### Tool Management
-
-This project uses **Hermit** for reproducible development environments and **just** as the command runner.
-
-**Hermit** automatically manages tool versions (Go, kubectl, kind, ginkgo, etc.) defined in `bin/hermit.hcl`. When you activate the Hermit environment, all required tools are available without manual installation:
-
-```sh
-# Activate hermit environment (tools auto-install on first use)
-. ./bin/activate-hermit
-
-# Or install hermit shell hooks for automatic activation
-hermit shell-hooks
-```
-
-**[just](https://github.com/casey/just)** is the task runner (defined in `justfile`):
-
-```
-just build              # Build the provider binary
-just test               # Run unit tests
-just test-e2e           # Run end-to-end tests
-just dev                # Complete local dev setup (cluster + deployment)
-just start              # Run provider locally for debugging
-just docker-build       # Build container image
-```
-
-```sh
-# List all available commands
-just --list
-
-# Or just run 'just' with no arguments
-just
-```
-
 ### Deployment
 
 See the [samples/](./samples/) directory for example manifests including:
+
 - [`secret.yaml`](./samples/secret.yaml) - STACKIT credentials configuration
 - [`machine-class.yaml`](./samples/machine-class.yaml) - MachineClass definition
 - [`machine.yaml`](./samples/machine.yaml) - Individual Machine example
@@ -105,13 +65,13 @@ Each provider instance is bound to a single STACKIT project via the service acco
 
 The provider requires STACKIT credentials to be provided via a Kubernetes Secret. The Secret must contain the following fields:
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `projectId` | Yes | STACKIT project UUID |
-| `serviceAccountKey` | Yes | STACKIT service account credentials (JSON format) |
-| `region` | Yes | STACKIT region (e.g., `eu01-1`, `eu01-2`) |
-| `userData` | No | Default cloud-init user data (can be overridden in ProviderSpec) |
-| `networkId` | No | Default network UUID (can be overridden in ProviderSpec) |
+| Field               | Required | Description                                                      |
+| ------------------- | -------- | ---------------------------------------------------------------- |
+| `projectId`         | Yes      | STACKIT project UUID                                             |
+| `serviceAccountKey` | Yes      | STACKIT service account credentials (JSON format)                |
+| `region`            | Yes      | STACKIT region (e.g., `eu01-1`, `eu01-2`)                        |
+| `userData`          | No       | Default cloud-init user data (can be overridden in ProviderSpec) |
+| `networkId`         | No       | Default network UUID (can be overridden in ProviderSpec)         |
 
 The service account key should be obtained from the STACKIT Portal (Project Settings → Service Accounts → Create Key) and contains JWT credentials and a private key for secure authentication.
 
@@ -121,10 +81,10 @@ The service account key should be obtained from the STACKIT Portal (Project Sett
 
 The provider supports the following environment variables for configuration:
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `STACKIT_API_ENDPOINT` | (SDK default) | Override STACKIT API endpoint URL (useful for testing) |
-| `STACKIT_NO_AUTH` | `false` | Skip authentication (for testing with mock servers, set to `true`) |
+| Variable               | Default       | Description                                                        |
+| ---------------------- | ------------- | ------------------------------------------------------------------ |
+| `STACKIT_API_ENDPOINT` | (SDK default) | Override STACKIT API endpoint URL (useful for testing)             |
+| `STACKIT_NO_AUTH`      | `false`       | Skip authentication (for testing with mock servers, set to `true`) |
 
 **Note:** `STACKIT_NO_AUTH=true` is only intended for testing environments with mock servers. It skips the authenticaiton step and communicates with the STACKIT API without authenticating itself. Do not use in production.
 
@@ -132,22 +92,22 @@ The provider supports the following environment variables for configuration:
 
 ### ProviderSpec Fields
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `machineType` | string | Yes | STACKIT server type (e.g., "c2i.2", "m2i.8") |
-| `imageId` | string | Yes | UUID of the OS image |
-| `labels` | map[string]string | No | Labels for server identification |
-| `networking` | NetworkingSpec | No | Network configuration (NetworkID or NICIDs) |
-| `securityGroups` | []string | No | Security group names |
-| `userData` | string | No | Cloud-init user data (overrides Secret.userData) |
-| `bootVolume` | BootVolumeSpec | No | Boot disk configuration |
-| `volumes` | []string | No | UUIDs of additional volumes to attach |
-| `keypairName` | string | No | SSH keypair name |
-| `availabilityZone` | string | No | Availability zone (e.g., "eu01-1") |
-| `affinityGroup` | string | No | UUID of affinity group |
-| `serviceAccountMails` | []string | No | Service account email addresses (max 1) |
-| `agent` | AgentSpec | No | STACKIT agent configuration |
-| `metadata` | map[string]interface{} | No | Custom metadata key-value pairs |
+| Field                 | Type                   | Required | Description                                      |
+| --------------------- | ---------------------- | -------- | ------------------------------------------------ |
+| `machineType`         | string                 | Yes      | STACKIT server type (e.g., "c2i.2", "m2i.8")     |
+| `imageId`             | string                 | Yes      | UUID of the OS image                             |
+| `labels`              | map[string]string      | No       | Labels for server identification                 |
+| `networking`          | NetworkingSpec         | No       | Network configuration (NetworkID or NICIDs)      |
+| `securityGroups`      | []string               | No       | Security group names                             |
+| `userData`            | string                 | No       | Cloud-init user data (overrides Secret.userData) |
+| `bootVolume`          | BootVolumeSpec         | No       | Boot disk configuration                          |
+| `volumes`             | []string               | No       | UUIDs of additional volumes to attach            |
+| `keypairName`         | string                 | No       | SSH keypair name                                 |
+| `availabilityZone`    | string                 | No       | Availability zone (e.g., "eu01-1")               |
+| `affinityGroup`       | string                 | No       | UUID of affinity group                           |
+| `serviceAccountMails` | []string               | No       | Service account email addresses (max 1)          |
+| `agent`               | AgentSpec              | No       | STACKIT agent configuration                      |
+| `metadata`            | map[string]interface{} | No       | Custom metadata key-value pairs                  |
 
 ### Local Testing
 
@@ -164,12 +124,14 @@ just start
 ## References
 
 ### Machine Controller Manager
+
 - [Machine Controller Manager](https://github.com/gardener/machine-controller-manager) - Core MCM project
 - [MCM Provider Development Guide](https://github.com/gardener/machine-controller-manager/blob/master/docs/development/cp_support_new.md) - Guidelines followed to build this provider
 - [MCM Sample Provider](https://github.com/gardener/machine-controller-manager-provider-sampleprovider) - Original template used as starting point
 - [MCM Driver Interface](https://github.com/gardener/machine-controller-manager/blob/master/pkg/util/provider/driver/driver.go) - Provider contract interface
 
 ### STACKIT SDK
+
 - [STACKIT SDK Go](https://github.com/stackitcloud/stackit-sdk-go) - Official STACKIT Go SDK
 - [IaaS Service Package](https://github.com/stackitcloud/stackit-sdk-go/tree/main/services/iaas) - IaaS service API documentation
 - [SDK Core Package](https://github.com/stackitcloud/stackit-sdk-go/tree/main/core) - Core SDK configuration and authentication
@@ -177,24 +139,9 @@ just start
 - [SDK Releases](https://github.com/stackitcloud/stackit-sdk-go/releases) - Release notes and changelog
 
 ### STACKIT Platform
+
 - [STACKIT Documentation](https://docs.stackit.cloud/) - STACKIT cloud platform documentation
 - [STACKIT Portal](https://portal.stackit.cloud/) - STACKIT management console
 - [Service Accounts](https://docs.stackit.cloud/stackit/en/service-accounts-134415819.html) - Creating and managing service accounts
 - [Service Account Keys](https://docs.stackit.cloud/stackit/en/usage-of-the-service-account-keys-in-stackit-175112464.html) - API authentication setup
 - [IaaS API Documentation](https://docs.stackit.cloud/) - STACKIT IaaS REST API reference
-
-## License
-
-Copyright 2024 SAP SE or an SAP affiliate company and Gardener contributors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
