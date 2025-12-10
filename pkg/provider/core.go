@@ -15,7 +15,7 @@ import (
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/codes"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/status"
 	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis/validation"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // CreateMachine handles a machine creation request by creating a STACKIT server

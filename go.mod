@@ -12,7 +12,7 @@ require (
 	k8s.io/api v0.0.0-20190918155943-95b840bb6a1f
 	k8s.io/apimachinery v0.0.0-20190913080033-27d36303b655
 	k8s.io/component-base v0.0.0-20190918160511-547f6c5d7090
-	k8s.io/klog v0.4.0
+	k8s.io/klog/v2 v2.130.1
 )
 
 require (
@@ -61,7 +61,7 @@ require (
 	k8s.io/apiserver v0.0.0-20190918160949-bfa5e2e684ad // indirect
 	k8s.io/client-go v0.0.0-20190918160344-1fbdaa4c8d90 // indirect
 	k8s.io/cluster-bootstrap v0.0.0-20190918163108-da9fdfce26bb // indirect
-	k8s.io/klog/v2 v2.130.1 // indirect
+	k8s.io/klog v0.4.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20190816220812-743ec37842bf // indirect
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
