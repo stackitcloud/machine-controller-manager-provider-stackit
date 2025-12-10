@@ -19,8 +19,7 @@ import (
 // Note: region parameter is required by STACKIT SDK v1.0.0+
 // It must be extracted from the Secret (e.g., "eu01-1", "eu01-2")
 type StackitClient interface {
-	//
-	//CreateServer creates a new server in STACKIT
+	// CreateServer creates a new server in STACKIT
 	CreateServer(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error)
 	// GetServer retrieves a server by ID from STACKIT
 	GetServer(ctx context.Context, projectID, region, serverID string) (*Server, error)
