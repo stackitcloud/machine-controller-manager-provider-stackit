@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: machine-controller-manager
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: machine-controller-manager
+  template:
+    metadata:
+      labels:
+        app: machine-controller-manager
+    spec:
+      serviceAccountName: machine-controller-manager
+      containers:
+      - name: machine-controller-manager
+        image: europe-docker.pkg.dev/gardener-project/releases/gardener/machine-controller-manager:v0.60.2
+        imagePullPolicy: IfNotPresent
+        command:
+          - ./machine-controller-manager
+          - --control-kubeconfig=inClusterConfig
+          - --namespace=default
+          - --safety-up=2
+          - --safety-down=1
+          - --machine-safety-overshooting-period=1m
+          - --v=3
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: 10258
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+      - name: machine-controller
+        image: localhost/machine-controller-manager-provider-stackit:0.1.0-dev
+        imagePullPolicy: IfNotPresent
+        command:
+          - ./machine-controller
+          - --control-kubeconfig=inClusterConfig
+          - --namespace=default
+          - --machine-drain-timeout=5m
+          - --machine-health-timeout=10m
+          - --machine-safety-orphan-vms-period=30m
+          - --node-conditions=ReadonlyFilesystem,KernelDeadlock,DiskPressure
+          - --v=4
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: 10259
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        ports:
+        - containerPort: 10259
+          name: metrics
+          protocol: TCP
+        resources:
+          limits:
+            cpu: "3"
+            memory: 3000Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi

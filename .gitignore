@@ -1,0 +1,24 @@
+.vscode
+.idea
+/dev
+/secrets
+/hack/tools/bin/*
+!/hack/tools/bin/.gitkeep
+cover.out
+cover.html
+.envrc
+
+# test binaries and reports
+*.test
+junit.xml
+
+# files related to ondemand plugin
+quotas*
+hmac
+
+cloud.yaml
+__debug_*
+
+test/e2e/inventory*
+test/e2e/sa-key*
+test/e2e/kubeconfig*

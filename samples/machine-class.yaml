@@ -1,0 +1,280 @@
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: MachineClass
+metadata:
+  name: test-mc
+  namespace: default
+providerSpec:
+  # Required: STACKIT machine type (e.g., "c2i.2", "m2i.8")
+  machineType: "c2i.2"
+
+  # Required: UUID of the OS image to use
+  imageId: "550e8400-e29b-41d4-a716-446655440000"
+
+  # Optional: User-defined labels for the server
+  # MCM will automatically add standard labels (machine name, class, role)
+  labels:
+    environment: "production"
+    team: "platform"
+
+  # Optional: Networking configuration
+  # Specify either networkId (simple) OR nicIds (advanced), not both
+  networking:
+    # Simple variant: Attach to a single network
+    networkId: "770e8400-e29b-41d4-a716-446655440000"
+    # Advanced variant: Use pre-created NICs (uncomment to use instead of networkId)
+    # nicIds:
+    #   - "880e8400-e29b-41d4-a716-446655440000"
+    #   - "990e8400-e29b-41d4-a716-446655440000"
+
+  # Optional: Security groups to apply to the server
+  # If not specified, the project's default security group will be used
+  securityGroups:
+    - "default"
+    - "web-servers"
+
+  # Optional: Cloud-init user data for VM bootstrapping
+  # Can be used to override/customize Secret.userData for this specific MachineClass
+  # If specified, takes precedence over Secret.userData
+  # Note: Secret.userData is typically required by MCM for node bootstrapping
+  # Use this to add MachineClass-specific customizations
+  userData: |
+    #cloud-config
+    runcmd:
+      - echo "Machine bootstrapped via ProviderSpec"
+      - apt-get update
+
+secretRef:
+  name: test-secret
+  namespace: default
+
+---
+# Example: Minimal configuration (only required fields)
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: MachineClass
+metadata:
+  name: minimal-mc
+  namespace: default
+providerSpec:
+  machineType: "c2i.2"
+  imageId: "550e8400-e29b-41d4-a716-446655440000"
+secretRef:
+  name: test-secret
+  namespace: default
+
+---
+# Example: Machine with custom cloud-init userData (overrides Secret)
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: MachineClass
+metadata:
+  name: custom-userdata-mc
+  namespace: default
+providerSpec:
+  machineType: "c2i.2"
+  imageId: "550e8400-e29b-41d4-a716-446655440000"
+  # UserData in ProviderSpec overrides Secret.userData
+  # Useful for MachineClass-specific bootstrapping (e.g., different software per class)
+  # Make sure this still includes necessary bootstrap commands for node registration!
+  userData: |
+    #cloud-config
+    package_update: true
+    package_upgrade: true
+    packages:
+      - docker.io
+      - kubectl
+    runcmd:
+      - systemctl enable docker
+      - systemctl start docker
+      - echo "Custom initialization complete"
+      # Include MCM bootstrap commands here if overriding Secret.userData
+secretRef:
+  name: test-secret
+  namespace: default
+
+---
+# Example: Machine with custom boot volume configuration
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: MachineClass
+metadata:
+  name: custom-bootvolume-mc
+  namespace: default
+providerSpec:
+  machineType: "c2i.2"
+  imageId: "550e8400-e29b-41d4-a716-446655440000"
+  # BootVolume allows fine-grained control over boot disk
+  bootVolume:
+    # Size in GB (must be >= image size)
+    size: 100
+    # Performance class: "standard", "premium", etc.
+    performanceClass: "premium"
+    # Delete volume when server is terminated (default: true)
+    # deleteOnTermination: false  # Set to false to preserve boot volume
+    # Source: create boot volume from image/snapshot/volume
+    # If not specified, uses imageId from ProviderSpec
+    # source:
+    #   type: "snapshot"  # or "image" or "volume"
+    #   id: "770e8400-e29b-41d4-a716-446655440000"
+secretRef:
+  name: test-secret
+  namespace: default
+
+---
+# Example: Machine with additional data volumes
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: MachineClass
+metadata:
+  name: with-volumes-mc
+  namespace: default
+providerSpec:
+  machineType: "c2i.2"
+  imageId: "550e8400-e29b-41d4-a716-446655440000"
+  # Volumes: attach existing volumes by UUID
+  # These are data volumes in addition to the boot disk
+  volumes:
+    - "880e8400-e29b-41d4-a716-446655440000"  # data-volume-1
+    - "990e8400-e29b-41d4-a716-446655440001"  # data-volume-2
+secretRef:
+  name: test-secret
+  namespace: default
+
+---
+# Example: Machine with both custom boot volume and additional volumes
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: MachineClass
+metadata:
+  name: full-storage-mc
+  namespace: default
+providerSpec:
+  machineType: "c2i.2"
+  imageId: "550e8400-e29b-41d4-a716-446655440000"
+  # Custom boot volume configuration
+  bootVolume:
+    size: 50
+    performanceClass: "standard"
+  # Additional data volumes
+  volumes:
+    - "880e8400-e29b-41d4-a716-446655440000"
+secretRef:
+  name: test-secret
+  namespace: default
+
+---
+# Example: Machine with SSH keypair for remote access
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: MachineClass
+metadata:
+  name: with-keypair-mc
+  namespace: default
+providerSpec:
+  machineType: "c2i.2"
+  imageId: "550e8400-e29b-41d4-a716-446655440000"
+  # KeypairName: SSH keypair for server access
+  # The keypair must already exist in the STACKIT project
+  # The public key will be injected into the server for SSH access
+  # Max length: 127 characters
+  # Allowed characters: A-Z, a-z, 0-9, @, ., _, -
+  keypairName: "my-ssh-key"
+secretRef:
+  name: test-secret
+  namespace: default
+
+---
+# Example: Machine with availability zone for high availability
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: MachineClass
+metadata:
+  name: with-az-mc
+  namespace: default
+providerSpec:
+  machineType: "c2i.2"
+  imageId: "550e8400-e29b-41d4-a716-446655440000"
+  # AvailabilityZone: Specify the AZ where the server will be created
+  # If not specified:
+  # - Servers with boot volumes will be created in the same AZ as the volume
+  # - Servers without volumes will be created in the metro availability zone
+  # Example values: "eu01-1", "eu01-2"
+  availabilityZone: "eu01-1"
+secretRef:
+  name: test-secret
+  namespace: default
+---
+# Example: Machine with affinity group for server placement control
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: MachineClass
+metadata:
+  name: with-affinity-mc
+  namespace: default
+providerSpec:
+  machineType: "c2i.2"
+  imageId: "550e8400-e29b-41d4-a716-446655440000"
+  # AffinityGroup: UUID of affinity group to control server placement
+  # The affinity group must already exist in the STACKIT project
+  # Used for performance optimization (anti-affinity to separate servers)
+  # or high availability (affinity to keep servers together)
+  # Example: "880e8400-e29b-41d4-a716-446655440000"
+  affinityGroup: "880e8400-e29b-41d4-a716-446655440000"
+secretRef:
+  name: test-secret
+  namespace: default
+
+---
+# Example: Machine with service accounts for identity and access management
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: MachineClass
+metadata:
+  name: with-service-accounts-mc
+  namespace: default
+providerSpec:
+  machineType: "c2i.2"
+  imageId: "550e8400-e29b-41d4-a716-446655440000"
+  # ServiceAccountMails: Email addresses of service accounts to associate with the server
+  # Service accounts provide identity and access management for the server
+  # The service accounts must already exist in the STACKIT project
+  # Example: service accounts for accessing cloud storage, databases, etc.
+  # Note: Currently limited to 1 service account per server
+  serviceAccountMails:
+    - "my-service@sa.stackit.cloud"
+secretRef:
+  name: test-secret
+  namespace: default
+
+---
+# Example: Machine with STACKIT agent for monitoring and management
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: MachineClass
+metadata:
+  name: with-agent-mc
+  namespace: default
+providerSpec:
+  machineType: "c2i.2"
+  imageId: "550e8400-e29b-41d4-a716-446655440000"
+  # Agent: Configure the STACKIT agent on the server
+  # The agent provides monitoring and management capabilities
+  # Set provisioned to true to install the agent, false to skip
+  # If not specified, defaults to STACKIT platform default behavior
+  agent:
+    provisioned: true
+secretRef:
+  name: test-secret
+  namespace: default
+
+---
+# Example: Machine with custom metadata for arbitrary key-value pairs
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: MachineClass
+metadata:
+  name: with-metadata-mc
+  namespace: default
+providerSpec:
+  machineType: "c2i.2"
+  imageId: "550e8400-e29b-41d4-a716-446655440000"
+  # Metadata: Generic JSON object for storing arbitrary key-value pairs
+  # Can be used to store custom metadata that doesn't fit into other fields
+  # Examples: environment tags, cost center, owner, project info, etc.
+  metadata:
+    environment: "production"
+    cost-center: "12345"
+    owner: "team-a"
+    project: "ml-training"
+secretRef:
+  name: test-secret
+  namespace: default
