@@ -73,16 +73,6 @@ func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret)
 		errors = append(errors, fmt.Errorf("secret field 'serviceaccount.json' must be valid JSON (service account credentials)"))
 	}
 
-	// Validate region (required for SDK)
-	//region, ok := secrets.Data["region"]
-	//if !ok {
-	//	errors = append(errors, fmt.Errorf("secret field 'region' is required"))
-	//} else if len(region) == 0 {
-	//	errors = append(errors, fmt.Errorf("secret field 'region' cannot be empty"))
-	//} else if !isValidRegion(string(region)) {
-	//	errors = append(errors, fmt.Errorf("secret field 'region' has invalid format (expected format: eu01-1, eu01-2, etc.)"))
-	//}
-
 	// Validate ProviderSpec
 	if spec.MachineType == "" {
 		errors = append(errors, fmt.Errorf("providerSpec.machineType is required"))
