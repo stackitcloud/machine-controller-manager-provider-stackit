@@ -19,9 +19,18 @@ include ./hack/tools.mk
 .PHONY: all
 all: verify
 
+# TODO: remove the second target once published
 .PHONY: image
 image: $(KO) ## Builds a single binary specified by TARGET
 	KO_DOCKER_REPO=$(REGISTRY)/$(REPO) \
+	$(KO) build --push=$(PUSH) \
+	--image-label org.opencontainers.image.source="https://github.com/stackitcloud/machine-controller-manager-provider-stackit" \
+	--sbom none -t $(VERSION) \
+	--bare \
+	--platform linux/amd64,linux/arm64 \
+	./cmd/machine-controller
+
+	KO_DOCKER_REPO=reg3.infra.ske.eu01.stackit.cloud/stackitcloud/machine-controller-manager-provider-stackit \
 	$(KO) build --push=$(PUSH) \
 	--image-label org.opencontainers.image.source="https://github.com/stackitcloud/machine-controller-manager-provider-stackit" \
 	--sbom none -t $(VERSION) \
