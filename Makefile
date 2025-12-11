@@ -4,7 +4,7 @@ SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 SOURCES := Makefile go.mod go.sum $(shell find $(DEST) -name '*.go' 2>/dev/null)
 VERSION ?= $(shell git describe --dirty --tags --match='v*' 2>/dev/null || git rev-parse --short HEAD)
-REGISTRY ?= ghcr.io
+REGISTRY ?= reg3.infra.ske.eu01.stackit.cloud
 REPO ?= stackitcloud/machine-controller-manager-provider-stackit
 PUSH ?= true
 PLATFORMS ?= amd64 arm64
