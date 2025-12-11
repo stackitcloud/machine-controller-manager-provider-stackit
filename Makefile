@@ -19,7 +19,6 @@ include ./hack/tools.mk
 .PHONY: all
 all: verify
 
-# TODO: remove the second target once published
 .PHONY: image
 image: $(KO) ## Builds a single binary specified by TARGET
 	KO_DOCKER_REPO=$(REGISTRY)/$(REPO) \
