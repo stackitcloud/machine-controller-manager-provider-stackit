@@ -30,14 +30,6 @@ image: $(KO) ## Builds a single binary specified by TARGET
 	--platform linux/amd64,linux/arm64 \
 	./cmd/machine-controller
 
-	KO_DOCKER_REPO=reg3.infra.ske.eu01.stackit.cloud/stackitcloud/machine-controller-manager-provider-stackit \
-	$(KO) build --push=$(PUSH) \
-	--image-label org.opencontainers.image.source="https://github.com/stackitcloud/machine-controller-manager-provider-stackit" \
-	--sbom none -t $(VERSION) \
-	--bare \
-	--platform linux/amd64,linux/arm64 \
-	./cmd/machine-controller
-
 .PHONY: clean-tools-bin
 clean-tools-bin: ## Empty the tools binary directory.
 	rm -rf $(TOOLS_BIN_DIR)/* $(TOOLS_BIN_DIR)/.version_*
