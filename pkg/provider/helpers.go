@@ -37,13 +37,17 @@ func encodeProviderSpecForResponse(spec *api.ProviderSpec) ([]byte, error) {
 func parseProviderID(providerID string) (projectID, serverID string, err error) {
 	const prefix = "stackit://"
 
-	if !strings.HasPrefix(providerID, prefix) {
-		return "", "", fmt.Errorf("ProviderID must start with 'stackit://'")
-	}
+	// if !strings.HasPrefix(providerID, prefix) {
+	// return "", "", fmt.Errorf("ProviderID must start with 'stackit://'")
+	// }
 
 	// Remove prefix and split by '/'
 	remainder := strings.TrimPrefix(providerID, prefix)
 	parts := strings.Split(remainder, "/")
+
+	if len(parts) == 3 {
+		return "", parts[3], nil
+	}
 
 	if len(parts) != 2 {
 		return "", "", fmt.Errorf("ProviderID must have format 'stackit://<projectId>/<serverId>'")

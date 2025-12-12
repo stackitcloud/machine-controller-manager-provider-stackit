@@ -51,7 +51,7 @@ var (
 func createIAASClient(serviceAccountKey string) (*iaas.APIClient, error) {
 	// Configure SDK with custom base URL if provided (for testing with mock server)
 	// baseURL := os.Getenv("STACKIT_API_ENDPOINT")
-	// TODO: this should be configureable via ske-tages or ske-base
+	// TODO: this should be configureable via ske-stages or ske-base
 	// TODO: the STACKIT_TOKEN_BASEURL env
 	baseURL := "https://iaas.api.eu01.qa.stackit.cloud"
 	tokenEndpoint := "https://service-account.api.qa.stackit.cloud/token"
