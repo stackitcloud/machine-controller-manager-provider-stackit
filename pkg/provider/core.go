@@ -15,7 +15,7 @@ import (
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/codes"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/status"
 	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis/validation"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // CreateMachine handles a machine creation request by creating a STACKIT server
@@ -403,4 +403,9 @@ func (p *Provider) GenerateMachineClassForMigration(_ context.Context, req *driv
 	defer klog.V(2).Infof("MigrateMachineClass request has been processed successfully for %q", req.ClassSpec)
 
 	return &driver.GenerateMachineClassForMigrationResponse{}, status.Error(codes.Unimplemented, "")
+}
+
+// InitializeMachine handles VM initialization for STACKIT VM's. Currently, un-implemented.
+func (p *Provider) InitializeMachine(context.Context, *driver.InitializeMachineRequest) (*driver.InitializeMachineResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "STACKIT Provider does not yet implement InitializeMachine")
 }
