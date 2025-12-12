@@ -50,7 +50,9 @@ var (
 // - More secure than static tokens (short-lived, rotating)
 func createIAASClient(serviceAccountKey string) (*iaas.APIClient, error) {
 	// Configure SDK with custom base URL if provided (for testing with mock server)
-	baseURL := os.Getenv("STACKIT_API_ENDPOINT")
+	// baseURL := os.Getenv("STACKIT_API_ENDPOINT")
+	// TODO: this should be configureable via ske-tages or ske-base
+	baseURL := "https://iaas.api.eu01.qa.stackit.cloud"
 	noAuth := os.Getenv("STACKIT_NO_AUTH") == "true"
 
 	var opts []config.ConfigurationOption
