@@ -174,7 +174,7 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	server, err := p.client.CreateServer(ctx, projectID, providerSpec.Region, createReq)
 	if err != nil {
 		klog.Errorf("Failed to create server for machine %q: %v", req.Machine.Name, err)
-		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to create server: %v", err))
+		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to create server: secgroups: %v err: %v", createReq.SecurityGroups, err))
 	}
 
 	// Generate ProviderID in format: stackit://<projectId>/<serverId>
