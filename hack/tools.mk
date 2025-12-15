@@ -7,9 +7,9 @@ ARCH := $(shell uname -m)
 # renovate: datasource=github-releases depName=incu6us/goimports-reviser
 GOIMPORTS_REVISER_VERSION ?= v3.11.0
 # renovate: datasource=github-releases depName=ko-build/ko
-KO_VERSION ?= v0.18.0
+KO_VERSION ?= v0.18.1
 # renovate: datasource=github-releases depName=golangci/golangci-lint
-GOLANGCI_LINT_VERSION ?= v2.6.2
+GOLANGCI_LINT_VERSION ?= v2.7.2
 
 # Tool targets should declare go.mod as a prerequisite, if the tool's version is managed via go modules. This causes
 # make to rebuild the tool in the desired version, when go.mod is changed.
