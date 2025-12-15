@@ -67,3 +67,14 @@ verify-modules: modules ## Verify go module files are up to date.
 
 .PHONY: verify
 verify: verify-fmt verify-modules check
+
+.PHONY: mocks
+mocks: $(MOCKGEN)
+	# clean mocks
+	@find . -name '*_mock.go' -delete || true
+	# generate mocks
+	@go mod download
+
+.PHONY: generate
+generate: mocks
+	go generate ./...
