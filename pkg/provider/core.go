@@ -206,7 +206,10 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 
 	// Validate ProviderID exists
 	if req.Machine.Spec.ProviderID == "" {
-		return nil, status.Error(codes.InvalidArgument, "ProviderID is required")
+		// the server is already deleted, return success so the CRD can be cleaned up
+		// TODO: verify this
+		return nil, nil
+		// return nil, status.Error(codes.InvalidArgument, "ProviderID is required")
 	}
 
 	// Decode ProviderSpec from MachineClass
