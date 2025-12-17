@@ -6,6 +6,10 @@ package api
 
 // ProviderSpec is the spec to be used while parsing the calls.
 type ProviderSpec struct {
+	// Region is the STACKIT region (e.g., "eu01", "eu02")
+	// Required field for creating a server.
+	Region string `json:"region"`
+
 	// MachineType is the STACKIT server type (e.g., "c2i.2", "m2i.8")
 	// Required field for creating a server.
 	MachineType string `json:"machineType"`
