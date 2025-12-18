@@ -51,8 +51,8 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	}
 
 	// Extract credentials from Secret
-	projectID := string(req.Secret.Data["projectId"])
-	serviceAccountKey := string(req.Secret.Data["serviceAccountKey"])
+	projectID := string(req.Secret.Data["project-id"])
+	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
 	region := string(req.Secret.Data["region"])
 
 	// Initialize client on first use (lazy initialization)
@@ -210,7 +210,7 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 	}
 
 	// Extract credentials from Secret
-	serviceAccountKey := string(req.Secret.Data["serviceAccountKey"])
+	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
 	region := string(req.Secret.Data["region"])
 
 	// Initialize client on first use (lazy initialization)
@@ -220,6 +220,9 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 
 	// Parse ProviderID to extract projectID and serverID
 	projectID, serverID, err := parseProviderID(req.Machine.Spec.ProviderID)
+	if projectID == "" {
+		projectID = string(req.Secret.Data["project-id"])
+	}
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("invalid ProviderID format: %v", err))
 	}
@@ -269,7 +272,7 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 	}
 
 	// Extract credentials from Secret
-	serviceAccountKey := string(req.Secret.Data["serviceAccountKey"])
+	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
 	region := string(req.Secret.Data["region"])
 
 	// Initialize client on first use (lazy initialization)
@@ -280,6 +283,9 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 	// Parse ProviderID to extract projectID and serverID
 	// Expected format: stackit://<projectId>/<serverId>
 	projectID, serverID, err := parseProviderID(req.Machine.Spec.ProviderID)
+	if projectID == "" {
+		projectID = string(req.Secret.Data["project-id"])
+	}
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("invalid ProviderID format: %v", err))
 	}
@@ -322,8 +328,8 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 	defer klog.V(2).Infof("List machines request has been processed for %q", req.MachineClass.Name)
 
 	// Extract credentials from Secret
-	projectID := string(req.Secret.Data["projectId"])
-	serviceAccountKey := string(req.Secret.Data["serviceAccountKey"])
+	projectID := string(req.Secret.Data["project-id"])
+	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
 	region := string(req.Secret.Data["region"])
 
 	// Initialize client on first use (lazy initialization)
