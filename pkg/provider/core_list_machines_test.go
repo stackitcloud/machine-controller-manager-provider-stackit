@@ -40,8 +40,8 @@ var _ = Describe("ListMachines", func() {
 		// Create secret with projectId
 		secret = &corev1.Secret{
 			Data: map[string][]byte{
-				"projectId":         []byte("11111111-2222-3333-4444-555555555555"),
-				"serviceAccountKey": []byte(`{"credentials":{"iss":"test"}}`),
+				"project-id":          []byte("11111111-2222-3333-4444-555555555555"),
+				"serviceaccount.json": []byte(`{"credentials":{"iss":"test"}}`),
 			},
 		}
 

@@ -38,10 +38,10 @@ var _ = Describe("CreateMachine", func() {
 		// Create secret with projectId and networkId (required for v2 API)
 		secret = &corev1.Secret{
 			Data: map[string][]byte{
-				"projectId":         []byte("11111111-2222-3333-4444-555555555555"),
-				"serviceAccountKey": []byte(`{"credentials":{"iss":"test"}}`),
-				"region":            []byte("eu01-1"),
-				"networkId":         []byte("770e8400-e29b-41d4-a716-446655440000"),
+				"project-id":          []byte("11111111-2222-3333-4444-555555555555"),
+				"serviceaccount.json": []byte(`{"credentials":{"iss":"test"}}`),
+				"region":              []byte("eu01-1"),
+				"networkId":           []byte("770e8400-e29b-41d4-a716-446655440000"),
 			},
 		}
 
