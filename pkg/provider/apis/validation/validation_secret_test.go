@@ -44,46 +44,46 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 			secret.Data = map[string][]byte{}
 			errors := ValidateProviderSpecNSecret(providerSpec, secret)
 			Expect(errors).NotTo(BeEmpty())
-			Expect(errors[0].Error()).To(ContainSubstring("projectId"))
+			Expect(errors[0].Error()).To(ContainSubstring("project-id"))
 		})
 
 		It("should fail when projectId is empty in secret", func() {
-			secret.Data["projectId"] = []byte("")
+			secret.Data["project-id"] = []byte("")
 			errors := ValidateProviderSpecNSecret(providerSpec, secret)
 			Expect(errors).NotTo(BeEmpty())
-			Expect(errors[0].Error()).To(ContainSubstring("projectId"))
+			Expect(errors[0].Error()).To(ContainSubstring("project-id"))
 		})
 
 		It("should fail when projectId is not a valid UUID", func() {
-			secret.Data["projectId"] = []byte("invalid-uuid")
+			secret.Data["project-id"] = []byte("invalid-uuid")
 			errors := ValidateProviderSpecNSecret(providerSpec, secret)
 			Expect(errors).NotTo(BeEmpty())
-			Expect(errors[0].Error()).To(ContainSubstring("projectId' must be a valid UUID"))
+			Expect(errors[0].Error()).To(ContainSubstring("project-id' must be a valid UUID"))
 		})
 
-		It("should fail when serviceAccountKey is missing from secret", func() {
-			delete(secret.Data, "serviceAccountKey")
+		It("should fail when serviceaccount.json is missing from secret", func() {
+			delete(secret.Data, "serviceaccount.json")
 			errors := ValidateProviderSpecNSecret(providerSpec, secret)
 			Expect(errors).NotTo(BeEmpty())
-			Expect(errors[0].Error()).To(ContainSubstring("serviceAccountKey"))
+			Expect(errors[0].Error()).To(ContainSubstring("serviceaccount.json"))
 		})
 
-		It("should fail when serviceAccountKey is empty in secret", func() {
-			secret.Data["serviceAccountKey"] = []byte("")
+		It("should fail when serviceaccount.json is empty in secret", func() {
+			secret.Data["serviceaccount.json"] = []byte("")
 			errors := ValidateProviderSpecNSecret(providerSpec, secret)
 			Expect(errors).NotTo(BeEmpty())
-			Expect(errors[0].Error()).To(ContainSubstring("serviceAccountKey"))
+			Expect(errors[0].Error()).To(ContainSubstring("serviceaccount.json"))
 		})
 
-		It("should fail when serviceAccountKey is not valid JSON", func() {
-			secret.Data["serviceAccountKey"] = []byte("not-valid-json")
+		It("should fail when serviceaccount.json is not valid JSON", func() {
+			secret.Data["serviceaccount.json"] = []byte("not-valid-json")
 			errors := ValidateProviderSpecNSecret(providerSpec, secret)
 			Expect(errors).NotTo(BeEmpty())
 			Expect(errors[0].Error()).To(ContainSubstring("must be valid JSON"))
 		})
 
-		It("should fail when serviceAccountKey is malformed JSON (missing closing brace)", func() {
-			secret.Data["serviceAccountKey"] = []byte(`{"credentials":{"iss":"test"`)
+		It("should fail when serviceaccount.json is malformed JSON (missing closing brace)", func() {
+			secret.Data["serviceaccount.json"] = []byte(`{"credentials":{"iss":"test"`)
 			errors := ValidateProviderSpecNSecret(providerSpec, secret)
 			Expect(errors).NotTo(BeEmpty())
 			Expect(errors[0].Error()).To(ContainSubstring("must be valid JSON"))
