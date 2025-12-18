@@ -53,22 +53,22 @@ func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret)
 		return errors // Return early if secret is nil
 	}
 
-	projectID, ok := secrets.Data["projectId"]
+	projectID, ok := secrets.Data["project-id"]
 	if !ok {
-		errors = append(errors, fmt.Errorf("secret field 'projectId' is required"))
+		errors = append(errors, fmt.Errorf("secret field 'project-id' is required"))
 	} else if len(projectID) == 0 {
-		errors = append(errors, fmt.Errorf("secret field 'projectId' cannot be empty"))
+		errors = append(errors, fmt.Errorf("secret field 'project-id' cannot be empty"))
 	} else if !isValidUUID(string(projectID)) {
-		errors = append(errors, fmt.Errorf("secret field 'projectId' must be a valid UUID"))
+		errors = append(errors, fmt.Errorf("secret field 'project-id' must be a valid UUID"))
 	}
 
 	// Validate serviceAccountKey (required for authentication)
 	// ServiceAccount Key Flow: JSON string containing service account credentials and private key
-	serviceAccountKey, ok := secrets.Data["serviceAccountKey"]
+	serviceAccountKey, ok := secrets.Data["serviceaccount.json"]
 	if !ok {
-		errors = append(errors, fmt.Errorf("secret field 'serviceAccountKey' is required"))
+		errors = append(errors, fmt.Errorf("secret field 'serviceaccount.json' is required"))
 	} else if len(serviceAccountKey) == 0 {
-		errors = append(errors, fmt.Errorf("secret field 'serviceAccountKey' cannot be empty"))
+		errors = append(errors, fmt.Errorf("secret field 'serviceaccount.json' cannot be empty"))
 	} else if !isValidJSON(string(serviceAccountKey)) {
 		errors = append(errors, fmt.Errorf("secret field 'serviceAccountKey' must be valid JSON (service account credentials)"))
 	}

@@ -38,9 +38,9 @@ var _ = Describe("CreateMachine - Networking", func() {
 		// Create secret with basic required fields
 		secret = &corev1.Secret{
 			Data: map[string][]byte{
-				"projectId":         []byte("11111111-2222-3333-4444-555555555555"),
-				"serviceAccountKey": []byte(`{"credentials":{"iss":"test"}}`),
-				"region":            []byte("eu01-1"),
+				"project-id":          []byte("11111111-2222-3333-4444-555555555555"),
+				"serviceaccount.json": []byte(`{"credentials":{"iss":"test"}}`),
+				"region":              []byte("eu01-1"),
 			},
 		}
 
