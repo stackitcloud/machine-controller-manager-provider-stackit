@@ -40,7 +40,6 @@ var _ = Describe("CreateMachine", func() {
 			Data: map[string][]byte{
 				"project-id":          []byte("11111111-2222-3333-4444-555555555555"),
 				"serviceaccount.json": []byte(`{"credentials":{"iss":"test"}}`),
-				"region":              []byte("eu01-1"),
 				"networkId":           []byte("770e8400-e29b-41d4-a716-446655440000"),
 			},
 		}
@@ -49,6 +48,7 @@ var _ = Describe("CreateMachine", func() {
 		providerSpec := &api.ProviderSpec{
 			MachineType: "c2i.2",
 			ImageID:     "12345678-1234-1234-1234-123456789abc",
+			Region:      "eu01",
 		}
 		providerSpecRaw, _ := encodeProviderSpec(providerSpec)
 
@@ -82,6 +82,7 @@ var _ = Describe("CreateMachine", func() {
 		It("should pass KeypairName to API when specified", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType: "c2i.2",
+				Region:      "eu01",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				KeypairName: "my-ssh-key",
 			}
@@ -129,6 +130,7 @@ var _ = Describe("CreateMachine", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType:      "c2i.2",
 				ImageID:          "12345678-1234-1234-1234-123456789abc",
+				Region:           "eu01",
 				AvailabilityZone: "eu01-1",
 			}
 			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
@@ -174,6 +176,7 @@ var _ = Describe("CreateMachine", func() {
 		It("should pass AffinityGroup to API when specified", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType:   "c2i.2",
+				Region:        "eu01",
 				ImageID:       "12345678-1234-1234-1234-123456789abc",
 				AffinityGroup: "880e8400-e29b-41d4-a716-446655440000",
 			}
@@ -218,6 +221,7 @@ var _ = Describe("CreateMachine", func() {
 		It("should pass ServiceAccountMails to API when specified", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType: "c2i.2",
+				Region:      "eu01",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				ServiceAccountMails: []string{
 					"my-service@sa.stackit.cloud",
@@ -268,6 +272,7 @@ var _ = Describe("CreateMachine", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType: "c2i.2",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
+				Region:      "eu01",
 				Agent: &api.AgentSpec{
 					Provisioned: &provisioned,
 				},
@@ -314,6 +319,7 @@ var _ = Describe("CreateMachine", func() {
 		It("should pass Metadata to API when specified", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType: "c2i.2",
+				Region:      "eu01",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				Metadata: map[string]interface{}{
 					"environment": "production",

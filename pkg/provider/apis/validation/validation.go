@@ -30,8 +30,12 @@ var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]
 var machineTypeRegex = regexp.MustCompile(`^[a-z]+\d+[a-z]*\.\d+[a-z]*(\.[a-z]+\d+)*$`)
 
 // regionRegex is a regex pattern for validating STACKIT region format
+// Pattern: lowercase letters/digits (e.g., eu01, eu01)
+var regionRegex = regexp.MustCompile(`^[a-z0-9]+$`)
+
+// availabilityZoneRegex is a regex pattern for validating STACKIT availability zone format
 // Pattern: lowercase letters/digits followed by digits, dash, then digit(s) (e.g., eu01-1, eu01-2)
-var regionRegex = regexp.MustCompile(`^[a-z0-9]+-\d+$`)
+var availabilityZoneRegex = regexp.MustCompile(`^[a-z0-9]+-\d+$`)
 
 // labelKeyRegex validates Kubernetes label keys (must start/end with alphanumeric, can contain -, _, .)
 // Maximum length: 63 characters
@@ -74,13 +78,14 @@ func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret)
 	}
 
 	// Validate region (required for SDK)
-	region, ok := secrets.Data["region"]
-	if !ok {
-		errors = append(errors, fmt.Errorf("secret field 'region' is required"))
-	} else if len(region) == 0 {
-		errors = append(errors, fmt.Errorf("secret field 'region' cannot be empty"))
-	} else if !isValidRegion(string(region)) {
-		errors = append(errors, fmt.Errorf("secret field 'region' has invalid format (expected format: eu01-1, eu01-2, etc.)"))
+	if spec.Region == "" {
+		errors = append(errors, fmt.Errorf("providerSpec.Region cannot be empty"))
+	} else if !isValidRegion(spec.Region) {
+		errors = append(errors, fmt.Errorf("providerSpec.Region has invalid format (expected format: eu01, eu02, etc.)"))
+	}
+
+	if spec.AvailabilityZone != "" && !isValidAvailabilityZone(spec.AvailabilityZone) {
+		errors = append(errors, fmt.Errorf("providerSpec.availabilityZone has invalid format (expected format: eu01-1, eu01-2, etc.)"))
 	}
 
 	// Validate ProviderSpec
@@ -285,6 +290,11 @@ func isValidMachineType(s string) bool {
 // isValidRegion checks if a string matches the STACKIT region format
 func isValidRegion(s string) bool {
 	return regionRegex.MatchString(s)
+}
+
+// isValidAvailabilityZone checks if a string matches the STACKIT availability zone format
+func isValidAvailabilityZone(s string) bool {
+	return availabilityZoneRegex.MatchString(s)
 }
 
 // isValidJSON checks if a string is valid JSON

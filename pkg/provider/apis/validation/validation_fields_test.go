@@ -23,12 +23,12 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 		providerSpec = &api.ProviderSpec{
 			MachineType: "c2i.2",
 			ImageID:     "550e8400-e29b-41d4-a716-446655440000",
+			Region:      "eu01",
 		}
 		secret = &corev1.Secret{
 			Data: map[string][]byte{
 				"project-id":          []byte("11111111-2222-3333-4444-555555555555"),
 				"serviceaccount.json": []byte(`{"credentials":{"iss":"test"}}`),
-				"region":              []byte("eu01-1"),
 			},
 		}
 	})
@@ -70,6 +70,47 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 		})
 	})
 
+	Context("Region validation", func() {
+		It("should succeed with valid region", func() {
+			providerSpec.Region = "eu01"
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).To(BeEmpty())
+		})
+
+		It("should fail when region is empty", func() {
+			providerSpec.Region = ""
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors[0].Error()).To(ContainSubstring("Region cannot be empty"))
+		})
+
+		It("should succeed with various region formats", func() {
+			testCases := []string{
+				"eu01",
+				"eu02",
+				"eu10",
+				"us02",
+			}
+			for _, r := range testCases {
+				providerSpec.Region = r
+				errors := ValidateProviderSpecNSecret(providerSpec, secret)
+				Expect(errors).To(BeEmpty(), "Region %q should be valid", r)
+			}
+		})
+
+		It("should fail with various region formats", func() {
+			testCases := []string{
+				"eu01-1",
+				"eu02-b",
+				"us-east-01",
+			}
+			for _, r := range testCases {
+				providerSpec.Region = r
+				errors := ValidateProviderSpecNSecret(providerSpec, secret)
+				Expect(errors[0].Error()).To(ContainSubstring("Region has invalid format"))
+			}
+		})
+	})
+
 	Context("AvailabilityZone validation", func() {
 		It("should succeed with valid availabilityZone", func() {
 			providerSpec.AvailabilityZone = "eu01-1"
@@ -87,8 +128,8 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 			testCases := []string{
 				"eu01-1",
 				"eu01-2",
-				"us-west-1a",
-				"zone-1",
+				"eu02-1",
+				"eu02-4",
 			}
 			for _, az := range testCases {
 				providerSpec.AvailabilityZone = az

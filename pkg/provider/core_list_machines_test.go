@@ -49,6 +49,7 @@ var _ = Describe("ListMachines", func() {
 		providerSpec := &api.ProviderSpec{
 			MachineType: "c2i.2",
 			ImageID:     "image-uuid-123",
+			Region:      "eu01",
 		}
 		providerSpecRaw, _ := encodeProviderSpec(providerSpec)
 

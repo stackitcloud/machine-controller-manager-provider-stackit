@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"regexp"
 
 	"github.com/stackitcloud/stackit-sdk-go/core/config"
 	"github.com/stackitcloud/stackit-sdk-go/core/oapierror"
@@ -79,28 +78,6 @@ func createIAASClient(serviceAccountKey string) (*iaas.APIClient, error) {
 	}
 
 	return iaasClient, nil
-}
-
-// validRegionPattern matches STACKIT region formats like "eu01-1", "eu01-2"
-// Pattern: <2 letters><2 digits>-<zone number>
-var validRegionPattern = regexp.MustCompile(`^[a-z]{2}\d{2}-\d+$`)
-
-// extractRegion extracts and validates the region from the secret data
-// Region is required by STACKIT SDK v1.0.0+
-func extractRegion(secretData map[string][]byte) (string, error) {
-	region, ok := secretData["region"]
-	if !ok || len(region) == 0 {
-		return "", fmt.Errorf("'region' field is required in Secret (e.g., 'eu01-1')")
-	}
-
-	regionStr := string(region)
-
-	// Validate region format
-	if !validRegionPattern.MatchString(regionStr) {
-		return "", fmt.Errorf("invalid region format '%s': must match pattern '<location><number>-<zone>' (e.g., 'eu01-1', 'eu01-2')", regionStr)
-	}
-
-	return regionStr, nil
 }
 
 // CreateServer creates a new server via STACKIT SDK

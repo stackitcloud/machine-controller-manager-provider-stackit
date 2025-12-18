@@ -23,12 +23,12 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 		providerSpec = &api.ProviderSpec{
 			MachineType: "c2i.2",
 			ImageID:     "550e8400-e29b-41d4-a716-446655440000",
+			Region:      "eu01",
 		}
 		secret = &corev1.Secret{
 			Data: map[string][]byte{
 				"project-id":          []byte("11111111-2222-3333-4444-555555555555"),
 				"serviceaccount.json": []byte(`{"credentials":{"iss":"test"}}`),
-				"region":              []byte("eu01-1"),
 			},
 		}
 	})

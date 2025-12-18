@@ -43,7 +43,6 @@ var _ = Describe("DeleteMachine", func() {
 			Data: map[string][]byte{
 				"projectId":         []byte("11111111-2222-3333-4444-555555555555"),
 				"serviceAccountKey": []byte(`{"credentials":{"iss":"test"}}`),
-				"region":            []byte("eu01-1"),
 				"networkId":         []byte("770e8400-e29b-41d4-a716-446655440000"),
 			},
 		}
@@ -52,6 +51,7 @@ var _ = Describe("DeleteMachine", func() {
 		providerSpec := &api.ProviderSpec{
 			MachineType: "c2i.2",
 			ImageID:     "image-uuid-123",
+			Region:      "eu01",
 		}
 		providerSpecRaw, _ := encodeProviderSpec(providerSpec)
 

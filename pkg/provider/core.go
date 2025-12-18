@@ -53,7 +53,6 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	// Extract credentials from Secret
 	projectID := string(req.Secret.Data["project-id"])
 	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
-	region := string(req.Secret.Data["region"])
 
 	// Initialize client on first use (lazy initialization)
 	if err := p.ensureClient(serviceAccountKey); err != nil {
@@ -171,7 +170,7 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	}
 
 	// Call STACKIT API to create server
-	server, err := p.client.CreateServer(ctx, projectID, region, createReq)
+	server, err := p.client.CreateServer(ctx, projectID, providerSpec.Region, createReq)
 	if err != nil {
 		klog.Errorf("Failed to create server for machine %q: %v", req.Machine.Name, err)
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to create server: %v", err))
@@ -211,7 +210,6 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 
 	// Extract credentials from Secret
 	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
-	region := string(req.Secret.Data["region"])
 
 	// Initialize client on first use (lazy initialization)
 	if err := p.ensureClient(serviceAccountKey); err != nil {
@@ -227,8 +225,13 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("invalid ProviderID format: %v", err))
 	}
 
+	providerSpec, err := decodeProviderSpec(req.MachineClass)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
 	// Call STACKIT API to delete server
-	err = p.client.DeleteServer(ctx, projectID, region, serverID)
+	err = p.client.DeleteServer(ctx, projectID, providerSpec.Region, serverID)
 	if err != nil {
 		// Check if server was not found (404) - this is OK for idempotency
 		if errors.Is(err, ErrServerNotFound) {
@@ -273,7 +276,6 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 
 	// Extract credentials from Secret
 	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
-	region := string(req.Secret.Data["region"])
 
 	// Initialize client on first use (lazy initialization)
 	if err := p.ensureClient(serviceAccountKey); err != nil {
@@ -290,8 +292,14 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("invalid ProviderID format: %v", err))
 	}
 
+	// Decode ProviderSpec from MachineClass
+	providerSpec, err := decodeProviderSpec(req.MachineClass)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
 	// Call STACKIT API to get server status
-	server, err := p.client.GetServer(ctx, projectID, region, serverID)
+	server, err := p.client.GetServer(ctx, projectID, providerSpec.Region, serverID)
 	if err != nil {
 		// Check if server was not found (404)
 		if errors.Is(err, ErrServerNotFound) {
@@ -330,15 +338,20 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 	// Extract credentials from Secret
 	projectID := string(req.Secret.Data["project-id"])
 	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
-	region := string(req.Secret.Data["region"])
 
 	// Initialize client on first use (lazy initialization)
 	if err := p.ensureClient(serviceAccountKey); err != nil {
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to initialize STACKIT client: %v", err))
 	}
 
+	// Decode ProviderSpec from MachineClass
+	providerSpec, err := decodeProviderSpec(req.MachineClass)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
 	// Call STACKIT API to list all servers
-	servers, err := p.client.ListServers(ctx, projectID, region)
+	servers, err := p.client.ListServers(ctx, projectID, providerSpec.Region)
 	if err != nil {
 		klog.Errorf("Failed to list servers for MachineClass %q: %v", req.MachineClass.Name, err)
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to list servers: %v", err))
