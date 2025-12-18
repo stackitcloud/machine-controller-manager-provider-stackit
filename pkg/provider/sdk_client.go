@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"regexp"
 
 	"github.com/stackitcloud/stackit-sdk-go/core/config"
 	"github.com/stackitcloud/stackit-sdk-go/core/oapierror"
@@ -80,10 +79,6 @@ func createIAASClient(serviceAccountKey string) (*iaas.APIClient, error) {
 
 	return iaasClient, nil
 }
-
-// validRegionPattern matches STACKIT region formats like "eu01-1", "eu01-2"
-// Pattern: <2 letters><2 digits>-<zone number>
-var validRegionPattern = regexp.MustCompile(`^[a-z]{2}\d{2}-\d+$`)
 
 // CreateServer creates a new server via STACKIT SDK
 //
