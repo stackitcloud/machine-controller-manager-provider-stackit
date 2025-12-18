@@ -40,7 +40,6 @@ var _ = Describe("CreateMachine - Networking", func() {
 			Data: map[string][]byte{
 				"project-id":          []byte("11111111-2222-3333-4444-555555555555"),
 				"serviceaccount.json": []byte(`{"credentials":{"iss":"test"}}`),
-				"region":              []byte("eu01-1"),
 			},
 		}
 
@@ -57,6 +56,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 		It("should use networkId from ProviderSpec", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType: "c1.2",
+				Region:      "eu01",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				Networking: &api.NetworkingSpec{
 					NetworkID: "770e8400-e29b-41d4-a716-446655440000",
@@ -100,6 +100,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 		It("should use nicIds from ProviderSpec", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType: "c1.2",
+				Region:      "eu01",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				Networking: &api.NetworkingSpec{
 					NICIDs: []string{
@@ -154,6 +155,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType: "c1.2",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
+				Region:      "eu01",
 				// Networking is nil - should fall back to Secret
 			}
 			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
@@ -195,6 +197,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType: "c1.2",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
+				Region:      "eu01",
 				// Networking is nil
 			}
 			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
@@ -241,6 +244,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType: "c1.2",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
+				Region:      "eu01",
 				Networking: &api.NetworkingSpec{
 					NetworkID: "990e8400-e29b-41d4-a716-446655440002",
 				},
@@ -287,6 +291,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType: "c1.2",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
+				Region:      "eu01",
 				Networking:  &api.NetworkingSpec{
 					// Both NetworkID and NICIDs are empty - should fail validation
 				},
