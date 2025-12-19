@@ -53,7 +53,6 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	// Extract credentials from Secret
 	projectID := string(req.Secret.Data["project-id"])
 	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
-	region := providerSpec.Region
 
 	// Initialize client on first use (lazy initialization)
 	if err := p.ensureClient(serviceAccountKey); err != nil {
@@ -220,7 +219,6 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 
 	// Extract credentials from Secret
 	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
-	region := providerSpec.Region
 
 	// Initialize client on first use (lazy initialization)
 	if err := p.ensureClient(serviceAccountKey); err != nil {
@@ -234,11 +232,6 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 	}
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("invalid ProviderID format: %v", err))
-	}
-
-	providerSpec, err := decodeProviderSpec(req.MachineClass)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	// Call STACKIT API to delete server
@@ -293,7 +286,6 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 
 	// Extract credentials from Secret
 	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
-	region := providerSpec.Region
 
 	// Initialize client on first use (lazy initialization)
 	if err := p.ensureClient(serviceAccountKey); err != nil {
@@ -308,12 +300,6 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 	}
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("invalid ProviderID format: %v", err))
-	}
-
-	// Decode ProviderSpec from MachineClass
-	providerSpec, err := decodeProviderSpec(req.MachineClass)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	// Call STACKIT API to get server status
@@ -362,17 +348,10 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 	// Extract credentials from Secret
 	projectID := string(req.Secret.Data["project-id"])
 	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
-	region := providerSpec.Region
 
 	// Initialize client on first use (lazy initialization)
 	if err := p.ensureClient(serviceAccountKey); err != nil {
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to initialize STACKIT client: %v", err))
-	}
-
-	// Decode ProviderSpec from MachineClass
-	providerSpec, err := decodeProviderSpec(req.MachineClass)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	// Call STACKIT API to list all servers
