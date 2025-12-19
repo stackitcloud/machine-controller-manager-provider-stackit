@@ -32,9 +32,6 @@ type ProviderSpec struct {
 	// Optional field. If not specified, the project's default security group will be used.
 	SecurityGroups []string `json:"securityGroups,omitempty"`
 
-	// Region is the region where the server will be created.
-	Region string `json:"region,omitempty"`
-
 	// UserData is cloud-init script or user data for VM bootstrapping
 	// Optional field. Can be used to override Secret.userData for this MachineClass.
 	// If specified, takes precedence over Secret.userData.
