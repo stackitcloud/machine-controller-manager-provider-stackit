@@ -50,7 +50,8 @@ var (
 // - More secure than static tokens (short-lived, rotating)
 func createIAASClient(serviceAccountKey string) (*iaas.APIClient, error) {
 	// Configure SDK with custom base URL if provided (for testing with mock server)
-	baseURL := os.Getenv("STACKIT_API_ENDPOINT")
+	baseURL := os.Getenv("STACKIT_IAAS_ENDPOINT")
+	tokenEndpoint := os.Getenv("STACKIT_TOKEN_BASEURL")
 	noAuth := os.Getenv("STACKIT_NO_AUTH") == "true"
 
 	var opts []config.ConfigurationOption
@@ -70,6 +71,10 @@ func createIAASClient(serviceAccountKey string) (*iaas.APIClient, error) {
 
 	if baseURL != "" {
 		opts = append(opts, config.WithEndpoint(baseURL))
+	}
+
+	if tokenEndpoint != "" {
+		opts = append(opts, config.WithTokenEndpoint(tokenEndpoint))
 	}
 
 	iaasClient, err := iaas.NewAPIClient(opts...)
