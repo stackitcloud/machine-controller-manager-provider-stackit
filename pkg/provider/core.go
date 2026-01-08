@@ -18,6 +18,8 @@ import (
 	"k8s.io/klog/v2"
 )
 
+const STACKIT_PROVIDER = "stackit"
+
 // CreateMachine handles a machine creation request by creating a STACKIT server
 //
 // This method creates a new server in STACKIT infrastructure based on the ProviderSpec
@@ -37,6 +39,12 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	// Log messages to track request
 	klog.V(2).Infof("Machine creation request has been received for %q", req.Machine.Name)
 	defer klog.V(2).Infof("Machine creation request has been processed for %q", req.Machine.Name)
+
+	// Check if incoming provider in the MachineClass is a provider we support
+	if req.MachineClass.Provider != STACKIT_PROVIDER {
+		err := fmt.Errorf("requested for Provider '%s', we only support '%s'", req.MachineClass.Provider, STACKIT_PROVIDER)
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
 
 	// Decode ProviderSpec from MachineClass
 	providerSpec, err := decodeProviderSpec(req.MachineClass)
@@ -177,7 +185,7 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	}
 
 	// Generate ProviderID in format: stackit://<projectId>/<serverId>
-	providerID := fmt.Sprintf("stackit://%s/%s", projectID, server.ID)
+	providerID := fmt.Sprintf("%s://%s/%s", STACKIT_PROVIDER, projectID, server.ID)
 
 	// NodeName is the machine name (will register with this name in Kubernetes)
 	nodeName := req.Machine.Name
@@ -351,7 +359,8 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 	}
 
 	// Call STACKIT API to list all servers
-	servers, err := p.client.ListServers(ctx, projectID, providerSpec.Region)
+	labelSelector := "mcm.gardener.cloud/machineclass=" + req.MachineClass.Name
+	servers, err := p.client.ListServers(ctx, projectID, providerSpec.Region, labelSelector)
 	if err != nil {
 		klog.Errorf("Failed to list servers for MachineClass %q: %v", req.MachineClass.Name, err)
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to list servers: %v", err))
@@ -361,26 +370,16 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 	// We use the "mcm.gardener.cloud/machineclass" label to identify which servers belong to this MachineClass
 	machineList := make(map[string]string)
 	for _, server := range servers {
-		// Skip servers without labels
-		if server.Labels == nil {
-			continue
+		// Generate ProviderID in format: stackit://<projectId>/<serverId>
+		providerID := fmt.Sprintf("stackit://%s/%s", projectID, server.ID)
+
+		// Get machine name from labels (fallback to server name if not found)
+		machineName := server.Name
+		if machineLabel, ok := server.Labels["mcm.gardener.cloud/machine"]; ok {
+			machineName = machineLabel
 		}
 
-		// Check if server has the matching MachineClass label
-		if machineClassLabel, ok := server.Labels["mcm.gardener.cloud/machineclass"]; ok {
-			if machineClassLabel == req.MachineClass.Name {
-				// Generate ProviderID in format: stackit://<projectId>/<serverId>
-				providerID := fmt.Sprintf("stackit://%s/%s", projectID, server.ID)
-
-				// Get machine name from labels (fallback to server name if not found)
-				machineName := server.Name
-				if machineLabel, ok := server.Labels["mcm.gardener.cloud/machine"]; ok {
-					machineName = machineLabel
-				}
-
-				machineList[providerID] = machineName
-			}
-		}
+		machineList[providerID] = machineName
 	}
 
 	klog.V(2).Infof("Found %d machines for MachineClass %q", len(machineList), req.MachineClass.Name)

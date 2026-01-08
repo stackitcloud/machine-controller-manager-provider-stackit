@@ -89,6 +89,21 @@ func createIAASClient(serviceAccountKey string) (*iaas.APIClient, error) {
 //
 //nolint:gocyclo//TODO:refactor
 func (c *SdkStackitClient) CreateServer(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
+	// Check if the server got already created
+	labelSelector := "mcm.gardener.cloud/machine=" + req.Name
+	servers, err := c.ListServers(ctx, projectID, region, labelSelector)
+	if err != nil {
+		return nil, fmt.Errorf("SDK ListServers with labelSelector: %v failed: %w", labelSelector, err)
+	}
+
+	if len(servers) > 1 {
+		return nil, fmt.Errorf("%v servers found for server name %v", len(servers), req.Name)
+	}
+
+	if len(servers) == 1 {
+		return servers[0], nil
+	}
+
 	// Convert our request to SDK payload
 	payload := &iaas.CreateServerPayload{
 		Name:        ptr(req.Name),
@@ -258,8 +273,14 @@ func (c *SdkStackitClient) DeleteServer(ctx context.Context, projectID, region, 
 }
 
 // ListServers lists all servers in a project via STACKIT SDK
-func (c *SdkStackitClient) ListServers(ctx context.Context, projectID, region string) ([]*Server, error) {
-	sdkResponse, err := c.iaasClient.ListServers(ctx, projectID, region).Execute()
+func (c *SdkStackitClient) ListServers(ctx context.Context, projectID, region, labelSelector string) ([]*Server, error) {
+	serverRequest := c.iaasClient.ListServers(ctx, projectID, region)
+
+	if labelSelector != "" {
+		serverRequest.LabelSelector(labelSelector)
+	}
+
+	sdkResponse, err := serverRequest.Execute()
 	if err != nil {
 		return nil, fmt.Errorf("SDK ListServers failed: %w", err)
 	}
