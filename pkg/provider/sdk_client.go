@@ -277,7 +277,7 @@ func (c *SdkStackitClient) ListServers(ctx context.Context, projectID, region, l
 	serverRequest := c.iaasClient.ListServers(ctx, projectID, region)
 
 	if labelSelector != "" {
-		serverRequest.LabelSelector(labelSelector)
+		serverRequest = serverRequest.LabelSelector(labelSelector)
 	}
 
 	sdkResponse, err := serverRequest.Execute()
