@@ -87,7 +87,7 @@ func createIAASClient(serviceAccountKey string) (*iaas.APIClient, error) {
 
 // CreateServer creates a new server via STACKIT SDK
 //
-//nolint:gocyclo//TODO:refactor
+//nolint:gocyclo,funlen//TODO:refactor
 func (c *SdkStackitClient) CreateServer(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
 	// Check if the server got already created
 	labelSelector := "mcm.gardener.cloud/machine=" + req.Name

@@ -18,7 +18,7 @@ import (
 	"k8s.io/klog/v2"
 )
 
-const STACKIT_PROVIDER = "stackit"
+const StackitProviderName = "stackit"
 
 // CreateMachine handles a machine creation request by creating a STACKIT server
 //
@@ -41,8 +41,8 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	defer klog.V(2).Infof("Machine creation request has been processed for %q", req.Machine.Name)
 
 	// Check if incoming provider in the MachineClass is a provider we support
-	if req.MachineClass.Provider != STACKIT_PROVIDER {
-		err := fmt.Errorf("requested for Provider '%s', we only support '%s'", req.MachineClass.Provider, STACKIT_PROVIDER)
+	if req.MachineClass.Provider != StackitProviderName {
+		err := fmt.Errorf("requested for Provider '%s', we only support '%s'", req.MachineClass.Provider, StackitProviderName)
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
@@ -185,7 +185,7 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	}
 
 	// Generate ProviderID in format: stackit://<projectId>/<serverId>
-	providerID := fmt.Sprintf("%s://%s/%s", STACKIT_PROVIDER, projectID, server.ID)
+	providerID := fmt.Sprintf("%s://%s/%s", StackitProviderName, projectID, server.ID)
 
 	// NodeName is the machine name (will register with this name in Kubernetes)
 	nodeName := req.Machine.Name
