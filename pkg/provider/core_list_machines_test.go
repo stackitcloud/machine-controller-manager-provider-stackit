@@ -72,7 +72,9 @@ var _ = Describe("ListMachines", func() {
 
 	Context("with valid inputs", func() {
 		It("should list machines filtered by MachineClass label", func() {
-			mockClient.listServersFunc = func(_ context.Context, _, _ string) ([]*Server, error) {
+			mockClient.listServersFunc = func(_ context.Context, _, _, selector string) ([]*Server, error) {
+				Expect(selector).To(ContainSubstring("mcm.gardener.cloud/machineclass=test-machine-class"))
+
 				return []*Server{
 					{
 						ID:   "server-1",
@@ -90,14 +92,6 @@ var _ = Describe("ListMachines", func() {
 							"mcm.gardener.cloud/machine":      "machine-2",
 						},
 					},
-					{
-						ID:   "server-3",
-						Name: "machine-3",
-						Labels: map[string]string{
-							"mcm.gardener.cloud/machineclass": "other-machine-class",
-							"mcm.gardener.cloud/machine":      "machine-3",
-						},
-					},
 				}, nil
 			}
 
@@ -112,27 +106,7 @@ var _ = Describe("ListMachines", func() {
 		})
 
 		It("should return empty list when no servers match", func() {
-			mockClient.listServersFunc = func(_ context.Context, _, _ string) ([]*Server, error) {
-				return []*Server{
-					{
-						ID:   "server-1",
-						Name: "machine-1",
-						Labels: map[string]string{
-							"mcm.gardener.cloud/machineclass": "other-machine-class",
-						},
-					},
-				}, nil
-			}
-
-			resp, err := provider.ListMachines(ctx, req)
-
-			Expect(err).NotTo(HaveOccurred())
-			Expect(resp).NotTo(BeNil())
-			Expect(resp.MachineList).To(BeEmpty())
-		})
-
-		It("should return empty list when no servers exist", func() {
-			mockClient.listServersFunc = func(_ context.Context, _, _ string) ([]*Server, error) {
+			mockClient.listServersFunc = func(_ context.Context, _, _, _ string) ([]*Server, error) {
 				return []*Server{}, nil
 			}
 
@@ -143,37 +117,22 @@ var _ = Describe("ListMachines", func() {
 			Expect(resp.MachineList).To(BeEmpty())
 		})
 
-		It("should handle servers without labels gracefully", func() {
-			mockClient.listServersFunc = func(_ context.Context, _, _ string) ([]*Server, error) {
-				return []*Server{
-					{
-						ID:     "server-1",
-						Name:   "machine-1",
-						Labels: nil, // No labels
-					},
-					{
-						ID:   "server-2",
-						Name: "machine-2",
-						Labels: map[string]string{
-							"mcm.gardener.cloud/machineclass": "test-machine-class",
-							"mcm.gardener.cloud/machine":      "machine-2",
-						},
-					},
-				}, nil
+		It("should return empty list when no servers exist", func() {
+			mockClient.listServersFunc = func(_ context.Context, _, _, _ string) ([]*Server, error) {
+				return []*Server{}, nil
 			}
 
 			resp, err := provider.ListMachines(ctx, req)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp).NotTo(BeNil())
-			Expect(resp.MachineList).To(HaveLen(1))
-			Expect(resp.MachineList).To(HaveKeyWithValue("stackit://11111111-2222-3333-4444-555555555555/server-2", "machine-2"))
+			Expect(resp.MachineList).To(BeEmpty())
 		})
 	})
 
 	Context("when STACKIT API fails", func() {
 		It("should return Internal error on API failure", func() {
-			mockClient.listServersFunc = func(_ context.Context, _, _ string) ([]*Server, error) {
+			mockClient.listServersFunc = func(_ context.Context, _, _, _ string) ([]*Server, error) {
 				return nil, fmt.Errorf("API connection failed")
 			}
 

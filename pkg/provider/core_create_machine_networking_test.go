@@ -68,6 +68,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-machine-class",
 				},
+				Provider: "stackit",
 				ProviderSpec: runtime.RawExtension{
 					Raw: providerSpecRaw,
 				},
@@ -115,6 +116,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-machine-class",
 				},
+				Provider: "stackit",
 				ProviderSpec: runtime.RawExtension{
 					Raw: providerSpecRaw,
 				},
@@ -164,6 +166,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-machine-class",
 				},
+				Provider: "stackit",
 				ProviderSpec: runtime.RawExtension{
 					Raw: providerSpecRaw,
 				},
@@ -206,6 +209,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-machine-class",
 				},
+				Provider: "stackit",
 				ProviderSpec: runtime.RawExtension{
 					Raw: providerSpecRaw,
 				},
@@ -255,6 +259,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-machine-class",
 				},
+				Provider: "stackit",
 				ProviderSpec: runtime.RawExtension{
 					Raw: providerSpecRaw,
 				},
@@ -302,6 +307,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-machine-class",
 				},
+				Provider: "stackit",
 				ProviderSpec: runtime.RawExtension{
 					Raw: providerSpecRaw,
 				},

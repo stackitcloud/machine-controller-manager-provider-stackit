@@ -58,6 +58,7 @@ var _ = Describe("CreateMachine", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-machine-class",
 			},
+			Provider: "stackit",
 			ProviderSpec: runtime.RawExtension{
 				Raw: providerSpecRaw,
 			},

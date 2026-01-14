@@ -60,6 +60,7 @@ var _ = Describe("CreateMachine", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-machine-class",
 			},
+			Provider: "stackit",
 			ProviderSpec: runtime.RawExtension{
 				Raw: providerSpecRaw,
 			},
@@ -147,6 +148,15 @@ var _ = Describe("CreateMachine", func() {
 			statusErr, ok := status.FromError(err)
 			Expect(ok).To(BeTrue())
 			Expect(statusErr.Code()).To(Equal(codes.InvalidArgument))
+		})
+
+		It("should fail when Provider is wrong", func() {
+			req.MachineClass.Provider = "openstack"
+
+			_, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("requested for Provider 'openstack', we only support 'stackit'"))
 		})
 	})
 
