@@ -364,7 +364,7 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 	}
 
 	// Call STACKIT API to list all servers
-	labelSelector := StackitMachineClassLabel + "=" + req.MachineClass.Name
+	labelSelector := fmt.Sprintf("%s=%s", StackitMachineClassLabel, req.MachineClass.Name)
 	servers, err := p.client.ListServers(ctx, projectID, providerSpec.Region, labelSelector)
 	if err != nil {
 		klog.Errorf("Failed to list servers for MachineClass %q: %v", req.MachineClass.Name, err)
