@@ -18,7 +18,12 @@ import (
 	"k8s.io/klog/v2"
 )
 
-const StackitProviderName = "stackit"
+const (
+	StackitProviderName      = "stackit"
+	StackitMachineLabel      = "mcm.gardener.cloud/machine"
+	StackitMachineClassLabel = "mcm.gardener.cloud/machineclass"
+	StackitRoleLabel         = "mcm.gardener.cloud/role"
+)
 
 // CreateMachine handles a machine creation request by creating a STACKIT server
 //
@@ -76,9 +81,9 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		}
 	}
 	// Add MCM-specific labels for server identification and orphan VM detection
-	labels["mcm.gardener.cloud/machine"] = req.Machine.Name
-	labels["mcm.gardener.cloud/machineclass"] = req.MachineClass.Name
-	labels["mcm.gardener.cloud/role"] = "node"
+	labels[StackitMachineLabel] = req.Machine.Name
+	labels[StackitMachineClassLabel] = req.MachineClass.Name
+	labels[StackitRoleLabel] = "node"
 
 	// Create server request
 	createReq := &CreateServerRequest{
@@ -359,7 +364,7 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 	}
 
 	// Call STACKIT API to list all servers
-	labelSelector := "mcm.gardener.cloud/machineclass=" + req.MachineClass.Name
+	labelSelector := StackitMachineClassLabel + "=" + req.MachineClass.Name
 	servers, err := p.client.ListServers(ctx, projectID, providerSpec.Region, labelSelector)
 	if err != nil {
 		klog.Errorf("Failed to list servers for MachineClass %q: %v", req.MachineClass.Name, err)
@@ -375,7 +380,7 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 
 		// Get machine name from labels (fallback to server name if not found)
 		machineName := server.Name
-		if machineLabel, ok := server.Labels["mcm.gardener.cloud/machine"]; ok {
+		if machineLabel, ok := server.Labels[StackitMachineLabel]; ok {
 			machineName = machineLabel
 		}
 
