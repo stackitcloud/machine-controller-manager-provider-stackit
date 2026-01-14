@@ -28,6 +28,10 @@ type ProviderSpec struct {
 	// Optional field. If not specified, the server may use default networking or require manual configuration.
 	Networking *NetworkingSpec `json:"networking,omitempty"`
 
+	// AllowedAddresses are the IP address ranges (CIDRs) allowed to originate traffic from the server's network interface.
+	// Optional field. If specified, these ranges are configured as AllowedAddresses on the network interface of the server to bypass anti-spoofing rules.
+	AllowedAddresses []string `json:"allowedAddresses,omitempty"`
+
 	// SecurityGroups are the names of security groups to attach to the server
 	// Optional field. If not specified, the project's default security group will be used.
 	SecurityGroups []string `json:"securityGroups,omitempty"`

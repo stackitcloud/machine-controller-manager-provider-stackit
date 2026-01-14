@@ -27,6 +27,10 @@ type StackitClient interface {
 	DeleteServer(ctx context.Context, projectID, region, serverID string) error
 	// ListServers lists all servers in a project
 	ListServers(ctx context.Context, projectID, region, labelSelector string) ([]*Server, error)
+	// GetNICsForServer retrieves a network interfaces for a given server
+	GetNICsForServer(ctx context.Context, projectID, region, serverID string) ([]*NIC, error)
+	// UpdateNIC updates a network interface
+	UpdateNIC(ctx context.Context, projectID, region, networkID, nicID string, allowedAddresses []string) (*NIC, error)
 }
 
 // CreateServerRequest represents the request to create a server
@@ -85,4 +89,11 @@ type Server struct {
 	Name   string            `json:"name"`
 	Status string            `json:"status"`
 	Labels map[string]string `json:"labels,omitempty"`
+}
+
+// NIC represents a STACKIT network interface
+type NIC struct {
+	ID               string
+	NetworkID        string
+	AllowedAddresses []string
 }

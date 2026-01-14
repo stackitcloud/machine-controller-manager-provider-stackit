@@ -10,10 +10,12 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/codes"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/status"
+	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis/validation"
 	"k8s.io/klog/v2"
 )
@@ -189,18 +191,60 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to create server: %v", err))
 	}
 
+	if err := p.patchNetworkInterface(ctx, projectID, server.ID, providerSpec); err != nil {
+		klog.Errorf("Failed to patch network interface for server %q: %v", req.Machine.Name, err)
+		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to patch network interface for server: %v", err))
+	}
+
 	// Generate ProviderID in format: stackit://<projectId>/<serverId>
 	providerID := fmt.Sprintf("%s://%s/%s", StackitProviderName, projectID, server.ID)
-
-	// NodeName is the machine name (will register with this name in Kubernetes)
-	nodeName := req.Machine.Name
 
 	klog.V(2).Infof("Successfully created server %q with ID %q for machine %q", server.Name, server.ID, req.Machine.Name)
 
 	return &driver.CreateMachineResponse{
 		ProviderID: providerID,
-		NodeName:   nodeName,
+		NodeName:   req.Machine.Name,
 	}, nil
+}
+
+func (p *Provider) patchNetworkInterface(ctx context.Context, projectID, serverID string, providerSpec *api.ProviderSpec) error {
+	if providerSpec.Networking == nil {
+		// TODO: should we also patch nics from the default network?
+		return nil
+		// return fmt.Errorf("failed to path allowedAddresses, providerspec.networking is nil")
+	}
+
+	nics, err := p.client.GetNICsForServer(ctx, projectID, providerSpec.Region, serverID)
+	if err != nil {
+		return fmt.Errorf("failed to get NICs for server %q: %w", serverID, err)
+	}
+
+	for _, nic := range nics {
+		if providerSpec.Networking.NetworkID != nic.NetworkID && !slices.Contains(providerSpec.Networking.NICIDs, nic.ID) {
+			continue
+		}
+
+		updateNic := false
+		// check if every cidr in providerspec.allowedAddresses is inside the nic allowedAddresses
+		for _, allowedAddress := range providerSpec.AllowedAddresses {
+			if !slices.Contains(nic.AllowedAddresses, allowedAddress) {
+				nic.AllowedAddresses = append(nic.AllowedAddresses, allowedAddress)
+				updateNic = true
+			}
+		}
+
+		if !updateNic {
+			continue
+		}
+
+		if _, err := p.client.UpdateNIC(ctx, projectID, providerSpec.Region, nic.NetworkID, nic.ID, nic.AllowedAddresses); err != nil {
+			return fmt.Errorf("failed to update allowed addresses for NIC %s: %w", nic.ID, err)
+		}
+
+		klog.V(2).Infof("Updated allowed addresses for NIC %s to %v", nic.ID, nic.AllowedAddresses)
+	}
+
+	return nil
 }
 
 // DeleteMachine handles a machine deletion request by deleting the STACKIT server

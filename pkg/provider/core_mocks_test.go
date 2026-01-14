@@ -17,6 +17,8 @@ type mockStackitClient struct {
 	getServerFunc    func(ctx context.Context, projectID, region, serverID string) (*Server, error)
 	deleteServerFunc func(ctx context.Context, projectID, region, serverID string) error
 	listServersFunc  func(ctx context.Context, projectID, region, labelSelector string) ([]*Server, error)
+	getNICsFunc      func(ctx context.Context, projectID, region, serverID string) ([]*NIC, error)
+	updateNICFunc    func(ctx context.Context, projectID, region, networkID, nicID string, allowedAddresses []string) (*NIC, error)
 }
 
 func (m *mockStackitClient) CreateServer(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
@@ -54,6 +56,22 @@ func (m *mockStackitClient) ListServers(ctx context.Context, projectID, region, 
 	}
 	return []*Server{}, nil
 }
+
+func (m *mockStackitClient) GetNICsForServer(ctx context.Context, projectID, region, serverID string) ([]*NIC, error) {
+	if m.getNICsFunc != nil {
+		return m.getNICsFunc(ctx, projectID, region, serverID)
+	}
+	return []*NIC{}, nil
+}
+
+func (m *mockStackitClient) UpdateNIC(ctx context.Context, projectID, region, networkID, nicID string, allowedAddresses []string) (*NIC, error) {
+	if m.listServersFunc != nil {
+		return m.updateNICFunc(ctx, projectID, region, networkID, nicID, allowedAddresses)
+	}
+	return &NIC{}, nil
+}
+
+// UpdateNIC updates a network interface
 
 // encodeProviderSpec is a helper function to encode ProviderSpec for tests
 func encodeProviderSpec(spec *api.ProviderSpec) ([]byte, error) {
