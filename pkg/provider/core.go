@@ -11,12 +11,14 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/codes"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/status"
 	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis/validation"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 )
 
@@ -191,20 +193,58 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to create server: %v", err))
 	}
 
-	if err := p.patchNetworkInterface(ctx, projectID, server.ID, providerSpec); err != nil {
+	activeServer, err := p.waitForServerStatus(ctx, projectID, providerSpec.Region, server.ID)
+	if err != nil {
+		klog.Errorf("Server failed to become active for machine: %q: %v", req.Machine.Name, err)
+		return nil, status.Error(codes.Internal, fmt.Sprintf("server failed to become active: %v", err))
+	}
+
+	if err := p.patchNetworkInterface(ctx, projectID, activeServer.ID, providerSpec); err != nil {
 		klog.Errorf("Failed to patch network interface for server %q: %v", req.Machine.Name, err)
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to patch network interface for server: %v", err))
 	}
 
 	// Generate ProviderID in format: stackit://<projectId>/<serverId>
 	providerID := fmt.Sprintf("%s://%s/%s", StackitProviderName, projectID, server.ID)
-
 	klog.V(2).Infof("Successfully created server %q with ID %q for machine %q", server.Name, server.ID, req.Machine.Name)
 
 	return &driver.CreateMachineResponse{
 		ProviderID: providerID,
 		NodeName:   req.Machine.Name,
 	}, nil
+}
+
+func (p *Provider) waitForServerStatus(ctx context.Context, projectID, region, serverID string) (*Server, error) {
+	var server *Server
+	return server, wait.PollUntilContextTimeout(
+		ctx,
+		10*time.Second,
+		time.Duration(120)*time.Second,
+		true,
+		func(_ context.Context) (done bool, err error) {
+			current, err := p.client.GetServer(ctx, projectID, region, serverID)
+			if err != nil {
+				return false, err
+			}
+
+			klog.V(5).Infof("waiting for server [ID=%q] and current status %v, to reach status ACTIVE.", serverID, current.Status)
+			if current.Status == "ACTIVE" {
+				server = current
+				return true, nil
+			}
+
+			if current.Status == "CREATING" || current.Status == "STARTING" {
+				return false, nil
+			}
+
+			// TODO: maybe check for other status conditions here
+			retErr := fmt.Errorf("server [ID=%q] reached unexpected status %q", serverID, current.Status)
+			// if current.Status == "ERROR" {
+			// retErr = fmt.Errorf("%s, fault: %+v", retErr, current.Fault)
+			// }
+
+			return false, retErr
+		})
 }
 
 func (p *Provider) patchNetworkInterface(ctx context.Context, projectID, serverID string, providerSpec *api.ProviderSpec) error {

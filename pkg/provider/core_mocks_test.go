@@ -39,7 +39,7 @@ func (m *mockStackitClient) GetServer(ctx context.Context, projectID, region, se
 	return &Server{
 		ID:     serverID,
 		Name:   "test-machine",
-		Status: "RUNNING",
+		Status: "ACTIVE",
 	}, nil
 }
 
