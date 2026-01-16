@@ -186,22 +186,31 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		createReq.Metadata = providerSpec.Metadata
 	}
 
-	// Call STACKIT API to create server
-	server, err := p.client.CreateServer(ctx, projectID, providerSpec.Region, createReq)
+	// check if server already exists
+	server, err := p.getServerByName(ctx, projectID, providerSpec.Region, req.Machine.Name)
 	if err != nil {
-		klog.Errorf("Failed to create server for machine %q: %v", req.Machine.Name, err)
-		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to create server: %v", err))
+		klog.Errorf("Failed to fetch server for machine %q: %v", req.Machine.Name, err)
+		return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to fetch server: %v", err))
 	}
 
-	activeServer, err := p.waitForServerStatus(ctx, projectID, providerSpec.Region, server.ID)
-	if err != nil {
-		klog.Errorf("Server failed to become active for machine: %q: %v", req.Machine.Name, err)
-		return nil, status.Error(codes.Internal, fmt.Sprintf("server failed to become active: %v", err))
+	if server == nil {
+		// Call STACKIT API to create server
+		server, err = p.client.CreateServer(ctx, projectID, providerSpec.Region, createReq)
+		if err != nil {
+			klog.Errorf("Failed to create server for machine %q: %v", req.Machine.Name, err)
+			return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to create server: %v", err))
+		}
 	}
 
-	if err := p.patchNetworkInterface(ctx, projectID, activeServer.ID, providerSpec); err != nil {
+	//activeServer, err := p.waitForServerStatus(ctx, projectID, providerSpec.Region, server.ID)
+	//if err != nil {
+	//klog.Errorf("Server failed to become active for machine: %q: %v", req.Machine.Name, err)
+	//return nil, status.Error(codes.Unavailable, fmt.Sprintf("server failed to become active: %v", err))
+	//}
+
+	if err := p.patchNetworkInterface(ctx, projectID, server.ID, providerSpec); err != nil {
 		klog.Errorf("Failed to patch network interface for server %q: %v", req.Machine.Name, err)
-		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to patch network interface for server: %v", err))
+		return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to patch network interface for server: %v", err))
 	}
 
 	// Generate ProviderID in format: stackit://<projectId>/<serverId>
@@ -212,6 +221,26 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		ProviderID: providerID,
 		NodeName:   req.Machine.Name,
 	}, nil
+}
+
+func (p *Provider) getServerByName(ctx context.Context, projectID, region, serverName string) (*Server, error) {
+	// Check if the server got already created
+	labelSelector := fmt.Sprintf("mcm.gardener.cloud/machine=%s", serverName)
+	servers, err := p.client.ListServers(ctx, projectID, region, labelSelector)
+	if err != nil {
+		return nil, fmt.Errorf("SDK ListServers with labelSelector: %v failed: %w", labelSelector, err)
+	}
+
+	if len(servers) > 1 {
+		return nil, fmt.Errorf("%v servers found for server name %v", len(servers), serverName)
+	}
+
+	if len(servers) == 1 {
+		return servers[0], nil
+	}
+
+	// no servers found len == 0
+	return nil, nil
 }
 
 func (p *Provider) waitForServerStatus(ctx context.Context, projectID, region, serverID string) (*Server, error) {
@@ -255,7 +284,7 @@ func (p *Provider) patchNetworkInterface(ctx context.Context, projectID, serverI
 	}
 
 	nics, err := p.client.GetNICsForServer(ctx, projectID, providerSpec.Region, serverID)
-	if err != nil {
+	if err != nil || len(nics) == 0 {
 		return fmt.Errorf("failed to get NICs for server %q: %w", serverID, err)
 	}
 
@@ -300,31 +329,46 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 	klog.V(2).Infof("Machine deletion request has been received for %q", req.Machine.Name)
 	defer klog.V(2).Infof("Machine deletion request has been processed for %q", req.Machine.Name)
 
-	// Validate ProviderID exists
-	if req.Machine.Spec.ProviderID == "" {
-		return nil, status.Error(codes.InvalidArgument, "ProviderID is required")
-	}
-
 	// Extract credentials from Secret
 	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
-
 	// Initialize client on first use (lazy initialization)
 	if err := p.ensureClient(serviceAccountKey); err != nil {
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to initialize STACKIT client: %v", err))
 	}
 
-	// Parse ProviderID to extract projectID and serverID
-	projectID, serverID, err := parseProviderID(req.Machine.Spec.ProviderID)
+	var projectID, serverID string
+	var err error
+	if req.Machine.Spec.ProviderID != "" {
+		// Parse ProviderID to extract projectID and serverID
+		projectID, serverID, err = parseProviderID(req.Machine.Spec.ProviderID)
+		if err != nil {
+			klog.V(2).Infof("invalid ProviderID format: %v", err)
+		}
+	}
+
 	if projectID == "" {
 		projectID = string(req.Secret.Data["project-id"])
-	}
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("invalid ProviderID format: %v", err))
 	}
 
 	providerSpec, err := decodeProviderSpec(req.MachineClass)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	if serverID == "" {
+		server, err := p.getServerByName(ctx, projectID, providerSpec.Region, req.Machine.Name)
+		if err != nil {
+			return nil, status.Error(codes.Internal, fmt.Sprintf("failed to find server by name: %v", err))
+		}
+
+		if server != nil {
+			serverID = server.ID
+		}
+	}
+
+	if serverID == "" {
+		klog.V(2).Infof("Server is already deleted for machine %q", req.Machine.Name)
+		return &driver.DeleteMachineResponse{}, nil
 	}
 
 	// Call STACKIT API to delete server

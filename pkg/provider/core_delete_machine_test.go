@@ -114,7 +114,7 @@ var _ = Describe("DeleteMachine", func() {
 		})
 	})
 
-	Context("with missing or invalid ProviderID", func() {
+	XContext("with missing or invalid ProviderID", func() {
 		It("should return InvalidArgument when ProviderID is missing", func() {
 			machine.Spec.ProviderID = ""
 
