@@ -11,14 +11,13 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"time"
+	"strings"
 
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/codes"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/status"
 	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis/validation"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 )
 
@@ -202,12 +201,6 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		}
 	}
 
-	//activeServer, err := p.waitForServerStatus(ctx, projectID, providerSpec.Region, server.ID)
-	//if err != nil {
-	//klog.Errorf("Server failed to become active for machine: %q: %v", req.Machine.Name, err)
-	//return nil, status.Error(codes.Unavailable, fmt.Sprintf("server failed to become active: %v", err))
-	//}
-
 	if err := p.patchNetworkInterface(ctx, projectID, server.ID, providerSpec); err != nil {
 		klog.Errorf("Failed to patch network interface for server %q: %v", req.Machine.Name, err)
 		return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to patch network interface for server: %v", err))
@@ -243,49 +236,24 @@ func (p *Provider) getServerByName(ctx context.Context, projectID, region, serve
 	return nil, nil
 }
 
-func (p *Provider) waitForServerStatus(ctx context.Context, projectID, region, serverID string) (*Server, error) {
-	var server *Server
-	return server, wait.PollUntilContextTimeout(
-		ctx,
-		10*time.Second,
-		time.Duration(120)*time.Second,
-		true,
-		func(_ context.Context) (done bool, err error) {
-			current, err := p.client.GetServer(ctx, projectID, region, serverID)
-			if err != nil {
-				return false, err
-			}
-
-			klog.V(5).Infof("waiting for server [ID=%q] and current status %v, to reach status ACTIVE.", serverID, current.Status)
-			if current.Status == "ACTIVE" {
-				server = current
-				return true, nil
-			}
-
-			if current.Status == "CREATING" || current.Status == "STARTING" {
-				return false, nil
-			}
-
-			// TODO: maybe check for other status conditions here
-			retErr := fmt.Errorf("server [ID=%q] reached unexpected status %q", serverID, current.Status)
-			// if current.Status == "ERROR" {
-			// retErr = fmt.Errorf("%s, fault: %+v", retErr, current.Fault)
-			// }
-
-			return false, retErr
-		})
-}
-
 func (p *Provider) patchNetworkInterface(ctx context.Context, projectID, serverID string, providerSpec *api.ProviderSpec) error {
+	if len(providerSpec.AllowedAddresses) == 0 {
+		return nil
+	}
+
 	if providerSpec.Networking == nil {
-		// TODO: should we also patch nics from the default network?
+		// TODO: should we also patch nics if the machine is in the "default" network?
 		return nil
 		// return fmt.Errorf("failed to path allowedAddresses, providerspec.networking is nil")
 	}
 
 	nics, err := p.client.GetNICsForServer(ctx, projectID, providerSpec.Region, serverID)
-	if err != nil || len(nics) == 0 {
+	if err != nil {
 		return fmt.Errorf("failed to get NICs for server %q: %w", serverID, err)
+	}
+
+	if len(nics) == 0 {
+		return fmt.Errorf("failed to find NIC for server %q", serverID)
 	}
 
 	for _, nic := range nics {
@@ -339,6 +307,10 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 	var projectID, serverID string
 	var err error
 	if req.Machine.Spec.ProviderID != "" {
+		if !strings.HasPrefix(req.Machine.Spec.ProviderID, StackitProviderName) {
+			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("providerID is not empty and does not start with stackit://"))
+		}
+
 		// Parse ProviderID to extract projectID and serverID
 		projectID, serverID, err = parseProviderID(req.Machine.Spec.ProviderID)
 		if err != nil {

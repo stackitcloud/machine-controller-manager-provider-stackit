@@ -65,7 +65,7 @@ func (m *mockStackitClient) GetNICsForServer(ctx context.Context, projectID, reg
 }
 
 func (m *mockStackitClient) UpdateNIC(ctx context.Context, projectID, region, networkID, nicID string, allowedAddresses []string) (*NIC, error) {
-	if m.listServersFunc != nil {
+	if m.updateNICFunc != nil {
 		return m.updateNICFunc(ctx, projectID, region, networkID, nicID, allowedAddresses)
 	}
 	return &NIC{}, nil
