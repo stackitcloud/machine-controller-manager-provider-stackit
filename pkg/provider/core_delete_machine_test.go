@@ -120,7 +120,7 @@ var _ = Describe("DeleteMachine", func() {
 
 			_, err := provider.DeleteMachine(ctx, req)
 
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should return InvalidArgument when ProviderID has invalid format", func() {

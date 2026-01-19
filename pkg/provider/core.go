@@ -244,7 +244,6 @@ func (p *Provider) patchNetworkInterface(ctx context.Context, projectID, serverI
 	if providerSpec.Networking == nil {
 		// TODO: should we also patch nics if the machine is in the "default" network?
 		return nil
-		// return fmt.Errorf("failed to path allowedAddresses, providerspec.networking is nil")
 	}
 
 	nics, err := p.client.GetNICsForServer(ctx, projectID, providerSpec.Region, serverID)
@@ -308,7 +307,7 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 	var err error
 	if req.Machine.Spec.ProviderID != "" {
 		if !strings.HasPrefix(req.Machine.Spec.ProviderID, StackitProviderName) {
-			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("providerID is not empty and does not start with stackit://"))
+			return nil, status.Error(codes.InvalidArgument, "providerID is not empty and does not start with stackit://")
 		}
 
 		// Parse ProviderID to extract projectID and serverID

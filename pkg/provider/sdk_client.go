@@ -87,7 +87,7 @@ func createIAASClient(serviceAccountKey string) (*iaas.APIClient, error) {
 
 // CreateServer creates a new server via STACKIT SDK
 //
-//nolint:gocyclo,funlen//TODO:refactor
+//nolint:gocyclo // TODO: refactor
 func (c *SdkStackitClient) CreateServer(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
 	// Convert our request to SDK payload
 	payload := &iaas.CreateServerPayload{
@@ -301,19 +301,19 @@ func (c *SdkStackitClient) GetNICsForServer(ctx context.Context, projectID, regi
 
 	nics := make([]*NIC, 0)
 	for _, nic := range *res.Items {
-		nics = append(nics, convertSDKNICtoNIC(nic))
+		nics = append(nics, convertSDKNICtoNIC(&nic))
 	}
 
 	return nics, nil
 }
 
 func (c *SdkStackitClient) UpdateNIC(ctx context.Context, projectID, region, networkID, nicID string, allowedAddresses []string) (*NIC, error) {
-	addresses := make([]iaas.AllowedAddressesInner, 0)
+	addresses := make([]iaas.AllowedAddressesInner, len(allowedAddresses))
 
-	for _, addr := range allowedAddresses {
-		addresses = append(addresses, iaas.AllowedAddressesInner{
+	for i, addr := range allowedAddresses {
+		addresses[i] = iaas.AllowedAddressesInner{
 			String: ptr(addr),
-		})
+		}
 	}
 
 	payload := iaas.UpdateNicPayload{
@@ -329,12 +329,12 @@ func (c *SdkStackitClient) UpdateNIC(ctx context.Context, projectID, region, net
 		return nil, nil
 	}
 
-	return convertSDKNICtoNIC(*sdkNic), nil
+	return convertSDKNICtoNIC(sdkNic), nil
 }
 
 // Helper functions
 
-func convertSDKNICtoNIC(nic iaas.NIC) *NIC {
+func convertSDKNICtoNIC(nic *iaas.NIC) *NIC {
 	addresses := make([]string, 0)
 	if nic.AllowedAddresses != nil {
 		for _, addr := range *nic.AllowedAddresses {
