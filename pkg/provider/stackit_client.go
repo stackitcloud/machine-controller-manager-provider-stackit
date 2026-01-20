@@ -27,6 +27,8 @@ type StackitClient interface {
 	DeleteServer(ctx context.Context, projectID, region, serverID string) error
 	// ListServers lists all servers in a project
 	ListServers(ctx context.Context, projectID, region, labelSelector string) ([]*Server, error)
+
+	DeleteNIC(ctx context.Context, projectID, region, networkID, nicID string) error
 }
 
 // CreateServerRequest represents the request to create a server

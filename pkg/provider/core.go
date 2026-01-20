@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/codes"
@@ -245,15 +246,24 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 
 	// Call STACKIT API to delete server
 	err = p.client.DeleteServer(ctx, projectID, providerSpec.Region, serverID)
-	if err != nil {
-		// Check if server was not found (404) - this is OK for idempotency
-		if errors.Is(err, ErrServerNotFound) {
-			klog.V(2).Infof("Server %q already deleted for machine %q (idempotent)", serverID, req.Machine.Name)
-			return &driver.DeleteMachineResponse{}, nil
-		}
+	if err != nil && !errors.Is(err, ErrServerNotFound) {
 		// All other errors are internal errors
 		klog.Errorf("Failed to delete server for machine %q: %v", req.Machine.Name, err)
-		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to delete server: %v", err))
+		return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to delete server: %v", err))
+	}
+	for _, a := range req.Machine.Annotations {
+		// TODO move to const
+		if strings.HasPrefix(a, "stackit.mcm.gardener.cloud/ports-to-delete") {
+			networkID, nicID, found := strings.Cut(a, "/")
+			if !found {
+				continue
+			}
+			err = p.client.DeleteNIC(ctx, projectID, providerSpec.Region, networkID, nicID)
+			if err != nil && !errors.Is(err, ErrNicNotFound) {
+				klog.Errorf("Failed to delete nic for machine %q: %v", req.Machine.Name, err)
+				return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to delete nic: %v", err))
+			}
+		}
 	}
 
 	klog.V(2).Infof("Successfully deleted server %q for machine %q", serverID, req.Machine.Name)
