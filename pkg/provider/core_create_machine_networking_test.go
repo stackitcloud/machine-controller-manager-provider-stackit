@@ -148,7 +148,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 			Expect(capturedReq.Networking.NICIDs[1]).To(Equal("990e8400-e29b-41d4-a716-446655440002"))
 		})
 
-		It("should update the allowedAddresses in the NIC", func() {
+		It("should update the allowedAddresses in the NIC when networkID is set", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType: "c1.2",
 				Region:      "eu01",
@@ -214,6 +214,77 @@ var _ = Describe("CreateMachine - Networking", func() {
 			Expect(called).To(BeTrue())
 			Expect(capturedReq.Networking).NotTo(BeNil())
 			Expect(capturedReq.Networking.NetworkID).ToNot(BeEmpty())
+		})
+
+		It("should update the allowedAddresses in the NIC when NICIDs are set", func() {
+			providerSpec := &api.ProviderSpec{
+				MachineType: "c1.2",
+				Region:      "eu01",
+				ImageID:     "12345678-1234-1234-1234-123456789abc",
+				Networking: &api.NetworkingSpec{
+					NICIDs: []string{
+						"880e8400-e29b-41d4-a716-446655440001",
+						"990e8400-e29b-41d4-a716-446655440002",
+					},
+				},
+				AllowedAddresses: []string{
+					"10.0.0.1/8",
+				},
+			}
+			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+
+			machineClass = &v1alpha1.MachineClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-machine-class",
+				},
+				Provider: "stackit",
+				ProviderSpec: runtime.RawExtension{
+					Raw: providerSpecRaw,
+				},
+			}
+
+			req = &driver.CreateMachineRequest{
+				Machine:      machine,
+				MachineClass: machineClass,
+				Secret:       secret,
+			}
+
+			var capturedReq *CreateServerRequest
+			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
+				capturedReq = req
+				return &Server{
+					ID:     "test-server-id",
+					Name:   req.Name,
+					Status: "CREATING",
+				}, nil
+			}
+
+			mockClient.getNICsFunc = func(_ context.Context, _, _, _ string) ([]*NIC, error) {
+				return []*NIC{{
+					ID:               "880e8400-e29b-41d4-a716-446655440001",
+					NetworkID:        "770e8400-e29b-41d4-a716-446655440000",
+					AllowedAddresses: []string{},
+				}}, nil
+			}
+
+			var called = false
+			mockClient.updateNICFunc = func(_ context.Context, _, _, _, _ string, addresses []string) (*NIC, error) {
+				called = true
+				Expect(addresses).To(HaveLen(1))
+				Expect(addresses[0]).To(Equal("10.0.0.1/8"))
+				return &NIC{
+					ID:               "880e8400-e29b-41d4-a716-446655440001",
+					NetworkID:        "770e8400-e29b-41d4-a716-446655440000",
+					AllowedAddresses: addresses,
+				}, nil
+			}
+
+			_, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(called).To(BeTrue())
+			Expect(capturedReq.Networking).NotTo(BeNil())
+			Expect(capturedReq.Networking.NICIDs).To(HaveLen(2))
 		})
 
 		It("should not update the allowedAddresses in the NIC if already present", func() {

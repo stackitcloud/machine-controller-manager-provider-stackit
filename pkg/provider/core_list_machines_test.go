@@ -72,8 +72,8 @@ var _ = Describe("ListMachines", func() {
 
 	Context("with valid inputs", func() {
 		It("should list machines filtered by MachineClass label", func() {
-			mockClient.listServersFunc = func(_ context.Context, _, _, selector string) ([]*Server, error) {
-				Expect(selector).To(ContainSubstring("mcm.gardener.cloud/machineclass=test-machine-class"))
+			mockClient.listServersFunc = func(_ context.Context, _, _ string, selector map[string]string) ([]*Server, error) {
+				Expect(selector["mcm.gardener.cloud/machineclass"]).To(Equal("test-machine-class"))
 
 				return []*Server{
 					{
@@ -106,7 +106,7 @@ var _ = Describe("ListMachines", func() {
 		})
 
 		It("should return empty list when no servers match", func() {
-			mockClient.listServersFunc = func(_ context.Context, _, _, _ string) ([]*Server, error) {
+			mockClient.listServersFunc = func(_ context.Context, _, _ string, _ map[string]string) ([]*Server, error) {
 				return []*Server{}, nil
 			}
 
@@ -118,7 +118,7 @@ var _ = Describe("ListMachines", func() {
 		})
 
 		It("should return empty list when no servers exist", func() {
-			mockClient.listServersFunc = func(_ context.Context, _, _, _ string) ([]*Server, error) {
+			mockClient.listServersFunc = func(_ context.Context, _, _ string, _ map[string]string) ([]*Server, error) {
 				return []*Server{}, nil
 			}
 
@@ -132,7 +132,7 @@ var _ = Describe("ListMachines", func() {
 
 	Context("when STACKIT API fails", func() {
 		It("should return Internal error on API failure", func() {
-			mockClient.listServersFunc = func(_ context.Context, _, _, _ string) ([]*Server, error) {
+			mockClient.listServersFunc = func(_ context.Context, _, _ string, _ map[string]string) ([]*Server, error) {
 				return nil, fmt.Errorf("API connection failed")
 			}
 

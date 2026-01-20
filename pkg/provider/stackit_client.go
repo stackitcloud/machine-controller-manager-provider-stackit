@@ -27,7 +27,7 @@ type StackitClient interface {
 	// DeleteServer deletes a server by ID from STACKIT
 	DeleteServer(ctx context.Context, projectID, region, serverID string) error
 	// ListServers lists all servers in a project
-	ListServers(ctx context.Context, projectID, region, labelSelector string) ([]*Server, error)
+	ListServers(ctx context.Context, projectID, region string, labelSelector map[string]string) ([]*Server, error)
 	// GetNICsForServer retrieves a network interfaces for a given server
 	GetNICsForServer(ctx context.Context, projectID, region, serverID string) ([]*NIC, error)
 	// UpdateNIC updates a network interface

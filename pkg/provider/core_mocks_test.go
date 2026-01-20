@@ -16,7 +16,7 @@ type mockStackitClient struct {
 	createServerFunc func(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error)
 	getServerFunc    func(ctx context.Context, projectID, region, serverID string) (*Server, error)
 	deleteServerFunc func(ctx context.Context, projectID, region, serverID string) error
-	listServersFunc  func(ctx context.Context, projectID, region, labelSelector string) ([]*Server, error)
+	listServersFunc  func(ctx context.Context, projectID, region string, labelSelector map[string]string) ([]*Server, error)
 	getNICsFunc      func(ctx context.Context, projectID, region, serverID string) ([]*NIC, error)
 	updateNICFunc    func(ctx context.Context, projectID, region, networkID, nicID string, allowedAddresses []string) (*NIC, error)
 }
@@ -50,7 +50,7 @@ func (m *mockStackitClient) DeleteServer(ctx context.Context, projectID, region,
 	return nil
 }
 
-func (m *mockStackitClient) ListServers(ctx context.Context, projectID, region, labelSelector string) ([]*Server, error) {
+func (m *mockStackitClient) ListServers(ctx context.Context, projectID, region string, labelSelector map[string]string) ([]*Server, error) {
 	if m.listServersFunc != nil {
 		return m.listServersFunc(ctx, projectID, region, labelSelector)
 	}

@@ -218,7 +218,9 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 
 func (p *Provider) getServerByName(ctx context.Context, projectID, region, serverName string) (*Server, error) {
 	// Check if the server got already created
-	labelSelector := fmt.Sprintf("mcm.gardener.cloud/machine=%s", serverName)
+	labelSelector := map[string]string{
+		"mcm.gardener.cloud/machine": "serverName",
+	}
 	servers, err := p.client.ListServers(ctx, projectID, region, labelSelector)
 	if err != nil {
 		return nil, fmt.Errorf("SDK ListServers with labelSelector: %v failed: %w", labelSelector, err)
@@ -241,11 +243,6 @@ func (p *Provider) patchNetworkInterface(ctx context.Context, projectID, serverI
 		return nil
 	}
 
-	if providerSpec.Networking == nil {
-		// TODO: should we also patch nics if the machine is in the "default" network?
-		return nil
-	}
-
 	nics, err := p.client.GetNICsForServer(ctx, projectID, providerSpec.Region, serverID)
 	if err != nil {
 		return fmt.Errorf("failed to get NICs for server %q: %w", serverID, err)
@@ -256,8 +253,13 @@ func (p *Provider) patchNetworkInterface(ctx context.Context, projectID, serverI
 	}
 
 	for _, nic := range nics {
-		if providerSpec.Networking.NetworkID != nic.NetworkID && !slices.Contains(providerSpec.Networking.NICIDs, nic.ID) {
-			continue
+		// if networking is not set, server is inside the default network
+		// just patch the interface since the server should only have one
+		if providerSpec.Networking != nil {
+			// only process interfaces that are either in the configured network (NetworkID) or are defined in NICIDs
+			if providerSpec.Networking.NetworkID != nic.NetworkID && !slices.Contains(providerSpec.Networking.NICIDs, nic.ID) {
+				continue
+			}
 		}
 
 		updateNic := false
@@ -463,7 +465,9 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 	}
 
 	// Call STACKIT API to list all servers
-	labelSelector := fmt.Sprintf("%s=%s", StackitMachineClassLabel, req.MachineClass.Name)
+	labelSelector := map[string]string{
+		StackitMachineClassLabel: req.MachineClass.Name,
+	}
 	servers, err := p.client.ListServers(ctx, projectID, providerSpec.Region, labelSelector)
 	if err != nil {
 		klog.Errorf("Failed to list servers for MachineClass %q: %v", req.MachineClass.Name, err)

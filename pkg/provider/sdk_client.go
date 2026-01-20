@@ -258,11 +258,16 @@ func (c *SdkStackitClient) DeleteServer(ctx context.Context, projectID, region, 
 }
 
 // ListServers lists all servers in a project via STACKIT SDK
-func (c *SdkStackitClient) ListServers(ctx context.Context, projectID, region, labelSelector string) ([]*Server, error) {
+func (c *SdkStackitClient) ListServers(ctx context.Context, projectID, region string, labelSelector map[string]string) ([]*Server, error) {
 	serverRequest := c.iaasClient.ListServers(ctx, projectID, region)
 
-	if labelSelector != "" {
-		serverRequest = serverRequest.LabelSelector(labelSelector)
+	if labelSelector != nil {
+		labelSelectorString := ""
+		for k, v := range labelSelector {
+			labelSelectorString += fmt.Sprintf("%s=%s,", k, v)
+		}
+
+		serverRequest = serverRequest.LabelSelector(labelSelectorString)
 	}
 
 	sdkResponse, err := serverRequest.Execute()
@@ -343,6 +348,7 @@ func convertSDKNICtoNIC(nic *iaas.NIC) *NIC {
 			}
 		}
 	}
+	nic.GetId()
 
 	return &NIC{
 		ID:               getStringValue(nic.Id),
