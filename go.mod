@@ -7,7 +7,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.27.5
 	github.com/onsi/gomega v1.39.0
 	github.com/spf13/pflag v1.0.10
-	github.com/stackitcloud/stackit-sdk-go/core v0.20.1
+	github.com/stackitcloud/stackit-sdk-go/core v0.21.0
 	github.com/stackitcloud/stackit-sdk-go/services/iaas v1.3.0
 	k8s.io/api v0.34.3
 	k8s.io/apimachinery v0.34.3
