@@ -265,7 +265,11 @@ func (c *SdkStackitClient) ListServers(ctx context.Context, projectID, region st
 	if labelSelector != nil {
 		sb := strings.Builder{}
 		for k, v := range labelSelector {
-			_, err := fmt.Fprintf(&sb, "%s=%s,", k, v)
+			// prevents trailing comma at the end
+			if sb.Len() > 0 {
+				sb.WriteString(",")
+			}
+			_, err := fmt.Fprintf(&sb, "%s=%s", k, v)
 			if err != nil {
 				return nil, fmt.Errorf("failed to format label selector: %w", err)
 			}
