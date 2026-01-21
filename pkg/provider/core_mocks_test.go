@@ -16,7 +16,9 @@ type mockStackitClient struct {
 	createServerFunc func(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error)
 	getServerFunc    func(ctx context.Context, projectID, region, serverID string) (*Server, error)
 	deleteServerFunc func(ctx context.Context, projectID, region, serverID string) error
-	listServersFunc  func(ctx context.Context, projectID, region, labelSelector string) ([]*Server, error)
+	listServersFunc  func(ctx context.Context, projectID, region string, labelSelector map[string]string) ([]*Server, error)
+	getNICsFunc      func(ctx context.Context, projectID, region, serverID string) ([]*NIC, error)
+	updateNICFunc    func(ctx context.Context, projectID, region, networkID, nicID string, allowedAddresses []string) (*NIC, error)
 }
 
 func (m *mockStackitClient) CreateServer(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
@@ -37,7 +39,7 @@ func (m *mockStackitClient) GetServer(ctx context.Context, projectID, region, se
 	return &Server{
 		ID:     serverID,
 		Name:   "test-machine",
-		Status: "RUNNING",
+		Status: "ACTIVE",
 	}, nil
 }
 
@@ -48,12 +50,28 @@ func (m *mockStackitClient) DeleteServer(ctx context.Context, projectID, region,
 	return nil
 }
 
-func (m *mockStackitClient) ListServers(ctx context.Context, projectID, region, labelSelector string) ([]*Server, error) {
+func (m *mockStackitClient) ListServers(ctx context.Context, projectID, region string, labelSelector map[string]string) ([]*Server, error) {
 	if m.listServersFunc != nil {
 		return m.listServersFunc(ctx, projectID, region, labelSelector)
 	}
 	return []*Server{}, nil
 }
+
+func (m *mockStackitClient) GetNICsForServer(ctx context.Context, projectID, region, serverID string) ([]*NIC, error) {
+	if m.getNICsFunc != nil {
+		return m.getNICsFunc(ctx, projectID, region, serverID)
+	}
+	return []*NIC{}, nil
+}
+
+func (m *mockStackitClient) UpdateNIC(ctx context.Context, projectID, region, networkID, nicID string, allowedAddresses []string) (*NIC, error) {
+	if m.updateNICFunc != nil {
+		return m.updateNICFunc(ctx, projectID, region, networkID, nicID, allowedAddresses)
+	}
+	return &NIC{}, nil
+}
+
+// UpdateNIC updates a network interface
 
 // encodeProviderSpec is a helper function to encode ProviderSpec for tests
 func encodeProviderSpec(spec *api.ProviderSpec) ([]byte, error) {

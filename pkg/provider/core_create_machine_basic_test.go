@@ -184,7 +184,7 @@ var _ = Describe("CreateMachine", func() {
 			Expect(err).To(HaveOccurred())
 			statusErr, ok := status.FromError(err)
 			Expect(ok).To(BeTrue())
-			Expect(statusErr.Code()).To(Equal(codes.Internal))
+			Expect(statusErr.Code()).To(Equal(codes.Unavailable))
 		})
 	})
 })

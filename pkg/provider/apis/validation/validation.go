@@ -8,6 +8,7 @@ package validation
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"regexp"
 
 	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
@@ -162,6 +163,15 @@ func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret)
 		}
 		if !keypairNameRegex.MatchString(spec.KeypairName) {
 			errors = append(errors, fmt.Errorf("providerSpec.keypairName contains invalid characters (allowed: A-Za-z0-9@._-)"))
+		}
+	}
+
+	// Validate AllowedAddresses
+	if len(spec.AllowedAddresses) > 0 {
+		for _, cidr := range spec.AllowedAddresses {
+			if _, _, err := net.ParseCIDR(cidr); err != nil {
+				errors = append(errors, fmt.Errorf("providerSpec.allowedAddresses has an invalid CIDR: %s", cidr))
+			}
 		}
 	}
 

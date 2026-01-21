@@ -115,15 +115,12 @@ var _ = Describe("DeleteMachine", func() {
 	})
 
 	Context("with missing or invalid ProviderID", func() {
-		It("should return InvalidArgument when ProviderID is missing", func() {
+		It("should still delete the machine when ProviderID is missing", func() {
 			machine.Spec.ProviderID = ""
 
 			_, err := provider.DeleteMachine(ctx, req)
 
-			Expect(err).To(HaveOccurred())
-			statusErr, ok := status.FromError(err)
-			Expect(ok).To(BeTrue())
-			Expect(statusErr.Code()).To(Equal(codes.InvalidArgument))
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should return InvalidArgument when ProviderID has invalid format", func() {

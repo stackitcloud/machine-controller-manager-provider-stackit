@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/stackitcloud/stackit-sdk-go/core/config"
 	"github.com/stackitcloud/stackit-sdk-go/core/oapierror"
@@ -87,23 +88,8 @@ func createIAASClient(serviceAccountKey string) (*iaas.APIClient, error) {
 
 // CreateServer creates a new server via STACKIT SDK
 //
-//nolint:gocyclo,funlen//TODO:refactor
+//nolint:gocyclo // TODO: refactor
 func (c *SdkStackitClient) CreateServer(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
-	// Check if the server got already created
-	labelSelector := fmt.Sprintf("mcm.gardener.cloud/machine=%s", req.Name)
-	servers, err := c.ListServers(ctx, projectID, region, labelSelector)
-	if err != nil {
-		return nil, fmt.Errorf("SDK ListServers with labelSelector: %v failed: %w", labelSelector, err)
-	}
-
-	if len(servers) > 1 {
-		return nil, fmt.Errorf("%v servers found for server name %v", len(servers), req.Name)
-	}
-
-	if len(servers) == 1 {
-		return servers[0], nil
-	}
-
 	// Convert our request to SDK payload
 	payload := &iaas.CreateServerPayload{
 		Name:        ptr(req.Name),
@@ -273,11 +259,19 @@ func (c *SdkStackitClient) DeleteServer(ctx context.Context, projectID, region, 
 }
 
 // ListServers lists all servers in a project via STACKIT SDK
-func (c *SdkStackitClient) ListServers(ctx context.Context, projectID, region, labelSelector string) ([]*Server, error) {
+func (c *SdkStackitClient) ListServers(ctx context.Context, projectID, region string, labelSelector map[string]string) ([]*Server, error) {
 	serverRequest := c.iaasClient.ListServers(ctx, projectID, region)
 
-	if labelSelector != "" {
-		serverRequest = serverRequest.LabelSelector(labelSelector)
+	if labelSelector != nil {
+		sb := strings.Builder{}
+		for k, v := range labelSelector {
+			_, err := fmt.Fprintf(&sb, "%s=%s,", k, v)
+			if err != nil {
+				return nil, fmt.Errorf("failed to format label selector: %w", err)
+			}
+		}
+
+		serverRequest = serverRequest.LabelSelector(sb.String())
 	}
 
 	sdkResponse, err := serverRequest.Execute()
@@ -304,7 +298,67 @@ func (c *SdkStackitClient) ListServers(ctx context.Context, projectID, region, l
 	return servers, nil
 }
 
+func (c *SdkStackitClient) GetNICsForServer(ctx context.Context, projectID, region, serverID string) ([]*NIC, error) {
+	res, err := c.iaasClient.ListServerNICs(ctx, projectID, region, serverID).Execute()
+	if err != nil {
+		return nil, fmt.Errorf("SDK ListServerNICs failed: %w", err)
+	}
+
+	if res.Items == nil {
+		return []*NIC{}, nil
+	}
+
+	nics := make([]*NIC, 0)
+	for _, nic := range *res.Items {
+		nics = append(nics, convertSDKNICtoNIC(&nic))
+	}
+
+	return nics, nil
+}
+
+func (c *SdkStackitClient) UpdateNIC(ctx context.Context, projectID, region, networkID, nicID string, allowedAddresses []string) (*NIC, error) {
+	addresses := make([]iaas.AllowedAddressesInner, len(allowedAddresses))
+
+	for i, addr := range allowedAddresses {
+		addresses[i] = iaas.AllowedAddressesInner{
+			String: ptr(addr),
+		}
+	}
+
+	payload := iaas.UpdateNicPayload{
+		AllowedAddresses: &addresses,
+	}
+
+	sdkNic, err := c.iaasClient.UpdateNic(ctx, projectID, region, networkID, nicID).UpdateNicPayload(payload).Execute()
+	if err != nil {
+		return nil, fmt.Errorf("SDK UpdateNic failed: %w", err)
+	}
+
+	if sdkNic == nil {
+		return nil, nil
+	}
+
+	return convertSDKNICtoNIC(sdkNic), nil
+}
+
 // Helper functions
+
+func convertSDKNICtoNIC(nic *iaas.NIC) *NIC {
+	addresses := make([]string, 0)
+	if nic.AllowedAddresses != nil {
+		for _, addr := range *nic.AllowedAddresses {
+			if addr.String != nil {
+				addresses = append(addresses, *addr.String)
+			}
+		}
+	}
+
+	return &NIC{
+		ID:               getStringValue(nic.Id),
+		NetworkID:        getStringValue(nic.NetworkId),
+		AllowedAddresses: addresses,
+	}
+}
 
 // getStringValue safely dereferences a string pointer, returning empty string if nil
 func getStringValue(s *string) string {

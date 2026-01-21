@@ -90,7 +90,7 @@ var _ = Describe("GetMachineStatus", func() {
 				return &Server{
 					ID:     serverID,
 					Name:   "test-machine",
-					Status: "RUNNING",
+					Status: "ACTIVE",
 				}, nil
 			}
 
@@ -112,7 +112,7 @@ var _ = Describe("GetMachineStatus", func() {
 				return &Server{
 					ID:     serverID,
 					Name:   "test-machine",
-					Status: "RUNNING",
+					Status: "ACTIVE",
 				}, nil
 			}
 
