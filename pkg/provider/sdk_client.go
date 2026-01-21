@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/stackitcloud/stackit-sdk-go/core/config"
 	"github.com/stackitcloud/stackit-sdk-go/core/oapierror"
@@ -262,12 +263,15 @@ func (c *SdkStackitClient) ListServers(ctx context.Context, projectID, region st
 	serverRequest := c.iaasClient.ListServers(ctx, projectID, region)
 
 	if labelSelector != nil {
-		labelSelectorString := ""
+		sb := strings.Builder{}
 		for k, v := range labelSelector {
-			labelSelectorString += fmt.Sprintf("%s=%s,", k, v)
+			_, err := fmt.Fprintf(&sb, "%s=%s,", k, v)
+			if err != nil {
+				return nil, fmt.Errorf("failed to format label selector: %w", err)
+			}
 		}
 
-		serverRequest = serverRequest.LabelSelector(labelSelectorString)
+		serverRequest = serverRequest.LabelSelector(sb.String())
 	}
 
 	sdkResponse, err := serverRequest.Execute()
@@ -348,7 +352,6 @@ func convertSDKNICtoNIC(nic *iaas.NIC) *NIC {
 			}
 		}
 	}
-	nic.GetId()
 
 	return &NIC{
 		ID:               getStringValue(nic.Id),

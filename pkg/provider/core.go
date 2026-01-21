@@ -219,7 +219,7 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 func (p *Provider) getServerByName(ctx context.Context, projectID, region, serverName string) (*Server, error) {
 	// Check if the server got already created
 	labelSelector := map[string]string{
-		"mcm.gardener.cloud/machine": "serverName",
+		StackitMachineLabel: serverName,
 	}
 	servers, err := p.client.ListServers(ctx, projectID, region, labelSelector)
 	if err != nil {
