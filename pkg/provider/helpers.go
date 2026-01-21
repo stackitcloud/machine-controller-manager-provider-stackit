@@ -11,6 +11,15 @@ import (
 
 	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
+	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis/validation"
+	corev1 "k8s.io/api/core/v1"
+)
+
+const (
+	StackitProviderName      = "stackit"
+	StackitMachineLabel      = "mcm.gardener.cloud/machine"
+	StackitMachineClassLabel = "mcm.gardener.cloud/machineclass"
+	StackitRoleLabel         = "mcm.gardener.cloud/role"
 )
 
 // decodeProviderSpec decodes the ProviderSpec from a MachineClass
@@ -30,6 +39,12 @@ func decodeProviderSpec(machineClass *v1alpha1.MachineClass) (*api.ProviderSpec,
 // encodeProviderSpecForResponse encodes a ProviderSpec to JSON bytes
 func encodeProviderSpecForResponse(spec *api.ProviderSpec) ([]byte, error) {
 	return json.Marshal(spec)
+}
+
+func decodeCloudProviderSecret(secret *corev1.Secret) (projectID, serviceAccountKey string) {
+	// Extract credentials from Secret
+	// validation happens in validation.go -> these keys exist
+	return string(secret.Data[validation.CloudProviderSecretProjectIDKey]), string(secret.Data[validation.CloudProviderSecretServiceAccountKey])
 }
 
 // parseProviderID parses a STACKIT ProviderID and extracts the projectID and serverID
@@ -57,12 +72,6 @@ func parseProviderID(providerID string) (projectID, serverID string, err error) 
 }
 
 // ========== SDK Conversion Helpers ==========
-
-// ptr returns a pointer to the given value
-// This helper is needed because the STACKIT SDK uses pointers for optional fields
-func ptr[T any](v T) *T {
-	return &v
-}
 
 // convertLabelsToSDK converts map[string]string to *map[string]interface{} for SDK
 //
@@ -94,22 +103,4 @@ func convertLabelsFromSDK(labels *map[string]interface{}) map[string]string {
 		}
 	}
 	return result
-}
-
-// convertStringSliceToSDK converts []string to *[]string for SDK
-func convertStringSliceToSDK(slice []string) *[]string {
-	if slice == nil {
-		return nil
-	}
-	return &slice
-}
-
-// convertMetadataToSDK converts map[string]interface{} to *map[string]interface{} for SDK
-//
-//nolint:gocritic // SDK requires *map
-func convertMetadataToSDK(metadata map[string]interface{}) *map[string]interface{} {
-	if metadata == nil {
-		return nil
-	}
-	return &metadata
 }

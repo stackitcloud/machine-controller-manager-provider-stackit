@@ -16,32 +16,6 @@ import (
 
 var _ = Describe("SDK Client Helpers", func() {
 
-	Describe("getStringValue", func() {
-		Context("with valid pointer", func() {
-			It("should return string value", func() {
-				value := "test-string"
-				result := getStringValue(&value)
-
-				Expect(result).To(Equal("test-string"))
-			})
-
-			It("should return empty string when pointer is to empty string", func() {
-				value := ""
-				result := getStringValue(&value)
-
-				Expect(result).To(Equal(""))
-			})
-		})
-
-		Context("with nil pointer", func() {
-			It("should return empty string when pointer is nil", func() {
-				result := getStringValue(nil)
-
-				Expect(result).To(Equal(""))
-			})
-		})
-	})
-
 	Describe("isNotFoundError", func() {
 		Context("with SDK 404 errors", func() {
 			It("should detect GenericOpenAPIError with 404 status code", func() {
@@ -118,40 +92,6 @@ var _ = Describe("SDK Client Helpers", func() {
 })
 
 var _ = Describe("SDK Type Conversion Helpers", func() {
-
-	Describe("ptr", func() {
-		It("should create pointer to string", func() {
-			value := "test"
-			result := ptr(value)
-
-			Expect(result).NotTo(BeNil())
-			Expect(*result).To(Equal("test"))
-		})
-
-		It("should create pointer to int", func() {
-			value := 42
-			result := ptr(value)
-
-			Expect(result).NotTo(BeNil())
-			Expect(*result).To(Equal(42))
-		})
-
-		It("should create pointer to bool", func() {
-			value := true
-			result := ptr(value)
-
-			Expect(result).NotTo(BeNil())
-			Expect(*result).To(BeTrue())
-		})
-
-		It("should create pointer to empty string", func() {
-			value := ""
-			result := ptr(value)
-
-			Expect(result).NotTo(BeNil())
-			Expect(*result).To(Equal(""))
-		})
-	})
 
 	Describe("convertLabelsToSDK", func() {
 		Context("with valid labels", func() {
@@ -263,100 +203,6 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 		Context("with nil SDK labels", func() {
 			It("should return nil for nil SDK labels", func() {
 				result := convertLabelsFromSDK(nil)
-
-				Expect(result).To(BeNil())
-			})
-		})
-	})
-
-	Describe("convertStringSliceToSDK", func() {
-		Context("with valid slice", func() {
-			It("should convert string slice to pointer", func() {
-				slice := []string{"value1", "value2", "value3"}
-
-				result := convertStringSliceToSDK(slice)
-
-				Expect(result).NotTo(BeNil())
-				Expect(*result).To(HaveLen(3))
-				Expect(*result).To(Equal([]string{"value1", "value2", "value3"}))
-			})
-
-			It("should convert empty slice", func() {
-				slice := []string{}
-
-				result := convertStringSliceToSDK(slice)
-
-				Expect(result).NotTo(BeNil())
-				Expect(*result).To(BeEmpty())
-			})
-
-			It("should convert slice with single item", func() {
-				slice := []string{"only-item"}
-
-				result := convertStringSliceToSDK(slice)
-
-				Expect(result).NotTo(BeNil())
-				Expect(*result).To(HaveLen(1))
-				Expect((*result)[0]).To(Equal("only-item"))
-			})
-		})
-
-		Context("with nil slice", func() {
-			It("should return nil for nil slice", func() {
-				result := convertStringSliceToSDK(nil)
-
-				Expect(result).To(BeNil())
-			})
-		})
-	})
-
-	Describe("convertMetadataToSDK", func() {
-		Context("with valid metadata", func() {
-			It("should convert metadata map to pointer", func() {
-				metadata := map[string]interface{}{
-					"key1": "value1",
-					"key2": 42,
-					"key3": true,
-				}
-
-				result := convertMetadataToSDK(metadata)
-
-				Expect(result).NotTo(BeNil())
-				Expect(*result).To(HaveLen(3))
-				Expect((*result)["key1"]).To(Equal("value1"))
-				Expect((*result)["key2"]).To(Equal(42))
-				Expect((*result)["key3"]).To(BeTrue())
-			})
-
-			It("should convert empty metadata map", func() {
-				metadata := map[string]interface{}{}
-
-				result := convertMetadataToSDK(metadata)
-
-				Expect(result).NotTo(BeNil())
-				Expect(*result).To(BeEmpty())
-			})
-
-			It("should convert nested metadata objects", func() {
-				metadata := map[string]interface{}{
-					"config": map[string]interface{}{
-						"nested": "value",
-					},
-					"list": []string{"item1", "item2"},
-				}
-
-				result := convertMetadataToSDK(metadata)
-
-				Expect(result).NotTo(BeNil())
-				Expect(*result).To(HaveLen(2))
-				Expect((*result)["config"]).To(BeAssignableToTypeOf(map[string]interface{}{}))
-				Expect((*result)["list"]).To(BeAssignableToTypeOf([]string{}))
-			})
-		})
-
-		Context("with nil metadata", func() {
-			It("should return nil for nil metadata", func() {
-				result := convertMetadataToSDK(nil)
 
 				Expect(result).To(BeNil())
 			})

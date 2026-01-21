@@ -354,54 +354,8 @@ var _ = Describe("CreateMachine - Networking", func() {
 		})
 	})
 
-	Context("with networking fallback to Secret", func() {
-		It("should use networkId from Secret when ProviderSpec.Networking is nil", func() {
-			// Add networkId to Secret
-			secret.Data["networkId"] = []byte("660e8400-e29b-41d4-a716-446655440000")
-
-			providerSpec := &api.ProviderSpec{
-				MachineType: "c1.2",
-				ImageID:     "12345678-1234-1234-1234-123456789abc",
-				Region:      "eu01",
-				// Networking is nil - should fall back to Secret
-			}
-			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
-
-			machineClass = &v1alpha1.MachineClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-machine-class",
-				},
-				Provider: "stackit",
-				ProviderSpec: runtime.RawExtension{
-					Raw: providerSpecRaw,
-				},
-			}
-
-			req = &driver.CreateMachineRequest{
-				Machine:      machine,
-				MachineClass: machineClass,
-				Secret:       secret,
-			}
-
-			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
-				capturedReq = req
-				return &Server{
-					ID:     "test-server-id",
-					Name:   req.Name,
-					Status: "CREATING",
-				}, nil
-			}
-
-			_, err := provider.CreateMachine(ctx, req)
-
-			Expect(err).NotTo(HaveOccurred())
-			Expect(capturedReq.Networking).NotTo(BeNil())
-			Expect(capturedReq.Networking.NetworkID).To(Equal("660e8400-e29b-41d4-a716-446655440000"))
-			Expect(capturedReq.Networking.NICIDs).To(BeEmpty())
-		})
-
-		It("should create empty networking when neither ProviderSpec nor Secret has networkId", func() {
+	Context("with networking fallback", func() {
+		It("should create empty networking when ProviderSpec does not has networkId", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType: "c1.2",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
@@ -446,54 +400,6 @@ var _ = Describe("CreateMachine - Networking", func() {
 	})
 
 	Context("with priority of networking configuration", func() {
-		It("should prioritize ProviderSpec.Networking over Secret.networkId", func() {
-			// Add networkId to Secret (should be ignored)
-			secret.Data["networkId"] = []byte("880e8400-e29b-41d4-a716-446655440001")
-
-			providerSpec := &api.ProviderSpec{
-				MachineType: "c1.2",
-				ImageID:     "12345678-1234-1234-1234-123456789abc",
-				Region:      "eu01",
-				Networking: &api.NetworkingSpec{
-					NetworkID: "990e8400-e29b-41d4-a716-446655440002",
-				},
-			}
-			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
-
-			machineClass = &v1alpha1.MachineClass{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-machine-class",
-				},
-				Provider: "stackit",
-				ProviderSpec: runtime.RawExtension{
-					Raw: providerSpecRaw,
-				},
-			}
-
-			req = &driver.CreateMachineRequest{
-				Machine:      machine,
-				MachineClass: machineClass,
-				Secret:       secret,
-			}
-
-			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
-				capturedReq = req
-				return &Server{
-					ID:     "test-server-id",
-					Name:   req.Name,
-					Status: "CREATING",
-				}, nil
-			}
-
-			_, err := provider.CreateMachine(ctx, req)
-
-			Expect(err).NotTo(HaveOccurred())
-			Expect(capturedReq.Networking).NotTo(BeNil())
-			Expect(capturedReq.Networking.NetworkID).To(Equal("990e8400-e29b-41d4-a716-446655440002"))
-			Expect(capturedReq.Networking.NetworkID).NotTo(Equal("880e8400-e29b-41d4-a716-446655440001"))
-		})
-
 		It("should reject empty networking in ProviderSpec (validation)", func() {
 			// Add networkId to Secret
 			secret.Data["networkId"] = []byte("880e8400-e29b-41d4-a716-446655440001")

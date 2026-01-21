@@ -15,6 +15,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+const (
+	CloudProviderSecretProjectIDKey      = "project-id"
+	CloudProviderSecretServiceAccountKey = "serviceaccount.json"
+)
+
 // uuidRegex is a regex pattern for validating UUID format
 var uuidRegex = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 
@@ -48,7 +53,7 @@ var labelValueRegex = regexp.MustCompile(`^([a-zA-Z0-9]([-a-zA-Z0-9_.]*[a-zA-Z0-
 
 // ValidateProviderSpecNSecret validates provider spec and secret to check if all fields are present and valid
 //
-//nolint:gocyclo,funlen//TODO:refactor
+//nolint:gocyclo,funlen // currently it is straight forward to keep in one function
 func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret) []error {
 	var errors []error
 
@@ -58,7 +63,7 @@ func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret)
 		return errors // Return early if secret is nil
 	}
 
-	projectID, ok := secrets.Data["project-id"]
+	projectID, ok := secrets.Data[CloudProviderSecretProjectIDKey]
 	if !ok {
 		errors = append(errors, fmt.Errorf("secret field 'project-id' is required"))
 	} else if len(projectID) == 0 {
@@ -69,7 +74,7 @@ func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret)
 
 	// Validate serviceAccountKey (required for authentication)
 	// ServiceAccount Key Flow: JSON string containing service account credentials and private key
-	serviceAccountKey, ok := secrets.Data["serviceaccount.json"]
+	serviceAccountKey, ok := secrets.Data[CloudProviderSecretServiceAccountKey]
 	if !ok {
 		errors = append(errors, fmt.Errorf("secret field 'serviceaccount.json' is required"))
 	} else if len(serviceAccountKey) == 0 {

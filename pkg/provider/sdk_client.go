@@ -50,15 +50,10 @@ var (
 // - Handles token refresh before expiration (with 5s leeway)
 // - More secure than static tokens (short-lived, rotating)
 func createIAASClient(serviceAccountKey string) (*iaas.APIClient, error) {
-	// Configure SDK with custom base URL if provided (for testing with mock server)
-	baseURL := os.Getenv("STACKIT_IAAS_ENDPOINT")
-	tokenEndpoint := os.Getenv("STACKIT_TOKEN_BASEURL")
-	noAuth := os.Getenv("STACKIT_NO_AUTH") == "true"
-
 	var opts []config.ConfigurationOption
 
 	// For testing with mock servers, skip authentication if STACKIT_NO_AUTH=true
-	if noAuth {
+	if noAuth := os.Getenv("STACKIT_NO_AUTH"); noAuth == "true" {
 		opts = append(opts, config.WithoutAuthentication())
 	} else {
 		// Use ServiceAccount Key Flow (production-recommended authentication)
@@ -70,11 +65,11 @@ func createIAASClient(serviceAccountKey string) (*iaas.APIClient, error) {
 		opts = append(opts, config.WithServiceAccountKey(serviceAccountKey))
 	}
 
-	if baseURL != "" {
+	if baseURL := os.Getenv("STACKIT_IAAS_ENDPOINT"); baseURL != "" {
 		opts = append(opts, config.WithEndpoint(baseURL))
 	}
 
-	if tokenEndpoint != "" {
+	if tokenEndpoint := os.Getenv("STACKIT_TOKEN_BASEURL"); tokenEndpoint != "" {
 		opts = append(opts, config.WithTokenEndpoint(tokenEndpoint))
 	}
 
@@ -91,14 +86,13 @@ func createIAASClient(serviceAccountKey string) (*iaas.APIClient, error) {
 //nolint:gocyclo // TODO: refactor
 func (c *SdkStackitClient) CreateServer(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
 	// Convert our request to SDK payload
-	payload := &iaas.CreateServerPayload{
-		Name:        ptr(req.Name),
-		MachineType: ptr(req.MachineType),
-	}
+	payload := &iaas.CreateServerPayload{}
+	payload.SetName(req.Name)
+	payload.SetMachineType(req.MachineType)
 
 	// ImageID (optional - can be nil if booting from snapshot/volume)
 	if req.ImageID != "" {
-		payload.ImageId = ptr(req.ImageID)
+		payload.SetImageId(req.ImageID)
 	}
 
 	// Labels
@@ -138,7 +132,7 @@ func (c *SdkStackitClient) CreateServer(ctx context.Context, projectID, region s
 
 	// Security Groups
 	if len(req.SecurityGroups) > 0 {
-		payload.SecurityGroups = convertStringSliceToSDK(req.SecurityGroups)
+		payload.SetSecurityGroups(req.SecurityGroups)
 	}
 
 	// UserData - SDK expects *[]byte (base64-encoded bytes)
@@ -168,27 +162,27 @@ func (c *SdkStackitClient) CreateServer(ctx context.Context, projectID, region s
 
 	// Volumes
 	if len(req.Volumes) > 0 {
-		payload.Volumes = convertStringSliceToSDK(req.Volumes)
+		payload.SetVolumes(req.Volumes)
 	}
 
 	// KeypairName
 	if req.KeypairName != "" {
-		payload.KeypairName = ptr(req.KeypairName)
+		payload.SetKeypairName(req.KeypairName)
 	}
 
 	// AvailabilityZone
 	if req.AvailabilityZone != "" {
-		payload.AvailabilityZone = ptr(req.AvailabilityZone)
+		payload.SetAvailabilityZone(req.AvailabilityZone)
 	}
 
 	// AffinityGroup
 	if req.AffinityGroup != "" {
-		payload.AffinityGroup = ptr(req.AffinityGroup)
+		payload.SetAffinityGroup(req.AffinityGroup)
 	}
 
 	// ServiceAccountMails
 	if len(req.ServiceAccountMails) > 0 {
-		payload.ServiceAccountMails = convertStringSliceToSDK(req.ServiceAccountMails)
+		payload.SetServiceAccountMails(req.ServiceAccountMails)
 	}
 
 	// Agent
@@ -200,7 +194,7 @@ func (c *SdkStackitClient) CreateServer(ctx context.Context, projectID, region s
 
 	// Metadata
 	if req.Metadata != nil {
-		payload.Metadata = convertMetadataToSDK(req.Metadata)
+		payload.SetMetadata(req.Metadata)
 	}
 
 	// Call SDK using the stored client
@@ -213,9 +207,9 @@ func (c *SdkStackitClient) CreateServer(ctx context.Context, projectID, region s
 
 	// Convert SDK server to our Server type
 	server := &Server{
-		ID:     getStringValue(sdkServer.Id),
-		Name:   getStringValue(sdkServer.Name),
-		Status: getStringValue(sdkServer.Status),
+		ID:     sdkServer.GetId(),
+		Name:   sdkServer.GetName(),
+		Status: sdkServer.GetStatus(),
 		Labels: convertLabelsFromSDK(sdkServer.Labels),
 	}
 
@@ -235,9 +229,9 @@ func (c *SdkStackitClient) GetServer(ctx context.Context, projectID, region, ser
 
 	// Convert SDK server to our Server type
 	server := &Server{
-		ID:     getStringValue(sdkServer.Id),
-		Name:   getStringValue(sdkServer.Name),
-		Status: getStringValue(sdkServer.Status),
+		ID:     sdkServer.GetId(),
+		Name:   sdkServer.GetName(),
+		Status: sdkServer.GetStatus(),
 		Labels: convertLabelsFromSDK(sdkServer.Labels),
 	}
 
@@ -290,9 +284,9 @@ func (c *SdkStackitClient) ListServers(ctx context.Context, projectID, region st
 			sdkServer := &(*sdkResponse.Items)[i]
 
 			server := &Server{
-				ID:     getStringValue(sdkServer.Id),
-				Name:   getStringValue(sdkServer.Name),
-				Status: getStringValue(sdkServer.Status),
+				ID:     sdkServer.GetId(),
+				Name:   sdkServer.GetName(),
+				Status: sdkServer.GetStatus(),
 				Labels: convertLabelsFromSDK(sdkServer.Labels),
 			}
 			servers = append(servers, server)
@@ -325,7 +319,7 @@ func (c *SdkStackitClient) UpdateNIC(ctx context.Context, projectID, region, net
 
 	for i, addr := range allowedAddresses {
 		addresses[i] = iaas.AllowedAddressesInner{
-			String: ptr(addr),
+			String: &addr,
 		}
 	}
 
@@ -358,18 +352,10 @@ func convertSDKNICtoNIC(nic *iaas.NIC) *NIC {
 	}
 
 	return &NIC{
-		ID:               getStringValue(nic.Id),
-		NetworkID:        getStringValue(nic.NetworkId),
+		ID:               nic.GetId(),
+		NetworkID:        nic.GetNetworkId(),
 		AllowedAddresses: addresses,
 	}
-}
-
-// getStringValue safely dereferences a string pointer, returning empty string if nil
-func getStringValue(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
 }
 
 // isNotFoundError checks if an error is a 404 Not Found error from the SDK

@@ -41,7 +41,6 @@ var _ = Describe("CreateMachine", func() {
 			Data: map[string][]byte{
 				"project-id":          []byte("11111111-2222-3333-4444-555555555555"),
 				"serviceaccount.json": []byte(`{"credentials":{"iss":"test"}}`),
-				"networkId":           []byte("770e8400-e29b-41d4-a716-446655440000"),
 			},
 		}
 
@@ -109,77 +108,7 @@ var _ = Describe("CreateMachine", func() {
 			Expect(capturedReq.UserData).To(Equal(expectedUserData))
 		})
 
-		It("should pass userData from Secret to API when ProviderSpec.UserData is empty", func() {
-			secret.Data["userData"] = []byte("#cloud-config\nruncmd:\n  - echo 'Hello from Secret'")
-
-			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
-				capturedReq = req
-				return &Server{
-					ID:     "test-server-id",
-					Name:   req.Name,
-					Status: "CREATING",
-				}, nil
-			}
-
-			_, err := provider.CreateMachine(ctx, req)
-
-			Expect(err).NotTo(HaveOccurred())
-			Expect(capturedReq).NotTo(BeNil())
-			expectedUserData := base64.StdEncoding.EncodeToString([]byte("#cloud-config\nruncmd:\n  - echo 'Hello from Secret'"))
-			Expect(capturedReq.UserData).To(Equal(expectedUserData))
-		})
-
-		It("should prefer ProviderSpec.UserData over Secret.userData", func() {
-			providerSpec := &api.ProviderSpec{
-				MachineType: "c2i.2",
-				ImageID:     "12345678-1234-1234-1234-123456789abc",
-				UserData:    "#cloud-config from ProviderSpec",
-				Region:      "eu01",
-			}
-			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
-			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
-			secret.Data["userData"] = []byte("#cloud-config from Secret")
-
-			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
-				capturedReq = req
-				return &Server{
-					ID:     "test-server-id",
-					Name:   req.Name,
-					Status: "CREATING",
-				}, nil
-			}
-
-			_, err := provider.CreateMachine(ctx, req)
-
-			Expect(err).NotTo(HaveOccurred())
-			Expect(capturedReq).NotTo(BeNil())
-			expectedUserData := base64.StdEncoding.EncodeToString([]byte("#cloud-config from ProviderSpec"))
-			Expect(capturedReq.UserData).To(Equal(expectedUserData))
-		})
-
-		It("should not send userData when neither ProviderSpec nor Secret have it", func() {
-			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
-				capturedReq = req
-				return &Server{
-					ID:     "test-server-id",
-					Name:   req.Name,
-					Status: "CREATING",
-				}, nil
-			}
-
-			_, err := provider.CreateMachine(ctx, req)
-
-			Expect(err).NotTo(HaveOccurred())
-			Expect(capturedReq).NotTo(BeNil())
-			Expect(capturedReq.UserData).To(BeEmpty())
-		})
-
-		It("should handle empty userData in Secret gracefully", func() {
-			secret.Data["userData"] = []byte("")
-
+		It("should not send userData when ProviderSpec does not have it", func() {
 			var capturedReq *CreateServerRequest
 			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
 				capturedReq = req
