@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/client"
+	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/client/mock"
 	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,7 +22,7 @@ var _ = Describe("CreateMachine", func() {
 	var (
 		ctx          context.Context
 		provider     *Provider
-		mockClient   *mockStackitClient
+		mockClient   *mock.StackitClient
 		req          *driver.CreateMachineRequest
 		secret       *corev1.Secret
 		machineClass *v1alpha1.MachineClass
@@ -30,7 +31,7 @@ var _ = Describe("CreateMachine", func() {
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		mockClient = &mockStackitClient{}
+		mockClient = &mock.StackitClient{}
 		provider = &Provider{
 			client: mockClient,
 		}
@@ -50,7 +51,7 @@ var _ = Describe("CreateMachine", func() {
 			ImageID:     "12345678-1234-1234-1234-123456789abc",
 			Region:      "eu01",
 		}
-		providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+		providerSpecRaw, _ := mock.EncodeProviderSpec(providerSpec)
 
 		// Create MachineClass
 		machineClass = &v1alpha1.MachineClass{
@@ -93,7 +94,7 @@ var _ = Describe("CreateMachine", func() {
 			var capturedReq *client.CreateServerRequest
 			var capturedProjectID string
 
-			mockClient.createServerFunc = func(_ context.Context, projectID, _ string, req *client.CreateServerRequest) (*client.Server, error) {
+			mockClient.CreateServerFunc = func(_ context.Context, projectID, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedProjectID = projectID
 				capturedReq = req
 				return &client.Server{
@@ -120,7 +121,7 @@ var _ = Describe("CreateMachine", func() {
 				MachineType: "",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
 			}
-			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			providerSpecRaw, _ := mock.EncodeProviderSpec(providerSpec)
 			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
 
 			_, err := provider.CreateMachine(ctx, req)
@@ -136,7 +137,7 @@ var _ = Describe("CreateMachine", func() {
 				MachineType: "c2i.2",
 				ImageID:     "",
 			}
-			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			providerSpecRaw, _ := mock.EncodeProviderSpec(providerSpec)
 			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
 
 			_, err := provider.CreateMachine(ctx, req)
@@ -172,7 +173,7 @@ var _ = Describe("CreateMachine", func() {
 
 	Context("when STACKIT API fails", func() {
 		It("should return Internal error on API failure", func() {
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, _ *client.CreateServerRequest) (*client.Server, error) {
+			mockClient.CreateServerFunc = func(_ context.Context, _, _ string, _ *client.CreateServerRequest) (*client.Server, error) {
 				return nil, fmt.Errorf("API connection failed")
 			}
 

@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/client"
+	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/client/mock"
 	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,7 +22,7 @@ var _ = Describe("GetMachineStatus", func() {
 	var (
 		ctx          context.Context
 		provider     *Provider
-		mockClient   *mockStackitClient
+		mockClient   *mock.StackitClient
 		req          *driver.GetMachineStatusRequest
 		secret       *corev1.Secret
 		machineClass *v1alpha1.MachineClass
@@ -30,7 +31,7 @@ var _ = Describe("GetMachineStatus", func() {
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		mockClient = &mockStackitClient{}
+		mockClient = &mock.StackitClient{}
 		provider = &Provider{
 			client: mockClient,
 		}
@@ -50,7 +51,7 @@ var _ = Describe("GetMachineStatus", func() {
 			ImageID:     "image-uuid-123",
 			Region:      "eu01",
 		}
-		providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+		providerSpecRaw, _ := mock.EncodeProviderSpec(providerSpec)
 
 		// Create MachineClass
 		machineClass = &v1alpha1.MachineClass{
@@ -83,7 +84,7 @@ var _ = Describe("GetMachineStatus", func() {
 
 	Context("with valid inputs", func() {
 		It("should successfully get machine status when server exists", func() {
-			mockClient.getServerFunc = func(_ context.Context, _, _, serverID string) (*client.Server, error) {
+			mockClient.GetServerFunc = func(_ context.Context, _, _, serverID string) (*client.Server, error) {
 				return &client.Server{
 					ID:     serverID,
 					Name:   "test-machine",
@@ -103,7 +104,7 @@ var _ = Describe("GetMachineStatus", func() {
 			var capturedProjectID string
 			var capturedServerID string
 
-			mockClient.getServerFunc = func(_ context.Context, projectID, _, serverID string) (*client.Server, error) {
+			mockClient.GetServerFunc = func(_ context.Context, projectID, _, serverID string) (*client.Server, error) {
 				capturedProjectID = projectID
 				capturedServerID = serverID
 				return &client.Server{
@@ -158,7 +159,7 @@ var _ = Describe("GetMachineStatus", func() {
 
 	Context("when server does not exist", func() {
 		It("should return NotFound when server is not found", func() {
-			mockClient.getServerFunc = func(_ context.Context, _, _, _ string) (*client.Server, error) {
+			mockClient.GetServerFunc = func(_ context.Context, _, _, _ string) (*client.Server, error) {
 				return nil, fmt.Errorf("%w: status 404", client.ErrServerNotFound)
 			}
 
@@ -173,7 +174,7 @@ var _ = Describe("GetMachineStatus", func() {
 
 	Context("when STACKIT API fails", func() {
 		It("should return Internal error on API failure", func() {
-			mockClient.getServerFunc = func(_ context.Context, _, _, _ string) (*client.Server, error) {
+			mockClient.GetServerFunc = func(_ context.Context, _, _, _ string) (*client.Server, error) {
 				return nil, fmt.Errorf("API connection failed")
 			}
 

@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/client"
+	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/client/mock"
 	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,7 +19,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 	var (
 		ctx          context.Context
 		provider     *Provider
-		mockClient   *mockStackitClient
+		mockClient   *mock.StackitClient
 		req          *driver.CreateMachineRequest
 		secret       *corev1.Secret
 		machineClass *v1alpha1.MachineClass
@@ -27,7 +28,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		mockClient = &mockStackitClient{}
+		mockClient = &mock.StackitClient{}
 		provider = &Provider{
 			client: mockClient,
 		}
@@ -59,7 +60,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 					NetworkID: "770e8400-e29b-41d4-a716-446655440000",
 				},
 			}
-			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			providerSpecRaw, _ := mock.EncodeProviderSpec(providerSpec)
 
 			machineClass = &v1alpha1.MachineClass{
 				ObjectMeta: metav1.ObjectMeta{
@@ -78,7 +79,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 			}
 
 			var capturedReq *client.CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
+			mockClient.CreateServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
 				return &client.Server{
 					ID:     "test-server-id",
@@ -107,7 +108,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 					},
 				},
 			}
-			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			providerSpecRaw, _ := mock.EncodeProviderSpec(providerSpec)
 
 			machineClass = &v1alpha1.MachineClass{
 				ObjectMeta: metav1.ObjectMeta{
@@ -126,7 +127,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 			}
 
 			var capturedReq *client.CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
+			mockClient.CreateServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
 				return &client.Server{
 					ID:     "test-server-id",
@@ -157,7 +158,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 					"10.0.0.1/8",
 				},
 			}
-			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			providerSpecRaw, _ := mock.EncodeProviderSpec(providerSpec)
 
 			machineClass = &v1alpha1.MachineClass{
 				ObjectMeta: metav1.ObjectMeta{
@@ -176,7 +177,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 			}
 
 			var capturedReq *client.CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
+			mockClient.CreateServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
 				return &client.Server{
 					ID:     "test-server-id",
@@ -185,7 +186,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 				}, nil
 			}
 
-			mockClient.getNICsFunc = func(_ context.Context, _, _, _ string) ([]*client.NIC, error) {
+			mockClient.GetNICsFunc = func(_ context.Context, _, _, _ string) ([]*client.NIC, error) {
 				return []*client.NIC{{
 					ID:               "990e8400-e29b-41d4-a716-446655440002",
 					NetworkID:        "770e8400-e29b-41d4-a716-446655440000",
@@ -194,7 +195,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 			}
 
 			var called = false
-			mockClient.updateNICFunc = func(_ context.Context, _, _, _, _ string, addresses []string) (*client.NIC, error) {
+			mockClient.UpdateNICFunc = func(_ context.Context, _, _, _, _ string, addresses []string) (*client.NIC, error) {
 				called = true
 				Expect(addresses).To(HaveLen(1))
 				Expect(addresses[0]).To(Equal("10.0.0.1/8"))
@@ -228,7 +229,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 					"10.0.0.1/8",
 				},
 			}
-			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			providerSpecRaw, _ := mock.EncodeProviderSpec(providerSpec)
 
 			machineClass = &v1alpha1.MachineClass{
 				ObjectMeta: metav1.ObjectMeta{
@@ -247,7 +248,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 			}
 
 			var capturedReq *client.CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
+			mockClient.CreateServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
 				return &client.Server{
 					ID:     "test-server-id",
@@ -256,7 +257,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 				}, nil
 			}
 
-			mockClient.getNICsFunc = func(_ context.Context, _, _, _ string) ([]*client.NIC, error) {
+			mockClient.GetNICsFunc = func(_ context.Context, _, _, _ string) ([]*client.NIC, error) {
 				return []*client.NIC{{
 					ID:               "880e8400-e29b-41d4-a716-446655440001",
 					NetworkID:        "770e8400-e29b-41d4-a716-446655440000",
@@ -265,7 +266,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 			}
 
 			var called = false
-			mockClient.updateNICFunc = func(_ context.Context, _, _, _, _ string, addresses []string) (*client.NIC, error) {
+			mockClient.UpdateNICFunc = func(_ context.Context, _, _, _, _ string, addresses []string) (*client.NIC, error) {
 				called = true
 				Expect(addresses).To(HaveLen(1))
 				Expect(addresses[0]).To(Equal("10.0.0.1/8"))
@@ -296,7 +297,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 					"10.0.0.1/8",
 				},
 			}
-			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			providerSpecRaw, _ := mock.EncodeProviderSpec(providerSpec)
 
 			machineClass = &v1alpha1.MachineClass{
 				ObjectMeta: metav1.ObjectMeta{
@@ -315,7 +316,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 			}
 
 			var capturedReq *client.CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
+			mockClient.CreateServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
 				return &client.Server{
 					ID:     "test-server-id",
@@ -324,7 +325,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 				}, nil
 			}
 
-			mockClient.getNICsFunc = func(_ context.Context, _, _, _ string) ([]*client.NIC, error) {
+			mockClient.GetNICsFunc = func(_ context.Context, _, _, _ string) ([]*client.NIC, error) {
 				return []*client.NIC{{
 					ID:               "990e8400-e29b-41d4-a716-446655440002",
 					NetworkID:        "770e8400-e29b-41d4-a716-446655440000",
@@ -333,7 +334,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 			}
 
 			var called = false
-			mockClient.updateNICFunc = func(_ context.Context, _, _, _, _ string, addresses []string) (*client.NIC, error) {
+			mockClient.UpdateNICFunc = func(_ context.Context, _, _, _, _ string, addresses []string) (*client.NIC, error) {
 				called = true
 				return &client.NIC{
 					ID:               "990e8400-e29b-41d4-a716-446655440002",
@@ -362,7 +363,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 				Region:      "eu01",
 				// Networking is nil - should fall back to Secret
 			}
-			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			providerSpecRaw, _ := mock.EncodeProviderSpec(providerSpec)
 
 			machineClass = &v1alpha1.MachineClass{
 				ObjectMeta: metav1.ObjectMeta{
@@ -381,7 +382,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 			}
 
 			var capturedReq *client.CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
+			mockClient.CreateServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
 				return &client.Server{
 					ID:     "test-server-id",
@@ -405,7 +406,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 				Region:      "eu01",
 				// Networking is nil
 			}
-			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			providerSpecRaw, _ := mock.EncodeProviderSpec(providerSpec)
 
 			machineClass = &v1alpha1.MachineClass{
 				ObjectMeta: metav1.ObjectMeta{
@@ -424,7 +425,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 			}
 
 			var capturedReq *client.CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
+			mockClient.CreateServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
 				return &client.Server{
 					ID:     "test-server-id",
@@ -455,7 +456,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 					NetworkID: "990e8400-e29b-41d4-a716-446655440002",
 				},
 			}
-			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			providerSpecRaw, _ := mock.EncodeProviderSpec(providerSpec)
 
 			machineClass = &v1alpha1.MachineClass{
 				ObjectMeta: metav1.ObjectMeta{
@@ -474,7 +475,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 			}
 
 			var capturedReq *client.CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
+			mockClient.CreateServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
 				return &client.Server{
 					ID:     "test-server-id",
@@ -503,7 +504,7 @@ var _ = Describe("CreateMachine - Networking", func() {
 					// Both NetworkID and NICIDs are empty - should fail validation
 				},
 			}
-			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			providerSpecRaw, _ := mock.EncodeProviderSpec(providerSpec)
 
 			machineClass = &v1alpha1.MachineClass{
 				ObjectMeta: metav1.ObjectMeta{

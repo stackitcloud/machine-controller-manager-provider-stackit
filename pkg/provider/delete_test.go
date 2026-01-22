@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/client"
+	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/client/mock"
 	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,7 +22,7 @@ var _ = Describe("DeleteMachine", func() {
 	var (
 		ctx          context.Context
 		provider     *Provider
-		mockClient   *mockStackitClient
+		mockClient   *mock.StackitClient
 		req          *driver.DeleteMachineRequest
 		secret       *corev1.Secret
 		machineClass *v1alpha1.MachineClass
@@ -30,7 +31,7 @@ var _ = Describe("DeleteMachine", func() {
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		mockClient = &mockStackitClient{}
+		mockClient = &mock.StackitClient{}
 		provider = &Provider{
 			client: mockClient,
 		}
@@ -50,7 +51,7 @@ var _ = Describe("DeleteMachine", func() {
 			ImageID:     "image-uuid-123",
 			Region:      "eu01",
 		}
-		providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+		providerSpecRaw, _ := mock.EncodeProviderSpec(providerSpec)
 
 		// Create MachineClass
 		machineClass = &v1alpha1.MachineClass{
@@ -83,7 +84,7 @@ var _ = Describe("DeleteMachine", func() {
 
 	Context("with valid inputs", func() {
 		It("should successfully delete a machine", func() {
-			mockClient.deleteServerFunc = func(_ context.Context, _, _, _ string) error {
+			mockClient.DeleteServerFunc = func(_ context.Context, _, _, _ string) error {
 				return nil
 			}
 
@@ -97,7 +98,7 @@ var _ = Describe("DeleteMachine", func() {
 			var capturedProjectID string
 			var capturedServerID string
 
-			mockClient.deleteServerFunc = func(_ context.Context, projectID, _, serverID string) error {
+			mockClient.DeleteServerFunc = func(_ context.Context, projectID, _, serverID string) error {
 				capturedProjectID = projectID
 				capturedServerID = serverID
 				return nil
@@ -134,7 +135,7 @@ var _ = Describe("DeleteMachine", func() {
 
 	Context("when machine not found", func() {
 		It("should return success if machine does not exist (idempotent)", func() {
-			mockClient.deleteServerFunc = func(_ context.Context, _, _, _ string) error {
+			mockClient.DeleteServerFunc = func(_ context.Context, _, _, _ string) error {
 				return fmt.Errorf("%w: status 404", client.ErrServerNotFound)
 			}
 
@@ -147,7 +148,7 @@ var _ = Describe("DeleteMachine", func() {
 
 	Context("when STACKIT API fails", func() {
 		It("should return error when API call fails", func() {
-			mockClient.deleteServerFunc = func(_ context.Context, _, _, _ string) error {
+			mockClient.DeleteServerFunc = func(_ context.Context, _, _, _ string) error {
 				return fmt.Errorf("API connection failed")
 			}
 

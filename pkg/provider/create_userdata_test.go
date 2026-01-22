@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/client"
+	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/client/mock"
 	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,7 +20,7 @@ var _ = Describe("CreateMachine", func() {
 	var (
 		ctx          context.Context
 		provider     *Provider
-		mockClient   *mockStackitClient
+		mockClient   *mock.StackitClient
 		req          *driver.CreateMachineRequest
 		secret       *corev1.Secret
 		machineClass *v1alpha1.MachineClass
@@ -28,7 +29,7 @@ var _ = Describe("CreateMachine", func() {
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		mockClient = &mockStackitClient{}
+		mockClient = &mock.StackitClient{}
 		provider = &Provider{
 			client: mockClient,
 		}
@@ -48,7 +49,7 @@ var _ = Describe("CreateMachine", func() {
 			ImageID:     "12345678-1234-1234-1234-123456789abc",
 			Region:      "eu01",
 		}
-		providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+		providerSpecRaw, _ := mock.EncodeProviderSpec(providerSpec)
 
 		// Create MachineClass
 		machineClass = &v1alpha1.MachineClass{
@@ -85,11 +86,11 @@ var _ = Describe("CreateMachine", func() {
 				UserData:    "#cloud-config\nruncmd:\n  - echo 'Hello from ProviderSpec'",
 				Region:      "eu01",
 			}
-			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			providerSpecRaw, _ := mock.EncodeProviderSpec(providerSpec)
 			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
 
 			var capturedReq *client.CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
+			mockClient.CreateServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
 				return &client.Server{
 					ID:     "test-server-id",
@@ -110,7 +111,7 @@ var _ = Describe("CreateMachine", func() {
 			secret.Data["userData"] = []byte("#cloud-config\nruncmd:\n  - echo 'Hello from Secret'")
 
 			var capturedReq *client.CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
+			mockClient.CreateServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
 				return &client.Server{
 					ID:     "test-server-id",
@@ -134,12 +135,12 @@ var _ = Describe("CreateMachine", func() {
 				UserData:    "#cloud-config from ProviderSpec",
 				Region:      "eu01",
 			}
-			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			providerSpecRaw, _ := mock.EncodeProviderSpec(providerSpec)
 			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
 			secret.Data["userData"] = []byte("#cloud-config from Secret")
 
 			var capturedReq *client.CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
+			mockClient.CreateServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
 				return &client.Server{
 					ID:     "test-server-id",
@@ -158,7 +159,7 @@ var _ = Describe("CreateMachine", func() {
 
 		It("should not send userData when neither ProviderSpec nor Secret have it", func() {
 			var capturedReq *client.CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
+			mockClient.CreateServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
 				return &client.Server{
 					ID:     "test-server-id",
@@ -178,7 +179,7 @@ var _ = Describe("CreateMachine", func() {
 			secret.Data["userData"] = []byte("")
 
 			var capturedReq *client.CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
+			mockClient.CreateServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
 				return &client.Server{
 					ID:     "test-server-id",
