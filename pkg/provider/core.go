@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
@@ -27,6 +28,8 @@ const (
 	StackitMachineClassLabel = "mcm.gardener.cloud/machineclass"
 	StackitRoleLabel         = "mcm.gardener.cloud/role"
 )
+
+const migratedMachineAnnotation = "stackit.cloud/migrated-machine"
 
 // CreateMachine handles a machine creation request by creating a STACKIT server
 //
@@ -52,6 +55,10 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	if req.MachineClass.Provider != StackitProviderName {
 		err := fmt.Errorf("requested for Provider '%s', we only support '%s'", req.MachineClass.Provider, StackitProviderName)
 		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	if m, _ := strconv.ParseBool(req.Machine.Annotations[migratedMachineAnnotation]); m {
+		return nil, status.Error(codes.AlreadyExists, fmt.Errorf("create for migrated machine %s will not work", req.Machine.Name).Error())
 	}
 
 	// Decode ProviderSpec from MachineClass
@@ -186,10 +193,23 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	}
 
 	// check if server already exists
-	server, err := p.getServerByName(ctx, projectID, providerSpec.Region, req.Machine.Name)
+	servers, err := p.getServersByName(ctx, projectID, providerSpec.Region, map[string]string{
+		StackitMachineLabel: req.Machine.Name,
+	})
 	if err != nil {
 		klog.Errorf("Failed to fetch server for machine %q: %v", req.Machine.Name, err)
 		return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to fetch server: %v", err))
+	}
+
+	if len(servers) > 1 {
+		klog.Errorf("Multiple servers already exists for this machine %q: %v", req.Machine.Name, err)
+		return nil, status.Error(codes.AlreadyExists, fmt.Sprintf("failed to fetch server: %v", err))
+	}
+
+	var server *Server
+
+	if len(servers) == 1 {
+		server = servers[0]
 	}
 
 	if server == nil {
@@ -216,26 +236,18 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	}, nil
 }
 
-func (p *Provider) getServerByName(ctx context.Context, projectID, region, serverName string) (*Server, error) {
+func (p *Provider) getServersByName(ctx context.Context, projectID, region string, selector map[string]string) ([]*Server, error) {
 	// Check if the server got already created
-	labelSelector := map[string]string{
-		StackitMachineLabel: serverName,
-	}
-	servers, err := p.client.ListServers(ctx, projectID, region, labelSelector)
+	servers, err := p.client.ListServers(ctx, projectID, region, selector)
 	if err != nil {
-		return nil, fmt.Errorf("SDK ListServers with labelSelector: %v failed: %w", labelSelector, err)
+		return nil, fmt.Errorf("SDK ListServers with labelSelector: %v failed: %w", selector, err)
 	}
 
-	if len(servers) > 1 {
-		return nil, fmt.Errorf("%v servers found for server name %v", len(servers), serverName)
+	if len(servers) == 0 {
+		return nil, nil
 	}
 
-	if len(servers) == 1 {
-		return servers[0], nil
-	}
-
-	// no servers found len == 0
-	return nil, nil
+	return servers, nil
 }
 
 func (p *Provider) patchNetworkInterface(ctx context.Context, projectID, serverID string, providerSpec *api.ProviderSpec) error {
@@ -305,9 +317,11 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to initialize STACKIT client: %v", err))
 	}
 
-	var projectID, serverID string
+	var projectID string
+	var serverIDs []string
 	var err error
 	if req.Machine.Spec.ProviderID != "" {
+		var serverID string
 		if !strings.HasPrefix(req.Machine.Spec.ProviderID, StackitProviderName) {
 			return nil, status.Error(codes.InvalidArgument, "providerID is not empty and does not start with stackit://")
 		}
@@ -317,6 +331,7 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 		if err != nil {
 			klog.V(2).Infof("invalid ProviderID format: %v", err)
 		}
+		serverIDs = append(serverIDs, serverID)
 	}
 
 	if projectID == "" {
@@ -328,36 +343,67 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	if serverID == "" {
-		server, err := p.getServerByName(ctx, projectID, providerSpec.Region, req.Machine.Name)
+	if len(serverIDs) == 0 {
+		selector := map[string]string{
+			StackitMachineLabel: req.Machine.Name,
+		}
+
+		if m, _ := strconv.ParseBool(req.Machine.Annotations[migratedMachineAnnotation]); m {
+			selector = nil
+		}
+
+		servers, err := p.getServersByName(ctx, projectID, providerSpec.Region, selector)
 		if err != nil {
 			return nil, status.Error(codes.Internal, fmt.Sprintf("failed to find server by name: %v", err))
 		}
 
-		if server != nil {
-			serverID = server.ID
+		for _, server := range servers {
+			if server.Name != req.Machine.Name {
+				continue
+			}
+			serverIDs = append(serverIDs, server.ID)
 		}
 	}
 
-	if serverID == "" {
-		klog.V(2).Infof("Server is already deleted for machine %q", req.Machine.Name)
-		return &driver.DeleteMachineResponse{}, nil
-	}
-
-	// Call STACKIT API to delete server
-	err = p.client.DeleteServer(ctx, projectID, providerSpec.Region, serverID)
-	if err != nil {
-		// Check if server was not found (404) - this is OK for idempotency
-		if errors.Is(err, ErrServerNotFound) {
-			klog.V(2).Infof("Server %q already deleted for machine %q (idempotent)", serverID, req.Machine.Name)
-			return &driver.DeleteMachineResponse{}, nil
+	for _, id := range serverIDs {
+		// Call STACKIT API to delete server
+		err = p.client.DeleteServer(ctx, projectID, providerSpec.Region, id)
+		if err != nil {
+			// Check if server was not found (404) - this is OK for idempotency
+			if errors.Is(err, ErrServerNotFound) {
+				klog.V(2).Infof("Server %q already deleted for machine %q (idempotent)", id, req.Machine.Name)
+				return &driver.DeleteMachineResponse{}, nil
+			}
+			// All other errors are internal errors
+			klog.Errorf("Failed to delete server for machine %q: %v", req.Machine.Name, err)
+			return nil, status.Error(codes.Internal, fmt.Sprintf("failed to delete server: %v", err))
 		}
-		// All other errors are internal errors
-		klog.Errorf("Failed to delete server for machine %q: %v", req.Machine.Name, err)
-		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to delete server: %v", err))
 	}
 
-	klog.V(2).Infof("Successfully deleted server %q for machine %q", serverID, req.Machine.Name)
+	if m, _ := strconv.ParseBool(req.Machine.Annotations[migratedMachineAnnotation]); m {
+		nics, err := p.client.ListNICs(ctx, projectID, providerSpec.Region, providerSpec.Networking.NetworkID)
+		if err != nil {
+			return nil, err
+		}
+		for _, nic := range nics {
+			if nic.Name != req.Machine.Name {
+				continue
+			}
+			err = p.client.DeleteNIC(ctx, projectID, providerSpec.Region, nic.NetworkID, nic.ID)
+			if err != nil {
+				// Check if server was not found (404) - this is OK for idempotency
+				if errors.Is(err, ErrNicNotFound) {
+					klog.V(2).Infof("Nic %q already deleted for machine %q (idempotent)", nic.ID, req.Machine.Name)
+					return &driver.DeleteMachineResponse{}, nil
+				}
+				// All other errors are internal errors
+				klog.Errorf("Failed to delete nic for machine %q: %v", req.Machine.Name, err)
+				return nil, status.Error(codes.Internal, fmt.Sprintf("failed to delete nic: %v", err))
+			}
+		}
+
+	}
+	klog.V(2).Infof("Successfully deleted server for machine %q", req.Machine.Name)
 
 	return &driver.DeleteMachineResponse{}, nil
 }

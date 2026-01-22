@@ -30,6 +30,10 @@ type StackitClient interface {
 	ListServers(ctx context.Context, projectID, region string, labelSelector map[string]string) ([]*Server, error)
 	// GetNICsForServer retrieves a network interfaces for a given server
 	GetNICsForServer(ctx context.Context, projectID, region, serverID string) ([]*NIC, error)
+	// ListNics list all nics for a network
+	ListNICs(ctx context.Context, projectID, region, networkID string) ([]*NIC, error)
+	// DeleteNIC delete a given nic by ID
+	DeleteNIC(ctx context.Context, projectID, region, networkID, nicID string) error
 	// UpdateNIC updates a network interface
 	UpdateNIC(ctx context.Context, projectID, region, networkID, nicID string, allowedAddresses []string) (*NIC, error)
 }
@@ -97,4 +101,5 @@ type NIC struct {
 	ID               string
 	NetworkID        string
 	AllowedAddresses []string
+	Name             string
 }

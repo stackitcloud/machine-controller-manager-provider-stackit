@@ -41,6 +41,7 @@ func NewStackitClient(serviceAccountKey string) (*SdkStackitClient, error) {
 var (
 	// ErrServerNotFound indicates the server was not found (404)
 	ErrServerNotFound = errors.New("server not found")
+	ErrNicNotFound    = errors.New("nic not found")
 )
 
 // createIAASClient creates a new STACKIT SDK IAAS API client
@@ -320,6 +321,36 @@ func (c *SdkStackitClient) GetNICsForServer(ctx context.Context, projectID, regi
 	return nics, nil
 }
 
+func (c *SdkStackitClient) ListNICs(ctx context.Context, projectID, region, networkID string) ([]*NIC, error) {
+	res, err := c.iaasClient.ListNics(ctx, projectID, region, networkID).Execute()
+	if err != nil {
+		return nil, fmt.Errorf("SDK ListServerNICs failed: %w", err)
+	}
+
+	if res.Items == nil {
+		return []*NIC{}, nil
+	}
+
+	nics := make([]*NIC, 0)
+	for _, nic := range *res.Items {
+		nics = append(nics, convertSDKNICtoNIC(&nic))
+	}
+
+	return nics, nil
+}
+
+func (c *SdkStackitClient) DeleteNIC(ctx context.Context, projectID, region, networkID, nicID string) error {
+	err := c.iaasClient.DeleteNic(ctx, projectID, region, networkID, nicID).Execute()
+	if err != nil {
+		// Check if error is 404 Not Found - this is OK (idempotent)
+		if isNotFoundError(err) {
+			return fmt.Errorf("%w: %v", ErrNicNotFound, err)
+		}
+		return fmt.Errorf("SDK DeleteNic failed: %w", err)
+	}
+	return nil
+}
+
 func (c *SdkStackitClient) UpdateNIC(ctx context.Context, projectID, region, networkID, nicID string, allowedAddresses []string) (*NIC, error) {
 	addresses := make([]iaas.AllowedAddressesInner, len(allowedAddresses))
 
@@ -361,6 +392,7 @@ func convertSDKNICtoNIC(nic *iaas.NIC) *NIC {
 		ID:               getStringValue(nic.Id),
 		NetworkID:        getStringValue(nic.NetworkId),
 		AllowedAddresses: addresses,
+		Name:             getStringValue(nic.Name),
 	}
 }
 
