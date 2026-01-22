@@ -1,7 +1,3 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Gardener contributors
-//
-// SPDX-License-Identifier: Apache-2.0
-
 package provider
 
 import (
@@ -11,6 +7,8 @@ import (
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/client"
+	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/client/mock"
 	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,7 +19,7 @@ var _ = Describe("CreateMachine", func() {
 	var (
 		ctx          context.Context
 		provider     *Provider
-		mockClient   *mockStackitClient
+		mockClient   *mock.StackitClient
 		req          *driver.CreateMachineRequest
 		secret       *corev1.Secret
 		machineClass *v1alpha1.MachineClass
@@ -30,7 +28,7 @@ var _ = Describe("CreateMachine", func() {
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		mockClient = &mockStackitClient{}
+		mockClient = &mock.StackitClient{}
 		provider = &Provider{
 			client: mockClient,
 		}
@@ -50,7 +48,7 @@ var _ = Describe("CreateMachine", func() {
 			ImageID:     "12345678-1234-1234-1234-123456789abc",
 			Region:      "eu01",
 		}
-		providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+		providerSpecRaw, _ := mock.EncodeProviderSpec(providerSpec)
 
 		// Create MachineClass
 		machineClass = &v1alpha1.MachineClass{
@@ -96,13 +94,13 @@ var _ = Describe("CreateMachine", func() {
 					},
 				},
 			}
-			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			providerSpecRaw, _ := mock.EncodeProviderSpec(providerSpec)
 			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
 
-			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
+			var capturedReq *client.CreateServerRequest
+			mockClient.CreateServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
-				return &Server{
+				return &client.Server{
 					ID:     "test-server-id",
 					Name:   req.Name,
 					Status: "CREATING",
@@ -131,13 +129,13 @@ var _ = Describe("CreateMachine", func() {
 					Size: 50,
 				},
 			}
-			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			providerSpecRaw, _ := mock.EncodeProviderSpec(providerSpec)
 			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
 
-			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
+			var capturedReq *client.CreateServerRequest
+			mockClient.CreateServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
-				return &Server{
+				return &client.Server{
 					ID:     "test-server-id",
 					Name:   req.Name,
 					Status: "CREATING",
@@ -162,13 +160,13 @@ var _ = Describe("CreateMachine", func() {
 					"660e8400-e29b-41d4-a716-446655440001",
 				},
 			}
-			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			providerSpecRaw, _ := mock.EncodeProviderSpec(providerSpec)
 			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
 
-			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
+			var capturedReq *client.CreateServerRequest
+			mockClient.CreateServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
-				return &Server{
+				return &client.Server{
 					ID:     "test-server-id",
 					Name:   req.Name,
 					Status: "CREATING",
@@ -197,13 +195,13 @@ var _ = Describe("CreateMachine", func() {
 					"550e8400-e29b-41d4-a716-446655440000",
 				},
 			}
-			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			providerSpecRaw, _ := mock.EncodeProviderSpec(providerSpec)
 			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
 
-			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
+			var capturedReq *client.CreateServerRequest
+			mockClient.CreateServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
-				return &Server{
+				return &client.Server{
 					ID:     "test-server-id",
 					Name:   req.Name,
 					Status: "CREATING",
@@ -220,10 +218,10 @@ var _ = Describe("CreateMachine", func() {
 		})
 
 		It("should not send volumes when not specified", func() {
-			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
+			var capturedReq *client.CreateServerRequest
+			mockClient.CreateServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
-				return &Server{
+				return &client.Server{
 					ID:     "test-server-id",
 					Name:   req.Name,
 					Status: "CREATING",

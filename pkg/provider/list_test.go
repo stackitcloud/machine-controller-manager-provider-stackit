@@ -1,7 +1,3 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Gardener contributors
-//
-// SPDX-License-Identifier: Apache-2.0
-
 package provider
 
 import (
@@ -14,6 +10,8 @@ import (
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/status"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/client"
+	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/client/mock"
 	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,7 +22,7 @@ var _ = Describe("ListMachines", func() {
 	var (
 		ctx          context.Context
 		provider     *Provider
-		mockClient   *mockStackitClient
+		mockClient   *mock.StackitClient
 		req          *driver.ListMachinesRequest
 		secret       *corev1.Secret
 		machineClass *v1alpha1.MachineClass
@@ -32,7 +30,7 @@ var _ = Describe("ListMachines", func() {
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		mockClient = &mockStackitClient{}
+		mockClient = &mock.StackitClient{}
 		provider = &Provider{
 			client: mockClient,
 		}
@@ -51,7 +49,7 @@ var _ = Describe("ListMachines", func() {
 			ImageID:     "image-uuid-123",
 			Region:      "eu01",
 		}
-		providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+		providerSpecRaw, _ := mock.EncodeProviderSpec(providerSpec)
 
 		// Create MachineClass
 		machineClass = &v1alpha1.MachineClass{
@@ -72,10 +70,10 @@ var _ = Describe("ListMachines", func() {
 
 	Context("with valid inputs", func() {
 		It("should list machines filtered by MachineClass label", func() {
-			mockClient.listServersFunc = func(_ context.Context, _, _ string, selector map[string]string) ([]*Server, error) {
+			mockClient.ListServersFunc = func(_ context.Context, _, _ string, selector map[string]string) ([]*client.Server, error) {
 				Expect(selector["mcm.gardener.cloud/machineclass"]).To(Equal("test-machine-class"))
 
-				return []*Server{
+				return []*client.Server{
 					{
 						ID:   "server-1",
 						Name: "machine-1",
@@ -106,8 +104,8 @@ var _ = Describe("ListMachines", func() {
 		})
 
 		It("should return empty list when no servers match", func() {
-			mockClient.listServersFunc = func(_ context.Context, _, _ string, _ map[string]string) ([]*Server, error) {
-				return []*Server{}, nil
+			mockClient.ListServersFunc = func(_ context.Context, _, _ string, _ map[string]string) ([]*client.Server, error) {
+				return []*client.Server{}, nil
 			}
 
 			resp, err := provider.ListMachines(ctx, req)
@@ -118,8 +116,8 @@ var _ = Describe("ListMachines", func() {
 		})
 
 		It("should return empty list when no servers exist", func() {
-			mockClient.listServersFunc = func(_ context.Context, _, _ string, _ map[string]string) ([]*Server, error) {
-				return []*Server{}, nil
+			mockClient.ListServersFunc = func(_ context.Context, _, _ string, _ map[string]string) ([]*client.Server, error) {
+				return []*client.Server{}, nil
 			}
 
 			resp, err := provider.ListMachines(ctx, req)
@@ -132,7 +130,7 @@ var _ = Describe("ListMachines", func() {
 
 	Context("when STACKIT API fails", func() {
 		It("should return Internal error on API failure", func() {
-			mockClient.listServersFunc = func(_ context.Context, _, _ string, _ map[string]string) ([]*Server, error) {
+			mockClient.ListServersFunc = func(_ context.Context, _, _ string, _ map[string]string) ([]*client.Server, error) {
 				return nil, fmt.Errorf("API connection failed")
 			}
 

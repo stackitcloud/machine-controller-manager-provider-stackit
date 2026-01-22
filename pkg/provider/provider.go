@@ -1,8 +1,3 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Gardener contributors
-//
-// SPDX-License-Identifier: Apache-2.0
-
-// Package provider contains the cloud provider specific implementations to manage machines
 package provider
 
 import (
@@ -10,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
+	client2 "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/client"
 	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/spi"
 	"k8s.io/klog/v2"
 )
@@ -24,10 +20,10 @@ import (
 // - Credential rotation requires pod restart (standard Kubernetes pattern)
 type Provider struct {
 	SPI                 spi.SessionProviderInterface
-	client              StackitClient // STACKIT API client (can be mocked for testing)
-	clientOnce          sync.Once     // Ensures client is initialized exactly once
-	clientErr           error         // Stores initialization error if any
-	capturedCredentials string        // Service account key used for initialization (for defensive checks)
+	client              client2.StackitClient // STACKIT API client (can be mocked for testing)
+	clientOnce          sync.Once             // Ensures client is initialized exactly once
+	clientErr           error                 // Stores initialization error if any
+	capturedCredentials string                // Service account key used for initialization (for defensive checks)
 }
 
 // NewProvider returns an empty provider object
@@ -53,7 +49,7 @@ func (p *Provider) ensureClient(serviceAccountKey string) error {
 	}
 
 	p.clientOnce.Do(func() {
-		client, err := NewStackitClient(serviceAccountKey)
+		client, err := client2.NewStackitClient(serviceAccountKey)
 		if err != nil {
 			p.clientErr = fmt.Errorf("failed to initialize STACKIT client: %w", err)
 			return
