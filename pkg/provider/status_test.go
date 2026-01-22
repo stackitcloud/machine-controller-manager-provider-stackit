@@ -14,18 +14,19 @@ import (
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/status"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/client"
 	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-var _ = Describe("CreateMachine", func() {
+var _ = Describe("GetMachineStatus", func() {
 	var (
 		ctx          context.Context
 		provider     *Provider
 		mockClient   *mockStackitClient
-		req          *driver.CreateMachineRequest
+		req          *driver.GetMachineStatusRequest
 		secret       *corev1.Secret
 		machineClass *v1alpha1.MachineClass
 		machine      *v1alpha1.Machine
@@ -38,19 +39,19 @@ var _ = Describe("CreateMachine", func() {
 			client: mockClient,
 		}
 
-		// Create secret with projectId and networkId (required for v2 API)
+		// Create secret with projectId
 		secret = &corev1.Secret{
 			Data: map[string][]byte{
-				"project-id":          []byte("11111111-2222-3333-4444-555555555555"),
-				"serviceaccount.json": []byte(`{"credentials":{"iss":"test"}}`),
-				"networkId":           []byte("770e8400-e29b-41d4-a716-446655440000"),
+				"projectId":         []byte("11111111-2222-3333-4444-555555555555"),
+				"serviceAccountKey": []byte(`{"credentials":{"iss":"test"}}`),
+				"networkId":         []byte("770e8400-e29b-41d4-a716-446655440000"),
 			},
 		}
 
 		// Create ProviderSpec
 		providerSpec := &api.ProviderSpec{
 			MachineType: "c2i.2",
-			ImageID:     "12345678-1234-1234-1234-123456789abc",
+			ImageID:     "image-uuid-123",
 			Region:      "eu01",
 		}
 		providerSpecRaw, _ := encodeProviderSpec(providerSpec)
@@ -60,22 +61,24 @@ var _ = Describe("CreateMachine", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-machine-class",
 			},
-			Provider: "stackit",
 			ProviderSpec: runtime.RawExtension{
 				Raw: providerSpecRaw,
 			},
 		}
 
-		// Create Machine
+		// Create Machine with ProviderID
 		machine = &v1alpha1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-machine",
 				Namespace: "default",
 			},
+			Spec: v1alpha1.MachineSpec{
+				ProviderID: "stackit://11111111-2222-3333-4444-555555555555/550e8400-e29b-41d4-a716-446655440000",
+			},
 		}
 
 		// Create request
-		req = &driver.CreateMachineRequest{
+		req = &driver.GetMachineStatusRequest{
 			Machine:      machine,
 			MachineClass: machineClass,
 			Secret:       secret,
@@ -83,8 +86,16 @@ var _ = Describe("CreateMachine", func() {
 	})
 
 	Context("with valid inputs", func() {
-		It("should successfully create a machine", func() {
-			resp, err := provider.CreateMachine(ctx, req)
+		It("should successfully get machine status when server exists", func() {
+			mockClient.getServerFunc = func(_ context.Context, _, _, serverID string) (*client.Server, error) {
+				return &client.Server{
+					ID:     serverID,
+					Name:   "test-machine",
+					Status: "ACTIVE",
+				}, nil
+			}
+
+			resp, err := provider.GetMachineStatus(ctx, req)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp).NotTo(BeNil())
@@ -93,40 +104,43 @@ var _ = Describe("CreateMachine", func() {
 		})
 
 		It("should call STACKIT API with correct parameters", func() {
-			var capturedReq *CreateServerRequest
 			var capturedProjectID string
+			var capturedServerID string
 
-			mockClient.createServerFunc = func(_ context.Context, projectID, _ string, req *CreateServerRequest) (*Server, error) {
+			mockClient.getServerFunc = func(_ context.Context, projectID, _, serverID string) (*client.Server, error) {
 				capturedProjectID = projectID
-				capturedReq = req
-				return &Server{
-					ID:     "test-server-id",
-					Name:   req.Name,
-					Status: "CREATING",
+				capturedServerID = serverID
+				return &client.Server{
+					ID:     serverID,
+					Name:   "test-machine",
+					Status: "ACTIVE",
 				}, nil
 			}
 
-			_, err := provider.CreateMachine(ctx, req)
+			_, err := provider.GetMachineStatus(ctx, req)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(capturedProjectID).To(Equal("11111111-2222-3333-4444-555555555555"))
-			Expect(capturedReq).NotTo(BeNil())
-			Expect(capturedReq.Name).To(Equal("test-machine"))
-			Expect(capturedReq.MachineType).To(Equal("c2i.2"))
-			Expect(capturedReq.ImageID).To(Equal("12345678-1234-1234-1234-123456789abc"))
+			Expect(capturedServerID).To(Equal("550e8400-e29b-41d4-a716-446655440000"))
 		})
 	})
 
-	Context("with invalid ProviderSpec", func() {
-		It("should fail when MachineType is missing", func() {
-			providerSpec := &api.ProviderSpec{
-				MachineType: "",
-				ImageID:     "12345678-1234-1234-1234-123456789abc",
-			}
-			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
-			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
+	Context("with missing or invalid ProviderID", func() {
+		It("should return NotFound when ProviderID is missing (machine not created yet)", func() {
+			machine.Spec.ProviderID = ""
 
-			_, err := provider.CreateMachine(ctx, req)
+			_, err := provider.GetMachineStatus(ctx, req)
+
+			Expect(err).To(HaveOccurred())
+			statusErr, ok := status.FromError(err)
+			Expect(ok).To(BeTrue())
+			Expect(statusErr.Code()).To(Equal(codes.NotFound))
+		})
+
+		It("should return InvalidArgument when ProviderID has invalid format", func() {
+			machine.Spec.ProviderID = "invalid-format"
+
+			_, err := provider.GetMachineStatus(ctx, req)
 
 			Expect(err).To(HaveOccurred())
 			statusErr, ok := status.FromError(err)
@@ -134,57 +148,45 @@ var _ = Describe("CreateMachine", func() {
 			Expect(statusErr.Code()).To(Equal(codes.InvalidArgument))
 		})
 
-		It("should fail when ImageID is missing", func() {
-			providerSpec := &api.ProviderSpec{
-				MachineType: "c2i.2",
-				ImageID:     "",
-			}
-			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
-			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
+		It("should return InvalidArgument when ProviderID is missing server ID", func() {
+			machine.Spec.ProviderID = "stackit://11111111-2222-3333-4444-555555555555/"
 
-			_, err := provider.CreateMachine(ctx, req)
+			_, err := provider.GetMachineStatus(ctx, req)
 
 			Expect(err).To(HaveOccurred())
 			statusErr, ok := status.FromError(err)
 			Expect(ok).To(BeTrue())
 			Expect(statusErr.Code()).To(Equal(codes.InvalidArgument))
-		})
-
-		It("should fail when Provider is wrong", func() {
-			req.MachineClass.Provider = "openstack"
-
-			_, err := provider.CreateMachine(ctx, req)
-
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("requested for Provider 'openstack', we only support 'stackit'"))
 		})
 	})
 
-	Context("with invalid Secret", func() {
-		It("should fail when projectId is missing", func() {
-			req.Secret.Data = map[string][]byte{}
+	Context("when server does not exist", func() {
+		It("should return NotFound when server is not found", func() {
+			mockClient.getServerFunc = func(_ context.Context, _, _, _ string) (*client.Server, error) {
+				return nil, fmt.Errorf("%w: status 404", client.ErrServerNotFound)
+			}
 
-			_, err := provider.CreateMachine(ctx, req)
+			_, err := provider.GetMachineStatus(ctx, req)
 
 			Expect(err).To(HaveOccurred())
 			statusErr, ok := status.FromError(err)
 			Expect(ok).To(BeTrue())
-			Expect(statusErr.Code()).To(Equal(codes.InvalidArgument))
+			Expect(statusErr.Code()).To(Equal(codes.NotFound))
 		})
 	})
 
 	Context("when STACKIT API fails", func() {
 		It("should return Internal error on API failure", func() {
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, _ *CreateServerRequest) (*Server, error) {
+			mockClient.getServerFunc = func(_ context.Context, _, _, _ string) (*client.Server, error) {
 				return nil, fmt.Errorf("API connection failed")
 			}
 
-			_, err := provider.CreateMachine(ctx, req)
+			_, err := provider.GetMachineStatus(ctx, req)
 
 			Expect(err).To(HaveOccurred())
 			statusErr, ok := status.FromError(err)
 			Expect(ok).To(BeTrue())
-			Expect(statusErr.Code()).To(Equal(codes.Unavailable))
+			Expect(statusErr.Code()).To(Equal(codes.Internal))
 		})
 	})
 })

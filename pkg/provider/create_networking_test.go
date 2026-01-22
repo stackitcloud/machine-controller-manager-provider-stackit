@@ -11,6 +11,7 @@ import (
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/client"
 	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -80,10 +81,10 @@ var _ = Describe("CreateMachine - Networking", func() {
 				Secret:       secret,
 			}
 
-			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
+			var capturedReq *client.CreateServerRequest
+			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
-				return &Server{
+				return &client.Server{
 					ID:     "test-server-id",
 					Name:   req.Name,
 					Status: "CREATING",
@@ -128,10 +129,10 @@ var _ = Describe("CreateMachine - Networking", func() {
 				Secret:       secret,
 			}
 
-			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
+			var capturedReq *client.CreateServerRequest
+			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
-				return &Server{
+				return &client.Server{
 					ID:     "test-server-id",
 					Name:   req.Name,
 					Status: "CREATING",
@@ -178,18 +179,18 @@ var _ = Describe("CreateMachine - Networking", func() {
 				Secret:       secret,
 			}
 
-			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
+			var capturedReq *client.CreateServerRequest
+			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
-				return &Server{
+				return &client.Server{
 					ID:     "test-server-id",
 					Name:   req.Name,
 					Status: "CREATING",
 				}, nil
 			}
 
-			mockClient.getNICsFunc = func(_ context.Context, _, _, _ string) ([]*NIC, error) {
-				return []*NIC{{
+			mockClient.getNICsFunc = func(_ context.Context, _, _, _ string) ([]*client.NIC, error) {
+				return []*client.NIC{{
 					ID:               "990e8400-e29b-41d4-a716-446655440002",
 					NetworkID:        "770e8400-e29b-41d4-a716-446655440000",
 					AllowedAddresses: []string{},
@@ -197,11 +198,11 @@ var _ = Describe("CreateMachine - Networking", func() {
 			}
 
 			var called = false
-			mockClient.updateNICFunc = func(_ context.Context, _, _, _, _ string, addresses []string) (*NIC, error) {
+			mockClient.updateNICFunc = func(_ context.Context, _, _, _, _ string, addresses []string) (*client.NIC, error) {
 				called = true
 				Expect(addresses).To(HaveLen(1))
 				Expect(addresses[0]).To(Equal("10.0.0.1/8"))
-				return &NIC{
+				return &client.NIC{
 					ID:               "990e8400-e29b-41d4-a716-446655440002",
 					NetworkID:        "770e8400-e29b-41d4-a716-446655440000",
 					AllowedAddresses: addresses,
@@ -249,18 +250,18 @@ var _ = Describe("CreateMachine - Networking", func() {
 				Secret:       secret,
 			}
 
-			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
+			var capturedReq *client.CreateServerRequest
+			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
-				return &Server{
+				return &client.Server{
 					ID:     "test-server-id",
 					Name:   req.Name,
 					Status: "CREATING",
 				}, nil
 			}
 
-			mockClient.getNICsFunc = func(_ context.Context, _, _, _ string) ([]*NIC, error) {
-				return []*NIC{{
+			mockClient.getNICsFunc = func(_ context.Context, _, _, _ string) ([]*client.NIC, error) {
+				return []*client.NIC{{
 					ID:               "880e8400-e29b-41d4-a716-446655440001",
 					NetworkID:        "770e8400-e29b-41d4-a716-446655440000",
 					AllowedAddresses: []string{},
@@ -268,11 +269,11 @@ var _ = Describe("CreateMachine - Networking", func() {
 			}
 
 			var called = false
-			mockClient.updateNICFunc = func(_ context.Context, _, _, _, _ string, addresses []string) (*NIC, error) {
+			mockClient.updateNICFunc = func(_ context.Context, _, _, _, _ string, addresses []string) (*client.NIC, error) {
 				called = true
 				Expect(addresses).To(HaveLen(1))
 				Expect(addresses[0]).To(Equal("10.0.0.1/8"))
-				return &NIC{
+				return &client.NIC{
 					ID:               "880e8400-e29b-41d4-a716-446655440001",
 					NetworkID:        "770e8400-e29b-41d4-a716-446655440000",
 					AllowedAddresses: addresses,
@@ -317,18 +318,18 @@ var _ = Describe("CreateMachine - Networking", func() {
 				Secret:       secret,
 			}
 
-			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
+			var capturedReq *client.CreateServerRequest
+			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
-				return &Server{
+				return &client.Server{
 					ID:     "test-server-id",
 					Name:   req.Name,
 					Status: "CREATING",
 				}, nil
 			}
 
-			mockClient.getNICsFunc = func(_ context.Context, _, _, _ string) ([]*NIC, error) {
-				return []*NIC{{
+			mockClient.getNICsFunc = func(_ context.Context, _, _, _ string) ([]*client.NIC, error) {
+				return []*client.NIC{{
 					ID:               "990e8400-e29b-41d4-a716-446655440002",
 					NetworkID:        "770e8400-e29b-41d4-a716-446655440000",
 					AllowedAddresses: []string{"10.0.0.1/8"},
@@ -336,9 +337,9 @@ var _ = Describe("CreateMachine - Networking", func() {
 			}
 
 			var called = false
-			mockClient.updateNICFunc = func(_ context.Context, _, _, _, _ string, addresses []string) (*NIC, error) {
+			mockClient.updateNICFunc = func(_ context.Context, _, _, _, _ string, addresses []string) (*client.NIC, error) {
 				called = true
-				return &NIC{
+				return &client.NIC{
 					ID:               "990e8400-e29b-41d4-a716-446655440002",
 					NetworkID:        "770e8400-e29b-41d4-a716-446655440000",
 					AllowedAddresses: addresses,
@@ -383,10 +384,10 @@ var _ = Describe("CreateMachine - Networking", func() {
 				Secret:       secret,
 			}
 
-			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
+			var capturedReq *client.CreateServerRequest
+			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
-				return &Server{
+				return &client.Server{
 					ID:     "test-server-id",
 					Name:   req.Name,
 					Status: "CREATING",
@@ -426,10 +427,10 @@ var _ = Describe("CreateMachine - Networking", func() {
 				Secret:       secret, // No networkId in secret
 			}
 
-			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
+			var capturedReq *client.CreateServerRequest
+			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
-				return &Server{
+				return &client.Server{
 					ID:     "test-server-id",
 					Name:   req.Name,
 					Status: "CREATING",
@@ -476,10 +477,10 @@ var _ = Describe("CreateMachine - Networking", func() {
 				Secret:       secret,
 			}
 
-			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
+			var capturedReq *client.CreateServerRequest
+			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
-				return &Server{
+				return &client.Server{
 					ID:     "test-server-id",
 					Name:   req.Name,
 					Status: "CREATING",

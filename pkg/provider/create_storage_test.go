@@ -6,12 +6,12 @@ package provider
 
 import (
 	"context"
-	"encoding/base64"
 
 	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/client"
 	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -80,21 +80,30 @@ var _ = Describe("CreateMachine", func() {
 		}
 	})
 
-	Context("with userData", func() {
-		It("should pass userData from ProviderSpec to API", func() {
+	Context("with volumes", func() {
+		It("should pass BootVolume with all fields to API", func() {
+			deleteOnTermination := true
 			providerSpec := &api.ProviderSpec{
 				MachineType: "c2i.2",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
-				UserData:    "#cloud-config\nruncmd:\n  - echo 'Hello from ProviderSpec'",
 				Region:      "eu01",
+				BootVolume: &api.BootVolumeSpec{
+					DeleteOnTermination: &deleteOnTermination,
+					PerformanceClass:    "premium",
+					Size:                100,
+					Source: &api.BootVolumeSourceSpec{
+						Type: "image",
+						ID:   "550e8400-e29b-41d4-a716-446655440000",
+					},
+				},
 			}
 			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
 			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
 
-			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
+			var capturedReq *client.CreateServerRequest
+			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
-				return &Server{
+				return &client.Server{
 					ID:     "test-server-id",
 					Name:   req.Name,
 					Status: "CREATING",
@@ -105,46 +114,31 @@ var _ = Describe("CreateMachine", func() {
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(capturedReq).NotTo(BeNil())
-			expectedUserData := base64.StdEncoding.EncodeToString([]byte("#cloud-config\nruncmd:\n  - echo 'Hello from ProviderSpec'"))
-			Expect(capturedReq.UserData).To(Equal(expectedUserData))
+			Expect(capturedReq.BootVolume).NotTo(BeNil())
+			Expect(capturedReq.BootVolume.DeleteOnTermination).To(Equal(&deleteOnTermination))
+			Expect(capturedReq.BootVolume.PerformanceClass).To(Equal("premium"))
+			Expect(capturedReq.BootVolume.Size).To(Equal(100))
+			Expect(capturedReq.BootVolume.Source).NotTo(BeNil())
+			Expect(capturedReq.BootVolume.Source.Type).To(Equal("image"))
+			Expect(capturedReq.BootVolume.Source.ID).To(Equal("550e8400-e29b-41d4-a716-446655440000"))
 		})
 
-		It("should pass userData from Secret to API when ProviderSpec.UserData is empty", func() {
-			secret.Data["userData"] = []byte("#cloud-config\nruncmd:\n  - echo 'Hello from Secret'")
-
-			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
-				capturedReq = req
-				return &Server{
-					ID:     "test-server-id",
-					Name:   req.Name,
-					Status: "CREATING",
-				}, nil
-			}
-
-			_, err := provider.CreateMachine(ctx, req)
-
-			Expect(err).NotTo(HaveOccurred())
-			Expect(capturedReq).NotTo(BeNil())
-			expectedUserData := base64.StdEncoding.EncodeToString([]byte("#cloud-config\nruncmd:\n  - echo 'Hello from Secret'"))
-			Expect(capturedReq.UserData).To(Equal(expectedUserData))
-		})
-
-		It("should prefer ProviderSpec.UserData over Secret.userData", func() {
+		It("should pass BootVolume with minimal config to API", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType: "c2i.2",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
-				UserData:    "#cloud-config from ProviderSpec",
 				Region:      "eu01",
+				BootVolume: &api.BootVolumeSpec{
+					Size: 50,
+				},
 			}
 			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
 			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
-			secret.Data["userData"] = []byte("#cloud-config from Secret")
 
-			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
+			var capturedReq *client.CreateServerRequest
+			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
-				return &Server{
+				return &client.Server{
 					ID:     "test-server-id",
 					Name:   req.Name,
 					Status: "CREATING",
@@ -155,15 +149,27 @@ var _ = Describe("CreateMachine", func() {
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(capturedReq).NotTo(BeNil())
-			expectedUserData := base64.StdEncoding.EncodeToString([]byte("#cloud-config from ProviderSpec"))
-			Expect(capturedReq.UserData).To(Equal(expectedUserData))
+			Expect(capturedReq.BootVolume).NotTo(BeNil())
+			Expect(capturedReq.BootVolume.Size).To(Equal(50))
 		})
 
-		It("should not send userData when neither ProviderSpec nor Secret have it", func() {
-			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
+		It("should pass Volumes array to API", func() {
+			providerSpec := &api.ProviderSpec{
+				MachineType: "c2i.2",
+				ImageID:     "12345678-1234-1234-1234-123456789abc",
+				Region:      "eu01",
+				Volumes: []string{
+					"550e8400-e29b-41d4-a716-446655440000",
+					"660e8400-e29b-41d4-a716-446655440001",
+				},
+			}
+			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
+
+			var capturedReq *client.CreateServerRequest
+			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
-				return &Server{
+				return &client.Server{
 					ID:     "test-server-id",
 					Name:   req.Name,
 					Status: "CREATING",
@@ -174,16 +180,31 @@ var _ = Describe("CreateMachine", func() {
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(capturedReq).NotTo(BeNil())
-			Expect(capturedReq.UserData).To(BeEmpty())
+			Expect(capturedReq.Volumes).To(Equal([]string{
+				"550e8400-e29b-41d4-a716-446655440000",
+				"660e8400-e29b-41d4-a716-446655440001",
+			}))
 		})
 
-		It("should handle empty userData in Secret gracefully", func() {
-			secret.Data["userData"] = []byte("")
+		It("should pass both BootVolume and Volumes to API", func() {
+			providerSpec := &api.ProviderSpec{
+				MachineType: "c2i.2",
+				ImageID:     "12345678-1234-1234-1234-123456789abc",
+				Region:      "eu01",
+				BootVolume: &api.BootVolumeSpec{
+					Size: 50,
+				},
+				Volumes: []string{
+					"550e8400-e29b-41d4-a716-446655440000",
+				},
+			}
+			providerSpecRaw, _ := encodeProviderSpec(providerSpec)
+			req.MachineClass.ProviderSpec.Raw = providerSpecRaw
 
-			var capturedReq *CreateServerRequest
-			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *CreateServerRequest) (*Server, error) {
+			var capturedReq *client.CreateServerRequest
+			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
 				capturedReq = req
-				return &Server{
+				return &client.Server{
 					ID:     "test-server-id",
 					Name:   req.Name,
 					Status: "CREATING",
@@ -194,7 +215,28 @@ var _ = Describe("CreateMachine", func() {
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(capturedReq).NotTo(BeNil())
-			Expect(capturedReq.UserData).To(BeEmpty())
+			Expect(capturedReq.BootVolume).NotTo(BeNil())
+			Expect(capturedReq.BootVolume.Size).To(Equal(50))
+			Expect(capturedReq.Volumes).To(HaveLen(1))
+		})
+
+		It("should not send volumes when not specified", func() {
+			var capturedReq *client.CreateServerRequest
+			mockClient.createServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
+				capturedReq = req
+				return &client.Server{
+					ID:     "test-server-id",
+					Name:   req.Name,
+					Status: "CREATING",
+				}, nil
+			}
+
+			_, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(capturedReq).NotTo(BeNil())
+			Expect(capturedReq.BootVolume).To(BeNil())
+			Expect(capturedReq.Volumes).To(BeNil())
 		})
 	})
 })

@@ -14,18 +14,19 @@ import (
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/status"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/client"
 	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-var _ = Describe("GetMachineStatus", func() {
+var _ = Describe("DeleteMachine", func() {
 	var (
 		ctx          context.Context
 		provider     *Provider
 		mockClient   *mockStackitClient
-		req          *driver.GetMachineStatusRequest
+		req          *driver.DeleteMachineRequest
 		secret       *corev1.Secret
 		machineClass *v1alpha1.MachineClass
 		machine      *v1alpha1.Machine
@@ -65,7 +66,7 @@ var _ = Describe("GetMachineStatus", func() {
 			},
 		}
 
-		// Create Machine with ProviderID
+		// Create Machine with ProviderID (set by CreateMachine)
 		machine = &v1alpha1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-machine",
@@ -77,7 +78,7 @@ var _ = Describe("GetMachineStatus", func() {
 		}
 
 		// Create request
-		req = &driver.GetMachineStatusRequest{
+		req = &driver.DeleteMachineRequest{
 			Machine:      machine,
 			MachineClass: machineClass,
 			Secret:       secret,
@@ -85,38 +86,28 @@ var _ = Describe("GetMachineStatus", func() {
 	})
 
 	Context("with valid inputs", func() {
-		It("should successfully get machine status when server exists", func() {
-			mockClient.getServerFunc = func(_ context.Context, _, _, serverID string) (*Server, error) {
-				return &Server{
-					ID:     serverID,
-					Name:   "test-machine",
-					Status: "ACTIVE",
-				}, nil
+		It("should successfully delete a machine", func() {
+			mockClient.deleteServerFunc = func(_ context.Context, _, _, _ string) error {
+				return nil
 			}
 
-			resp, err := provider.GetMachineStatus(ctx, req)
+			resp, err := provider.DeleteMachine(ctx, req)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp).NotTo(BeNil())
-			Expect(resp.ProviderID).To(Equal("stackit://11111111-2222-3333-4444-555555555555/550e8400-e29b-41d4-a716-446655440000"))
-			Expect(resp.NodeName).To(Equal("test-machine"))
 		})
 
 		It("should call STACKIT API with correct parameters", func() {
 			var capturedProjectID string
 			var capturedServerID string
 
-			mockClient.getServerFunc = func(_ context.Context, projectID, _, serverID string) (*Server, error) {
+			mockClient.deleteServerFunc = func(_ context.Context, projectID, _, serverID string) error {
 				capturedProjectID = projectID
 				capturedServerID = serverID
-				return &Server{
-					ID:     serverID,
-					Name:   "test-machine",
-					Status: "ACTIVE",
-				}, nil
+				return nil
 			}
 
-			_, err := provider.GetMachineStatus(ctx, req)
+			_, err := provider.DeleteMachine(ctx, req)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(capturedProjectID).To(Equal("11111111-2222-3333-4444-555555555555"))
@@ -125,32 +116,18 @@ var _ = Describe("GetMachineStatus", func() {
 	})
 
 	Context("with missing or invalid ProviderID", func() {
-		It("should return NotFound when ProviderID is missing (machine not created yet)", func() {
+		It("should still delete the machine when ProviderID is missing", func() {
 			machine.Spec.ProviderID = ""
 
-			_, err := provider.GetMachineStatus(ctx, req)
+			_, err := provider.DeleteMachine(ctx, req)
 
-			Expect(err).To(HaveOccurred())
-			statusErr, ok := status.FromError(err)
-			Expect(ok).To(BeTrue())
-			Expect(statusErr.Code()).To(Equal(codes.NotFound))
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should return InvalidArgument when ProviderID has invalid format", func() {
 			machine.Spec.ProviderID = "invalid-format"
 
-			_, err := provider.GetMachineStatus(ctx, req)
-
-			Expect(err).To(HaveOccurred())
-			statusErr, ok := status.FromError(err)
-			Expect(ok).To(BeTrue())
-			Expect(statusErr.Code()).To(Equal(codes.InvalidArgument))
-		})
-
-		It("should return InvalidArgument when ProviderID is missing server ID", func() {
-			machine.Spec.ProviderID = "stackit://11111111-2222-3333-4444-555555555555/"
-
-			_, err := provider.GetMachineStatus(ctx, req)
+			_, err := provider.DeleteMachine(ctx, req)
 
 			Expect(err).To(HaveOccurred())
 			statusErr, ok := status.FromError(err)
@@ -159,28 +136,26 @@ var _ = Describe("GetMachineStatus", func() {
 		})
 	})
 
-	Context("when server does not exist", func() {
-		It("should return NotFound when server is not found", func() {
-			mockClient.getServerFunc = func(_ context.Context, _, _, _ string) (*Server, error) {
-				return nil, fmt.Errorf("%w: status 404", ErrServerNotFound)
+	Context("when machine not found", func() {
+		It("should return success if machine does not exist (idempotent)", func() {
+			mockClient.deleteServerFunc = func(_ context.Context, _, _, _ string) error {
+				return fmt.Errorf("%w: status 404", client.ErrServerNotFound)
 			}
 
-			_, err := provider.GetMachineStatus(ctx, req)
+			resp, err := provider.DeleteMachine(ctx, req)
 
-			Expect(err).To(HaveOccurred())
-			statusErr, ok := status.FromError(err)
-			Expect(ok).To(BeTrue())
-			Expect(statusErr.Code()).To(Equal(codes.NotFound))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp).NotTo(BeNil())
 		})
 	})
 
 	Context("when STACKIT API fails", func() {
-		It("should return Internal error on API failure", func() {
-			mockClient.getServerFunc = func(_ context.Context, _, _, _ string) (*Server, error) {
-				return nil, fmt.Errorf("API connection failed")
+		It("should return error when API call fails", func() {
+			mockClient.deleteServerFunc = func(_ context.Context, _, _, _ string) error {
+				return fmt.Errorf("API connection failed")
 			}
 
-			_, err := provider.GetMachineStatus(ctx, req)
+			_, err := provider.DeleteMachine(ctx, req)
 
 			Expect(err).To(HaveOccurred())
 			statusErr, ok := status.FromError(err)

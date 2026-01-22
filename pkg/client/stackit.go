@@ -1,8 +1,4 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Gardener contributors
-//
-// SPDX-License-Identifier: Apache-2.0
-
-package provider
+package client
 
 import (
 	"context"
@@ -18,7 +14,6 @@ import (
 //
 // Note: region parameter is required by STACKIT SDK v1.0.0+
 // It must be extracted from the Secret (e.g., "eu01-1", "eu01-2")
-// nolint:dupl // the duplicates are mock functions
 type StackitClient interface {
 	// CreateServer creates a new server in STACKIT
 	CreateServer(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error)
