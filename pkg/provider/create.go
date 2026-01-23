@@ -28,8 +28,6 @@ import (
 // Error codes:
 //   - InvalidArgument: Invalid ProviderSpec or missing required fields
 //   - Internal: Failed to create server or communicate with STACKIT API
-//
-//nolint:gocyclo,funlen//TODO:refactor
 func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineRequest) (*driver.CreateMachineResponse, error) {
 	// Log messages to track request
 	klog.V(2).Infof("Machine creation request has been received for %q", req.Machine.Name)
@@ -62,6 +60,39 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to initialize STACKIT client: %v", err))
 	}
 
+	// check if server already exists
+	server, err := p.getServerByName(ctx, projectID, providerSpec.Region, req.Machine.Name)
+	if err != nil {
+		klog.Errorf("Failed to fetch server for machine %q: %v", req.Machine.Name, err)
+		return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to fetch server: %v", err))
+	}
+
+	if server == nil {
+		// Call STACKIT API to create server
+		server, err = p.client.CreateServer(ctx, projectID, providerSpec.Region, p.createServerRequest(req, providerSpec))
+		if err != nil {
+			klog.Errorf("Failed to create server for machine %q: %v", req.Machine.Name, err)
+			return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to create server: %v", err))
+		}
+	}
+
+	if err := p.patchNetworkInterface(ctx, projectID, server.ID, providerSpec); err != nil {
+		klog.Errorf("Failed to patch network interface for server %q: %v", req.Machine.Name, err)
+		return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to patch network interface for server: %v", err))
+	}
+
+	// Generate ProviderID in format: stackit://<projectId>/<serverId>
+	providerID := fmt.Sprintf("%s://%s/%s", StackitProviderName, projectID, server.ID)
+	klog.V(2).Infof("Successfully created server %q with ID %q for machine %q", server.Name, server.ID, req.Machine.Name)
+
+	return &driver.CreateMachineResponse{
+		ProviderID: providerID,
+		NodeName:   req.Machine.Name,
+	}, nil
+}
+
+//nolint:gocyclo // TODO: will be fixed next PR
+func (p *Provider) createServerRequest(req *driver.CreateMachineRequest, providerSpec *api.ProviderSpec) *client.CreateServerRequest {
 	// Build labels: merge ProviderSpec labels with MCM-specific labels
 	labels := make(map[string]string)
 	// Start with user-provided labels from ProviderSpec
@@ -172,35 +203,7 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		createReq.Metadata = providerSpec.Metadata
 	}
 
-	// check if server already exists
-	server, err := p.getServerByName(ctx, projectID, providerSpec.Region, req.Machine.Name)
-	if err != nil {
-		klog.Errorf("Failed to fetch server for machine %q: %v", req.Machine.Name, err)
-		return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to fetch server: %v", err))
-	}
-
-	if server == nil {
-		// Call STACKIT API to create server
-		server, err = p.client.CreateServer(ctx, projectID, providerSpec.Region, createReq)
-		if err != nil {
-			klog.Errorf("Failed to create server for machine %q: %v", req.Machine.Name, err)
-			return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to create server: %v", err))
-		}
-	}
-
-	if err := p.patchNetworkInterface(ctx, projectID, server.ID, providerSpec); err != nil {
-		klog.Errorf("Failed to patch network interface for server %q: %v", req.Machine.Name, err)
-		return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to patch network interface for server: %v", err))
-	}
-
-	// Generate ProviderID in format: stackit://<projectId>/<serverId>
-	providerID := fmt.Sprintf("%s://%s/%s", StackitProviderName, projectID, server.ID)
-	klog.V(2).Infof("Successfully created server %q with ID %q for machine %q", server.Name, server.ID, req.Machine.Name)
-
-	return &driver.CreateMachineResponse{
-		ProviderID: providerID,
-		NodeName:   req.Machine.Name,
-	}, nil
+	return createReq
 }
 
 func (p *Provider) getServerByName(ctx context.Context, projectID, region, serverName string) (*client.Server, error) {
