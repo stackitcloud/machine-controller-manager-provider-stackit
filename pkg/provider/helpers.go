@@ -31,10 +31,10 @@ func encodeProviderSpecForResponse(spec *api.ProviderSpec) ([]byte, error) {
 // parseProviderID parses a STACKIT ProviderID and extracts the projectID and serverID
 // Expected format: stackit://<projectId>/<serverId>
 func parseProviderID(providerID string) (projectID, serverID string, err error) {
-	const prefix = "stackit://"
+	prefix := fmt.Sprintf("%s://", StackitProviderName)
 
 	if !strings.HasPrefix(providerID, prefix) {
-		return "", "", fmt.Errorf("ProviderID must start with 'stackit://'")
+		return "", "", fmt.Errorf("ProviderID must start with '%s://'", StackitProviderName)
 	}
 
 	// Remove prefix and split by '/'
@@ -42,7 +42,7 @@ func parseProviderID(providerID string) (projectID, serverID string, err error) 
 	parts := strings.Split(remainder, "/")
 
 	if len(parts) != 2 {
-		return "", "", fmt.Errorf("ProviderID must have format 'stackit://<projectId>/<serverId>'")
+		return "", "", fmt.Errorf("ProviderID must have format '%s://<projectId>/<serverId>'", StackitProviderName)
 	}
 
 	if parts[0] == "" || parts[1] == "" {
