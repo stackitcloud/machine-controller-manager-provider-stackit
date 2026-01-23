@@ -27,7 +27,8 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 	defer klog.V(2).Infof("Machine deletion request has been processed for %q", req.Machine.Name)
 
 	// Extract credentials from Secret
-	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
+	projectIDFromSecret, serviceAccountKey := extractSecretCredentials(req.Secret.Data)
+
 	// Initialize client on first use (lazy initialization)
 	if err := p.ensureClient(serviceAccountKey); err != nil {
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to initialize STACKIT client: %v", err))
@@ -48,7 +49,8 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 	}
 
 	if projectID == "" {
-		projectID = string(req.Secret.Data["project-id"])
+		// use the secret as a fallback
+		projectID = projectIDFromSecret
 	}
 
 	providerSpec, err := decodeProviderSpec(req.MachineClass)

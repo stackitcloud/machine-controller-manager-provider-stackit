@@ -7,6 +7,7 @@ import (
 
 	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
+	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis/validation"
 )
 
 // decodeProviderSpec decodes the ProviderSpec from a MachineClass
@@ -50,4 +51,10 @@ func parseProviderID(providerID string) (projectID, serverID string, err error) 
 	}
 
 	return parts[0], parts[1], nil
+}
+
+func extractSecretCredentials(secretData map[string][]byte) (projectID, serviceAccountKey string) {
+	projectID = string(secretData[validation.StackitProjectIDSecretKey])
+	serviceAccountKey = string(secretData[validation.StackitServiceAccountKey])
+	return projectID, serviceAccountKey
 }

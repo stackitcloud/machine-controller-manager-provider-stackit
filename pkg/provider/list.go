@@ -27,8 +27,7 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 	defer klog.V(2).Infof("List machines request has been processed for %q", req.MachineClass.Name)
 
 	// Extract credentials from Secret
-	projectID := string(req.Secret.Data["project-id"])
-	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
+	projectID, serviceAccountKey := extractSecretCredentials(req.Secret.Data)
 
 	// Initialize client on first use (lazy initialization)
 	if err := p.ensureClient(serviceAccountKey); err != nil {

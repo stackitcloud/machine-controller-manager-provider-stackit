@@ -39,7 +39,7 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 	}
 
 	// Extract credentials from Secret
-	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
+	projectIDFromSecret, serviceAccountKey := extractSecretCredentials(req.Secret.Data)
 
 	// Initialize client on first use (lazy initialization)
 	if err := p.ensureClient(serviceAccountKey); err != nil {
@@ -50,7 +50,7 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 	// Expected format: stackit://<projectId>/<serverId>
 	projectID, serverID, err := parseProviderID(req.Machine.Spec.ProviderID)
 	if projectID == "" {
-		projectID = string(req.Secret.Data["project-id"])
+		projectID = projectIDFromSecret
 	}
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("invalid ProviderID format: %v", err))
