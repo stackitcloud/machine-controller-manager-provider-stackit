@@ -10,6 +10,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+const (
+	StackitProjectIDSecretKey = "project-id"
+	StackitServiceAccountKey  = "serviceaccount.json"
+)
+
 // uuidRegex is a regex pattern for validating UUID format
 var uuidRegex = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 
@@ -53,22 +58,22 @@ func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret)
 		return errors // Return early if secret is nil
 	}
 
-	projectID, ok := secrets.Data["project-id"]
+	projectID, ok := secrets.Data[StackitProjectIDSecretKey]
 	if !ok {
-		errors = append(errors, fmt.Errorf("secret field 'project-id' is required"))
+		errors = append(errors, fmt.Errorf("secret field '%s' is required", StackitProjectIDSecretKey))
 	} else if len(projectID) == 0 {
-		errors = append(errors, fmt.Errorf("secret field 'project-id' cannot be empty"))
+		errors = append(errors, fmt.Errorf("secret field '%s' cannot be empty", StackitProjectIDSecretKey))
 	} else if !isValidUUID(string(projectID)) {
-		errors = append(errors, fmt.Errorf("secret field 'project-id' must be a valid UUID"))
+		errors = append(errors, fmt.Errorf("secret field '%s' must be a valid UUID", StackitProjectIDSecretKey))
 	}
 
 	// Validate serviceAccountKey (required for authentication)
 	// ServiceAccount Key Flow: JSON string containing service account credentials and private key
-	serviceAccountKey, ok := secrets.Data["serviceaccount.json"]
+	serviceAccountKey, ok := secrets.Data[StackitServiceAccountKey]
 	if !ok {
-		errors = append(errors, fmt.Errorf("secret field 'serviceaccount.json' is required"))
+		errors = append(errors, fmt.Errorf("secret field '%s' is required", StackitServiceAccountKey))
 	} else if len(serviceAccountKey) == 0 {
-		errors = append(errors, fmt.Errorf("secret field 'serviceaccount.json' cannot be empty"))
+		errors = append(errors, fmt.Errorf("secret field '%s' cannot be empty", StackitServiceAccountKey))
 	} else if !isValidJSON(string(serviceAccountKey)) {
 		errors = append(errors, fmt.Errorf("secret field 'serviceAccountKey' must be valid JSON (service account credentials)"))
 	}

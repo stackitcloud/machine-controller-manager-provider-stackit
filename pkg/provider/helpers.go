@@ -7,6 +7,7 @@ import (
 
 	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
+	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis/validation"
 )
 
 // decodeProviderSpec decodes the ProviderSpec from a MachineClass
@@ -31,10 +32,10 @@ func encodeProviderSpecForResponse(spec *api.ProviderSpec) ([]byte, error) {
 // parseProviderID parses a STACKIT ProviderID and extracts the projectID and serverID
 // Expected format: stackit://<projectId>/<serverId>
 func parseProviderID(providerID string) (projectID, serverID string, err error) {
-	const prefix = "stackit://"
+	prefix := fmt.Sprintf("%s://", StackitProviderName)
 
 	if !strings.HasPrefix(providerID, prefix) {
-		return "", "", fmt.Errorf("ProviderID must start with 'stackit://'")
+		return "", "", fmt.Errorf("ProviderID must start with '%s://'", StackitProviderName)
 	}
 
 	// Remove prefix and split by '/'
@@ -42,7 +43,7 @@ func parseProviderID(providerID string) (projectID, serverID string, err error) 
 	parts := strings.Split(remainder, "/")
 
 	if len(parts) != 2 {
-		return "", "", fmt.Errorf("ProviderID must have format 'stackit://<projectId>/<serverId>'")
+		return "", "", fmt.Errorf("ProviderID must have format '%s://<projectId>/<serverId>'", StackitProviderName)
 	}
 
 	if parts[0] == "" || parts[1] == "" {
@@ -50,4 +51,10 @@ func parseProviderID(providerID string) (projectID, serverID string, err error) 
 	}
 
 	return parts[0], parts[1], nil
+}
+
+func extractSecretCredentials(secretData map[string][]byte) (projectID, serviceAccountKey string) {
+	projectID = string(secretData[validation.StackitProjectIDSecretKey])
+	serviceAccountKey = string(secretData[validation.StackitServiceAccountKey])
+	return projectID, serviceAccountKey
 }

@@ -52,8 +52,7 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	}
 
 	// Extract credentials from Secret
-	projectID := string(req.Secret.Data["project-id"])
-	serviceAccountKey := string(req.Secret.Data["serviceaccount.json"])
+	projectID, serviceAccountKey := extractSecretCredentials(req.Secret.Data)
 
 	// Initialize client on first use (lazy initialization)
 	if err := p.ensureClient(serviceAccountKey); err != nil {
