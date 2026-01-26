@@ -124,8 +124,10 @@ func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret)
 		}
 	}
 
-	// Validate Networking
-	if spec.Networking != nil {
+	// Validate Networking (required)
+	if spec.Networking == nil {
+		errors = append(errors, fmt.Errorf("providerSpec.networking is required"))
+	} else {
 		networkingErrors := validateNetworking(spec.Networking)
 		errors = append(errors, networkingErrors...)
 	}

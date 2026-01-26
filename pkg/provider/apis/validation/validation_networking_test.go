@@ -49,10 +49,11 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 			Expect(errors).To(BeEmpty())
 		})
 
-		It("should succeed when Networking is nil", func() {
+		It("should fail when Networking is nil", func() {
 			providerSpec.Networking = nil
 			errors := ValidateProviderSpecNSecret(providerSpec, secret)
-			Expect(errors).To(BeEmpty())
+			Expect(errors).NotTo(BeEmpty())
+			Expect(errors[0].Error()).To(ContainSubstring("networking is required"))
 		})
 
 		It("should fail when Networking has neither NetworkID nor NICIDs", func() {

@@ -20,6 +20,9 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 			MachineType: "c2i.2",
 			ImageID:     "550e8400-e29b-41d4-a716-446655440000",
 			Region:      "eu01",
+			Networking: &api.NetworkingSpec{
+				NetworkID: "770e8400-e29b-41d4-a716-446655440000",
+			},
 		}
 		secret = &corev1.Secret{
 			Data: map[string][]byte{
@@ -72,8 +75,9 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 		It("should fail when both required fields are empty", func() {
 			providerSpec.MachineType = ""
 			providerSpec.ImageID = ""
+			providerSpec.Networking = nil
 			errors := ValidateProviderSpecNSecret(providerSpec, secret)
-			Expect(errors).To(HaveLen(2))
+			Expect(errors).To(HaveLen(3))
 		})
 
 		It("should succeed when Labels is nil", func() {

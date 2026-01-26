@@ -130,8 +130,8 @@ providerSpec:
   # Volumes: attach existing volumes by UUID
   # These are data volumes in addition to the boot disk
   volumes:
-    - "880e8400-e29b-41d4-a716-446655440000"  # data-volume-1
-    - "990e8400-e29b-41d4-a716-446655440001"  # data-volume-2
+    - "880e8400-e29b-41d4-a716-446655440000" # data-volume-1
+    - "990e8400-e29b-41d4-a716-446655440001" # data-volume-2
 secretRef:
   name: test-secret
   namespace: default

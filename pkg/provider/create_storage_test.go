@@ -33,12 +33,10 @@ var _ = Describe("CreateMachine", func() {
 			client: mockClient,
 		}
 
-		// Create secret with projectId and networkId (required for v2 API)
 		secret = &corev1.Secret{
 			Data: map[string][]byte{
 				"project-id":          []byte("11111111-2222-3333-4444-555555555555"),
 				"serviceaccount.json": []byte(`{"credentials":{"iss":"test"}}`),
-				"networkId":           []byte("770e8400-e29b-41d4-a716-446655440000"),
 			},
 		}
 
@@ -47,6 +45,9 @@ var _ = Describe("CreateMachine", func() {
 			MachineType: "c2i.2",
 			ImageID:     "12345678-1234-1234-1234-123456789abc",
 			Region:      "eu01",
+			Networking: &api.NetworkingSpec{
+				NetworkID: "770e8400-e29b-41d4-a716-446655440000",
+			},
 		}
 		providerSpecRaw, _ := mock.EncodeProviderSpec(providerSpec)
 
@@ -84,6 +85,9 @@ var _ = Describe("CreateMachine", func() {
 				MachineType: "c2i.2",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				Region:      "eu01",
+				Networking: &api.NetworkingSpec{
+					NetworkID: "770e8400-e29b-41d4-a716-446655440000",
+				},
 				BootVolume: &api.BootVolumeSpec{
 					DeleteOnTermination: &deleteOnTermination,
 					PerformanceClass:    "premium",
@@ -125,6 +129,9 @@ var _ = Describe("CreateMachine", func() {
 				MachineType: "c2i.2",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				Region:      "eu01",
+				Networking: &api.NetworkingSpec{
+					NetworkID: "770e8400-e29b-41d4-a716-446655440000",
+				},
 				BootVolume: &api.BootVolumeSpec{
 					Size: 50,
 				},
@@ -155,6 +162,9 @@ var _ = Describe("CreateMachine", func() {
 				MachineType: "c2i.2",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				Region:      "eu01",
+				Networking: &api.NetworkingSpec{
+					NetworkID: "770e8400-e29b-41d4-a716-446655440000",
+				},
 				Volumes: []string{
 					"550e8400-e29b-41d4-a716-446655440000",
 					"660e8400-e29b-41d4-a716-446655440001",
@@ -188,6 +198,9 @@ var _ = Describe("CreateMachine", func() {
 				MachineType: "c2i.2",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				Region:      "eu01",
+				Networking: &api.NetworkingSpec{
+					NetworkID: "770e8400-e29b-41d4-a716-446655440000",
+				},
 				BootVolume: &api.BootVolumeSpec{
 					Size: 50,
 				},

@@ -20,6 +20,9 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 			MachineType: "c2i.2",
 			ImageID:     "550e8400-e29b-41d4-a716-446655440000",
 			Region:      "eu01",
+			Networking: &api.NetworkingSpec{
+				NetworkID: "770e8400-e29b-41d4-a716-446655440000",
+			},
 		}
 		secret = &corev1.Secret{
 			Data: map[string][]byte{

@@ -33,7 +33,6 @@ stringData:
   projectId: "12345678-1234-1234-1234-123456789012"
   serviceAccountKey: "{}"
   region: "eu01-1"
-  networkId: "770e8400-e29b-41d4-a716-446655440000"
   userData: |
     #cloud-config
     runcmd:
@@ -52,6 +51,8 @@ metadata:
 providerSpec:
   machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
+  networking:
+    networkId: "770e8400-e29b-41d4-a716-446655440000"
   labels:
     application: "web-server"
     team: "frontend"
@@ -76,6 +77,8 @@ metadata:
 providerSpec:
   machineType: "c1.4"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
+  networking:
+    networkId: "770e8400-e29b-41d4-a716-446655440000"
   labels:
     application: "database"
     team: "backend"
@@ -213,7 +216,6 @@ stringData:
   projectId: "12345678-1234-1234-1234-123456789012"
   serviceAccountKey: "{}"
   region: "eu01-1"
-  networkId: "770e8400-e29b-41d4-a716-446655440000"
   userData: |
     #cloud-config
     runcmd:
@@ -231,6 +233,8 @@ metadata:
 providerSpec:
   machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
+  networking:
+    networkId: "770e8400-e29b-41d4-a716-446655440000"
   labels:
     test-propagation: "enabled"
     stack-component: "compute-worker"
@@ -411,7 +415,6 @@ stringData:
   projectId: "12345678-1234-1234-1234-123456789012"
   serviceAccountKey: "{}"
   region: "eu01-1"
-  networkId: "770e8400-e29b-41d4-a716-446655440000"
   userData: |
     #cloud-config
     runcmd:
@@ -429,6 +432,8 @@ metadata:
 providerSpec:
   machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
+  networking:
+    networkId: "770e8400-e29b-41d4-a716-446655440000"
   # NO labels field - testing graceful handling of missing labels
 secretRef:
   name: %s

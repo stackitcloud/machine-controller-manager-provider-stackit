@@ -33,12 +33,10 @@ var _ = Describe("CreateMachine", func() {
 			client: mockClient,
 		}
 
-		// Create secret with projectId and networkId (required for v2 API)
 		secret = &corev1.Secret{
 			Data: map[string][]byte{
 				"project-id":          []byte("11111111-2222-3333-4444-555555555555"),
 				"serviceaccount.json": []byte(`{"credentials":{"iss":"test"}}`),
-				"networkId":           []byte("770e8400-e29b-41d4-a716-446655440000"),
 			},
 		}
 
@@ -47,6 +45,9 @@ var _ = Describe("CreateMachine", func() {
 			MachineType: "c2i.2",
 			ImageID:     "12345678-1234-1234-1234-123456789abc",
 			Region:      "eu01",
+			Networking: &api.NetworkingSpec{
+				NetworkID: "770e8400-e29b-41d4-a716-446655440000",
+			},
 		}
 		providerSpecRaw, _ := mock.EncodeProviderSpec(providerSpec)
 
@@ -82,6 +83,9 @@ var _ = Describe("CreateMachine", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType: "c2i.2",
 				Region:      "eu01",
+				Networking: &api.NetworkingSpec{
+					NetworkID: "770e8400-e29b-41d4-a716-446655440000",
+				},
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				KeypairName: "my-ssh-key",
 			}
@@ -127,9 +131,12 @@ var _ = Describe("CreateMachine", func() {
 	Context("with availabilityZone", func() {
 		It("should pass AvailabilityZone to API when specified", func() {
 			providerSpec := &api.ProviderSpec{
-				MachineType:      "c2i.2",
-				ImageID:          "12345678-1234-1234-1234-123456789abc",
-				Region:           "eu01",
+				MachineType: "c2i.2",
+				ImageID:     "12345678-1234-1234-1234-123456789abc",
+				Region:      "eu01",
+				Networking: &api.NetworkingSpec{
+					NetworkID: "770e8400-e29b-41d4-a716-446655440000",
+				},
 				AvailabilityZone: "eu01-1",
 			}
 			providerSpecRaw, _ := mock.EncodeProviderSpec(providerSpec)
@@ -174,8 +181,11 @@ var _ = Describe("CreateMachine", func() {
 	Context("with affinityGroup", func() {
 		It("should pass AffinityGroup to API when specified", func() {
 			providerSpec := &api.ProviderSpec{
-				MachineType:   "c2i.2",
-				Region:        "eu01",
+				MachineType: "c2i.2",
+				Region:      "eu01",
+				Networking: &api.NetworkingSpec{
+					NetworkID: "770e8400-e29b-41d4-a716-446655440000",
+				},
 				ImageID:       "12345678-1234-1234-1234-123456789abc",
 				AffinityGroup: "880e8400-e29b-41d4-a716-446655440000",
 			}
@@ -221,7 +231,10 @@ var _ = Describe("CreateMachine", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType: "c2i.2",
 				Region:      "eu01",
-				ImageID:     "12345678-1234-1234-1234-123456789abc",
+				Networking: &api.NetworkingSpec{
+					NetworkID: "770e8400-e29b-41d4-a716-446655440000",
+				},
+				ImageID: "12345678-1234-1234-1234-123456789abc",
 				ServiceAccountMails: []string{
 					"my-service@sa.stackit.cloud",
 				},
@@ -272,6 +285,9 @@ var _ = Describe("CreateMachine", func() {
 				MachineType: "c2i.2",
 				ImageID:     "12345678-1234-1234-1234-123456789abc",
 				Region:      "eu01",
+				Networking: &api.NetworkingSpec{
+					NetworkID: "770e8400-e29b-41d4-a716-446655440000",
+				},
 				Agent: &api.AgentSpec{
 					Provisioned: &provisioned,
 				},
@@ -319,7 +335,10 @@ var _ = Describe("CreateMachine", func() {
 			providerSpec := &api.ProviderSpec{
 				MachineType: "c2i.2",
 				Region:      "eu01",
-				ImageID:     "12345678-1234-1234-1234-123456789abc",
+				Networking: &api.NetworkingSpec{
+					NetworkID: "770e8400-e29b-41d4-a716-446655440000",
+				},
+				ImageID: "12345678-1234-1234-1234-123456789abc",
 				Metadata: map[string]interface{}{
 					"environment": "production",
 					"cost-center": "12345",
