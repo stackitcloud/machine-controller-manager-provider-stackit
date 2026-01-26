@@ -510,9 +510,8 @@ spec:
 
 			// Verify that MCM-generated labels would still be sent (check provider behavior)
 			// Even without user labels, the provider should add MCM labels like:
-			// - mcm.gardener.cloud/machineclass
-			// - mcm.gardener.cloud/machine
-			// - mcm.gardener.cloud/role
+			// - kubernetes.io/machineclass
+			// - kubernetes.io/machine
 			By("verifying provider handles missing labels gracefully")
 
 			// Check provider logs for any errors related to missing labels

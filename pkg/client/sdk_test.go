@@ -116,16 +116,14 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 
 			It("should convert labels with special characters", func() {
 				labels := map[string]string{
-					"mcm.gardener.cloud/machine": "test-machine",
-					"kubernetes.io/role":         "node",
+					"kubernetes.io/machine": "test-machine",
 				}
 
 				result := convertLabelsToSDK(labels)
 
 				Expect(result).NotTo(BeNil())
 				Expect(result).To(HaveLen(2))
-				Expect(result["mcm.gardener.cloud/machine"]).To(Equal("test-machine"))
-				Expect(result["kubernetes.io/role"]).To(Equal("node"))
+				Expect(result["kubernetes.io/machine"]).To(Equal("test-machine"))
 			})
 		})
 

@@ -71,23 +71,23 @@ var _ = Describe("ListMachines", func() {
 	Context("with valid inputs", func() {
 		It("should list machines filtered by MachineClass label", func() {
 			mockClient.ListServersFunc = func(_ context.Context, _, _ string, selector map[string]string) ([]*client.Server, error) {
-				Expect(selector["mcm.gardener.cloud/machineclass"]).To(Equal("test-machine-class"))
+				Expect(selector["kubernetes.io/machineclass"]).To(Equal("test-machine-class"))
 
 				return []*client.Server{
 					{
 						ID:   "server-1",
 						Name: "machine-1",
 						Labels: map[string]string{
-							"mcm.gardener.cloud/machineclass": "test-machine-class",
-							"mcm.gardener.cloud/machine":      "machine-1",
+							"kubernetes.io/machineclass": "test-machine-class",
+							"kubernetes.io/machine":      "machine-1",
 						},
 					},
 					{
 						ID:   "server-2",
 						Name: "machine-2",
 						Labels: map[string]string{
-							"mcm.gardener.cloud/machineclass": "test-machine-class",
-							"mcm.gardener.cloud/machine":      "machine-2",
+							"kubernetes.io/machineclass": "test-machine-class",
+							"kubernetes.io/machine":      "machine-2",
 						},
 					},
 				}, nil
