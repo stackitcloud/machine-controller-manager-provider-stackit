@@ -30,7 +30,6 @@ stringData:
   projectId: "12345678-1234-1234-1234-123456789012"
   serviceAccountKey: "{}"
   region: "eu01-1"
-  networkId: "770e8400-e29b-41d4-a716-446655440000"
   userData: |
     #cloud-config
     runcmd:
@@ -48,6 +47,8 @@ metadata:
 providerSpec:
   machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
+  networking:
+    networkId: "770e8400-e29b-41d4-a716-446655440000"
   userData: |
     #cloud-config
     runcmd:
@@ -176,7 +177,6 @@ stringData:
   projectId: "12345678-1234-1234-1234-123456789012"
   serviceAccountKey: "{}"
   region: "eu01-1"
-  networkId: "770e8400-e29b-41d4-a716-446655440000"
   userData: |
     #cloud-config
     runcmd:

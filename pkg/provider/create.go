@@ -90,7 +90,7 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	}, nil
 }
 
-//nolint:gocyclo // TODO: will be fixed next PR
+// nolint: gocyclo // this function is already pretty simple
 func (p *Provider) createServerRequest(req *driver.CreateMachineRequest, providerSpec *api.ProviderSpec) *client.CreateServerRequest {
 	// Build labels: merge ProviderSpec labels with MCM-specific labels
 	labels := make(map[string]string)
@@ -114,18 +114,10 @@ func (p *Provider) createServerRequest(req *driver.CreateMachineRequest, provide
 	}
 
 	// Add networking configuration (required in v2 API)
-	// If not specified in ProviderSpec, try to use networkId from Secret, or use empty
 	if providerSpec.Networking != nil {
 		createReq.Networking = &client.ServerNetworkingRequest{
 			NetworkID: providerSpec.Networking.NetworkID,
 			NICIDs:    providerSpec.Networking.NICIDs,
-		}
-	} else {
-		// v2 API requires networking field - use networkId from Secret if available
-		// This allows tests/deployments to specify a default network without modifying each MachineClass
-		networkID := string(req.Secret.Data["networkId"])
-		createReq.Networking = &client.ServerNetworkingRequest{
-			NetworkID: networkID, // Can be empty string if not in Secret
 		}
 	}
 
