@@ -31,7 +31,7 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 
 	// Initialize client on first use (lazy initialization)
 	if err := p.ensureClient(serviceAccountKey); err != nil {
-		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to initialize STACKIT client: %v", err))
+		return nil, status.Error(codes.Unauthenticated, fmt.Sprintf("failed to initialize STACKIT client: %v", err))
 	}
 
 	var projectID, serverID string

@@ -31,7 +31,7 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 
 	// Initialize client on first use (lazy initialization)
 	if err := p.ensureClient(serviceAccountKey); err != nil {
-		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to initialize STACKIT client: %v", err))
+		return nil, status.Error(codes.Unauthenticated, fmt.Sprintf("failed to initialize STACKIT client: %v", err))
 	}
 
 	// Decode ProviderSpec from MachineClass

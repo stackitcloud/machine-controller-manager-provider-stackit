@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/codes"
@@ -56,7 +57,7 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 
 	// Initialize client on first use (lazy initialization)
 	if err := p.ensureClient(serviceAccountKey); err != nil {
-		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to initialize STACKIT client: %v", err))
+		return nil, status.Error(codes.Unauthenticated, fmt.Sprintf("failed to initialize STACKIT client: %v", err))
 	}
 
 	// check if server already exists
@@ -71,6 +72,13 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		server, err = p.client.CreateServer(ctx, projectID, providerSpec.Region, p.createServerRequest(req, providerSpec))
 		if err != nil {
 			klog.Errorf("Failed to create server for machine %q: %v", req.Machine.Name, err)
+
+			// Check for resource exhaustion errors to avoid spamming the API
+			errMsg := strings.ToLower(err.Error())
+			if strings.Contains(errMsg, "no valid host") || strings.Contains(errMsg, "quota exceeded") {
+				return nil, status.Error(codes.ResourceExhausted, fmt.Sprintf("failed to create server: %v", err))
+			}
+
 			return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to create server: %v", err))
 		}
 	}

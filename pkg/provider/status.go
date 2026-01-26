@@ -43,7 +43,7 @@ func (p *Provider) GetMachineStatus(ctx context.Context, req *driver.GetMachineS
 
 	// Initialize client on first use (lazy initialization)
 	if err := p.ensureClient(serviceAccountKey); err != nil {
-		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to initialize STACKIT client: %v", err))
+		return nil, status.Error(codes.Unauthenticated, fmt.Sprintf("failed to initialize STACKIT client: %v", err))
 	}
 
 	// Parse ProviderID to extract projectID and serverID
