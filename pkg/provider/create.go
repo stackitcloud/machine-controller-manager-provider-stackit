@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"time"
 
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/codes"
@@ -13,6 +14,7 @@ import (
 	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/client"
 	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis/validation"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 )
 
@@ -72,8 +74,19 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		server, err = p.client.CreateServer(ctx, projectID, providerSpec.Region, p.createServerRequest(req, providerSpec))
 		if err != nil {
 			klog.Errorf("Failed to create server for machine %q: %v", req.Machine.Name, err)
+			if isResourceExhaustedError(err) {
+				return nil, status.Error(codes.ResourceExhausted, fmt.Sprintf("failed to create server: %v", err))
+			}
 			return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to create server: %v", err))
 		}
+	}
+
+	if err := p.WaitUntilServerRunning(ctx, projectID, providerSpec.Region, server.ID); err != nil {
+		klog.Errorf("Failed waiting for server %q to reach ACTIVE state: %v", req.Machine.Name, err)
+		if isResourceExhaustedError(err) {
+			return nil, status.Error(codes.ResourceExhausted, fmt.Sprintf("failed waiting for server to be ACTIVE: %v", err))
+		}
+		return nil, status.Error(codes.DeadlineExceeded, fmt.Sprintf("failed waiting for server to be ACTIVE: %v", err))
 	}
 
 	if err := p.patchNetworkInterface(ctx, projectID, server.ID, providerSpec); err != nil {
@@ -264,4 +277,24 @@ func (p *Provider) patchNetworkInterface(ctx context.Context, projectID, serverI
 	}
 
 	return nil
+}
+
+// WaitUntilServerRunning waits for the specified server to reach ACTIVE state
+// It polls the server status every 5 seconds with a maximum timeout of 5 minutes
+func (p *Provider) WaitUntilServerRunning(ctx context.Context, projectID, region, serverID string) error {
+	return wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true, func(ctx context.Context) (bool, error) {
+		server, err := p.client.GetServer(ctx, projectID, region, serverID)
+		if err != nil {
+			return false, err
+		}
+
+		klog.V(2).Infof("Waiting for server to reach ACTIVE state... (current status: %s)", server.Status)
+
+		if server.Status == "ACTIVE" {
+			klog.V(2).Infof("Server %q reached ACTIVE state", serverID)
+			return true, nil
+		}
+
+		return false, nil
+	})
 }

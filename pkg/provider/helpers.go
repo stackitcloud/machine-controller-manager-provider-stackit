@@ -58,3 +58,8 @@ func extractSecretCredentials(secretData map[string][]byte) (projectID, serviceA
 	serviceAccountKey = string(secretData[validation.StackitServiceAccountKey])
 	return projectID, serviceAccountKey
 }
+
+func isResourceExhaustedError(err error) bool {
+	errMsg := strings.ToLower(err.Error())
+	return strings.Contains(errMsg, "no valid host") || strings.Contains(errMsg, "quota exceeded")
+}
