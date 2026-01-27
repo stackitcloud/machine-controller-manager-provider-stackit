@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"maps"
 	"slices"
 
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
@@ -94,16 +95,15 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 func (p *Provider) createServerRequest(req *driver.CreateMachineRequest, providerSpec *api.ProviderSpec) *client.CreateServerRequest {
 	// Build labels: merge ProviderSpec labels with MCM-specific labels
 	labels := make(map[string]string)
+
 	// Start with user-provided labels from ProviderSpec
 	if providerSpec.Labels != nil {
-		for k, v := range providerSpec.Labels {
-			labels[k] = v
-		}
+		maps.Copy(labels, providerSpec.Labels)
 	}
+
 	// Add MCM-specific labels for server identification and orphan VM detection
 	labels[StackitMachineLabel] = req.Machine.Name
 	labels[StackitMachineClassLabel] = req.MachineClass.Name
-	labels[StackitRoleLabel] = "node"
 
 	// Create server request
 	createReq := &client.CreateServerRequest{

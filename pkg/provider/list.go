@@ -13,7 +13,7 @@ import (
 // ListMachines lists all STACKIT servers that belong to the specified MachineClass
 //
 // This method retrieves all servers in the STACKIT project and filters them based on
-// the "mcm.gardener.cloud/machineclass" label. This enables the MCM safety controller
+// the "kubernetes.io/machineclass" label. This enables the MCM safety controller
 // to detect and clean up orphan VMs that are not backed by Machine CRs.
 //
 // Returns:
@@ -51,7 +51,7 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 	}
 
 	// Filter servers by MachineClass label
-	// We use the "mcm.gardener.cloud/machineclass" label to identify which servers belong to this MachineClass
+	// We use the "kubernetes.io/machineclass" label to identify which servers belong to this MachineClass
 	machineList := make(map[string]string)
 	for _, server := range servers {
 		// Generate ProviderID in format: stackit://<projectId>/<serverId>

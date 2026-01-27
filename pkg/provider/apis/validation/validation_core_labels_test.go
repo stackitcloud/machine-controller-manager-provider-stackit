@@ -106,6 +106,7 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 				"app.kubernetes.io_component": "worker",
 				"environment-type":            "prod",
 				"version":                     "v1.2.3",
+				"app/component":               "core",
 			}
 			errors := ValidateProviderSpecNSecret(providerSpec, secret)
 			Expect(errors).To(BeEmpty())
@@ -170,6 +171,16 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 			errors := ValidateProviderSpecNSecret(providerSpec, secret)
 			Expect(errors).NotTo(BeEmpty())
 			Expect(errors[0].Error()).To(ContainSubstring("invalid format"))
+		})
+
+		It("should succeed with label keys containing slashes", func() {
+			providerSpec.Labels = map[string]string{
+				"mycompany.com/environment": "prod",
+				"app.io/version":            "v2",
+				"team/project/name":         "web",
+			}
+			errors := ValidateProviderSpecNSecret(providerSpec, secret)
+			Expect(errors).To(BeEmpty())
 		})
 
 		It("should fail when label key contains invalid characters", func() {

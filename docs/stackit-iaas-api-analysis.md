@@ -213,21 +213,17 @@ Example: `stackit://my-project-123/550e8400-e29b-41d4-a716-446655440000`
 
 Use the `labels` field for MCM identification and mapping:
 
-| Label Key                         | Value             | Purpose                                         |
-| --------------------------------- | ----------------- | ----------------------------------------------- |
-| `mcm.gardener.cloud/cluster`      | Cluster ID        | Identify which cluster owns this server         |
-| `mcm.gardener.cloud/machine`      | Machine CR name   | Map server to Kubernetes Machine                |
-| `mcm.gardener.cloud/machineclass` | MachineClass name | Map server to MachineClass for orphan detection |
-| `mcm.gardener.cloud/role`         | "node"            | Identify as cluster node                        |
+| Label Key                    | Value             | Purpose                                         |
+| ---------------------------- | ----------------- | ----------------------------------------------- |
+| `kubernetes.io/machine`      | Machine CR name   | Map server to Kubernetes Machine                |
+| `kubernetes.io/machineclass` | MachineClass name | Map server to MachineClass for orphan detection |
 
 Example labels:
 
 ```json
 {
-  "mcm.gardener.cloud/cluster": "shoot-dev-01",
-  "mcm.gardener.cloud/machine": "worker-pool-a-12345",
-  "mcm.gardener.cloud/machineclass": "worker-pool-a",
-  "mcm.gardener.cloud/role": "node"
+  "kubernetes.io/machine": "worker-pool-a-12345",
+  "kubernetes.io/machineclass": "worker-pool-a"
 }
 ```
 

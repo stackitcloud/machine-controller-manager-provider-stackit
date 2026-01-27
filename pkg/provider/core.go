@@ -11,9 +11,8 @@ import (
 
 const (
 	StackitProviderName      = "stackit"
-	StackitMachineLabel      = "mcm.gardener.cloud/machine"
-	StackitMachineClassLabel = "mcm.gardener.cloud/machineclass"
-	StackitRoleLabel         = "mcm.gardener.cloud/role"
+	StackitMachineLabel      = "kubernetes.io/machine"
+	StackitMachineClassLabel = "kubernetes.io/machineclass"
 )
 
 // GetVolumeIDs extracts volume IDs from PersistentVolume specs

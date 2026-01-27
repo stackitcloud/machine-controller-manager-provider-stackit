@@ -38,9 +38,9 @@ var regionRegex = regexp.MustCompile(`^[a-z0-9]+$`)
 // Pattern: lowercase letters/digits followed by digits, dash, then digit(s) (e.g., eu01-1, eu01-2)
 var availabilityZoneRegex = regexp.MustCompile(`^[a-z0-9]+-\d+$`)
 
-// labelKeyRegex validates Kubernetes label keys (must start/end with alphanumeric, can contain -, _, .)
+// labelKeyRegex validates Kubernetes label keys (must start/end with alphanumeric, can contain -, _, ., /)
 // Maximum length: 63 characters
-var labelKeyRegex = regexp.MustCompile(`^[a-zA-Z0-9]([-a-zA-Z0-9_.]*[a-zA-Z0-9])?$`)
+var labelKeyRegex = regexp.MustCompile(`^[a-zA-Z0-9]([-a-zA-Z0-9_./]*[a-zA-Z0-9])?$`)
 
 // labelValueRegex validates Kubernetes label values (must start/end with alphanumeric, can contain -, _, ., can be empty)
 // Maximum length: 63 characters
@@ -113,7 +113,7 @@ func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret)
 				errors = append(errors, fmt.Errorf("providerSpec.labels key '%s' exceeds maximum length of 63 characters", key))
 			}
 			if !labelKeyRegex.MatchString(key) {
-				errors = append(errors, fmt.Errorf("providerSpec.labels key '%s' has invalid format (must start/end with alphanumeric, can contain -, _, .)", key))
+				errors = append(errors, fmt.Errorf("providerSpec.labels key '%s' has invalid format (must start/end with alphanumeric, can contain -, _, ., /)", key))
 			}
 			if len(value) > 63 {
 				errors = append(errors, fmt.Errorf("providerSpec.labels value for key '%s' exceeds maximum length of 63 characters", key))
