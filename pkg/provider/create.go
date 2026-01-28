@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"maps"
 	"slices"
-	"time"
 
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/codes"
@@ -279,20 +278,19 @@ func (p *Provider) patchNetworkInterface(ctx context.Context, projectID, serverI
 	return nil
 }
 
-// WaitUntilServerRunning waits for the specified server to reach ACTIVE state
-// It polls the server status every 5 seconds with a maximum timeout of 5 minutes
 func (p *Provider) WaitUntilServerRunning(ctx context.Context, projectID, region, serverID string) error {
-	return wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true, func(ctx context.Context) (bool, error) {
+	return wait.PollUntilContextTimeout(ctx, p.pollingInterval, p.pollingTimeout, true, func(ctx context.Context) (bool, error) {
 		server, err := p.client.GetServer(ctx, projectID, region, serverID)
 		if err != nil {
 			return false, err
 		}
 
-		klog.V(2).Infof("Waiting for server to reach ACTIVE state... (current status: %s)", server.Status)
-
-		if server.Status == "ACTIVE" {
+		switch server.Status {
+		case "ACTIVE":
 			klog.V(2).Infof("Server %q reached ACTIVE state", serverID)
 			return true, nil
+		case "ERROR":
+			return false, fmt.Errorf("server in ERROR state: %q", server.ErrorMessage)
 		}
 
 		return false, nil

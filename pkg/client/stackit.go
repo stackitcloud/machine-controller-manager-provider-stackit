@@ -81,10 +81,11 @@ type AgentRequest struct {
 
 // Server represents a STACKIT server response
 type Server struct {
-	ID     string            `json:"id"`
-	Name   string            `json:"name"`
-	Status string            `json:"status"`
-	Labels map[string]string `json:"labels,omitempty"`
+	ID           string            `json:"id"`
+	Name         string            `json:"name"`
+	Status       string            `json:"status"`
+	ErrorMessage string            `json:"errorMessage,omitempty"`
+	Labels       map[string]string `json:"labels,omitempty"`
 }
 
 // NIC represents a STACKIT network interface

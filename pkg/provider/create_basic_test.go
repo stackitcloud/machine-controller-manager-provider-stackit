@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
@@ -33,7 +34,9 @@ var _ = Describe("CreateMachine", func() {
 		ctx = context.Background()
 		mockClient = &mock.StackitClient{}
 		provider = &Provider{
-			client: mockClient,
+			client:          mockClient,
+			pollingInterval: 10 * time.Millisecond,
+			pollingTimeout:  5 * time.Second,
 		}
 
 		secret = &corev1.Secret{
@@ -114,6 +117,41 @@ var _ = Describe("CreateMachine", func() {
 			Expect(capturedReq.MachineType).To(Equal("c2i.2"))
 			Expect(capturedReq.ImageID).To(Equal("12345678-1234-1234-1234-123456789abc"))
 		})
+
+		It("should poll GetServer until server is ACTIVE", func() {
+			getServerCallCount := 0
+
+			mockClient.CreateServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
+				return &client.Server{
+					ID:     "550e8400-e29b-41d4-a716-446655440000",
+					Name:   req.Name,
+					Status: "CREATING",
+				}, nil
+			}
+			mockClient.GetServerFunc = func(_ context.Context, _, _, _ string) (*client.Server, error) {
+				getServerCallCount++
+				// First call returns CREATING, second call returns ACTIVE
+				if getServerCallCount == 1 {
+					return &client.Server{
+						ID:     "550e8400-e29b-41d4-a716-446655440000",
+						Name:   "test-machine",
+						Status: "CREATING",
+					}, nil
+				}
+				return &client.Server{
+					ID:     "550e8400-e29b-41d4-a716-446655440000",
+					Name:   "test-machine",
+					Status: "ACTIVE",
+				}, nil
+			}
+
+			resp, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp).NotTo(BeNil())
+			Expect(resp.ProviderID).To(Equal("stackit://11111111-2222-3333-4444-555555555555/550e8400-e29b-41d4-a716-446655440000"))
+			Expect(getServerCallCount).To(BeNumerically(">=", 2))
+		})
 	})
 
 	Context("with invalid ProviderSpec", func() {
@@ -184,6 +222,32 @@ var _ = Describe("CreateMachine", func() {
 			statusErr, ok := status.FromError(err)
 			Expect(ok).To(BeTrue())
 			Expect(statusErr.Code()).To(Equal(codes.Unavailable))
+		})
+
+		It("should return ResourceExhausted when server enters ERROR state with 'no valid host'", func() {
+			mockClient.CreateServerFunc = func(_ context.Context, _, _ string, req *client.CreateServerRequest) (*client.Server, error) {
+				return &client.Server{
+					ID:     "550e8400-e29b-41d4-a716-446655440000",
+					Name:   req.Name,
+					Status: "CREATING",
+				}, nil
+			}
+			mockClient.GetServerFunc = func(_ context.Context, _, _, _ string) (*client.Server, error) {
+				return &client.Server{
+					ID:           "550e8400-e29b-41d4-a716-446655440000",
+					Name:         "test-machine",
+					Status:       "ERROR",
+					ErrorMessage: "No valid host was found. There are not enough hosts available.",
+				}, nil
+			}
+
+			_, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).To(HaveOccurred())
+			statusErr, ok := status.FromError(err)
+			Expect(ok).To(BeTrue())
+			Expect(statusErr.Code()).To(Equal(codes.ResourceExhausted))
+			Expect(err.Error()).To(ContainSubstring("No valid host"))
 		})
 	})
 })
