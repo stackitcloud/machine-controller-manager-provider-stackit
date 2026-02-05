@@ -206,12 +206,7 @@ func (c *SdkStackitClient) CreateServer(ctx context.Context, projectID, region s
 	}
 
 	// Convert SDK server to our Server type
-	server := &Server{
-		ID:     sdkServer.GetId(),
-		Name:   sdkServer.GetName(),
-		Status: sdkServer.GetStatus(),
-		Labels: convertLabelsFromSDK(sdkServer.Labels),
-	}
+	server := convertSDKServerToServer(sdkServer)
 
 	return server, nil
 }
@@ -228,12 +223,7 @@ func (c *SdkStackitClient) GetServer(ctx context.Context, projectID, region, ser
 	}
 
 	// Convert SDK server to our Server type
-	server := &Server{
-		ID:     sdkServer.GetId(),
-		Name:   sdkServer.GetName(),
-		Status: sdkServer.GetStatus(),
-		Labels: convertLabelsFromSDK(sdkServer.Labels),
-	}
+	server := convertSDKServerToServer(sdkServer)
 
 	return server, nil
 }
@@ -282,13 +272,7 @@ func (c *SdkStackitClient) ListServers(ctx context.Context, projectID, region st
 	if sdkResponse.Items != nil {
 		for i := range *sdkResponse.Items {
 			sdkServer := &(*sdkResponse.Items)[i]
-
-			server := &Server{
-				ID:     sdkServer.GetId(),
-				Name:   sdkServer.GetName(),
-				Status: sdkServer.GetStatus(),
-				Labels: convertLabelsFromSDK(sdkServer.Labels),
-			}
+			server := convertSDKServerToServer(sdkServer)
 			servers = append(servers, server)
 		}
 	}
@@ -355,6 +339,16 @@ func convertSDKNICtoNIC(nic *iaas.NIC) *NIC {
 		ID:               nic.GetId(),
 		NetworkID:        nic.GetNetworkId(),
 		AllowedAddresses: addresses,
+	}
+}
+
+func convertSDKServerToServer(sdkServer *iaas.Server) *Server {
+	return &Server{
+		ID:           sdkServer.GetId(),
+		Name:         sdkServer.GetName(),
+		Status:       sdkServer.GetStatus(),
+		ErrorMessage: sdkServer.GetErrorMessage(),
+		Labels:       convertLabelsFromSDK(sdkServer.Labels),
 	}
 }
 

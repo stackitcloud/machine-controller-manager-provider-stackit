@@ -10,6 +10,7 @@ import (
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/codes"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/status"
 	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/client"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 )
 
@@ -31,7 +32,7 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 
 	// Initialize client on first use (lazy initialization)
 	if err := p.ensureClient(serviceAccountKey); err != nil {
-		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to initialize STACKIT client: %v", err))
+		return nil, status.Error(codes.Unauthenticated, fmt.Sprintf("failed to initialize STACKIT client: %v", err))
 	}
 
 	var projectID, serverID string
@@ -87,7 +88,25 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to delete server: %v", err))
 	}
 
-	klog.V(2).Infof("Successfully deleted server %q for machine %q", serverID, req.Machine.Name)
+	if err := p.WaitUntilServerDeleted(ctx, projectID, providerSpec.Region, serverID); err != nil {
+		klog.Errorf("Failed waiting for server %q to be deleted for machine %q: %v", serverID, req.Machine.Name, err)
+		return nil, status.Error(codes.DeadlineExceeded, fmt.Sprintf("failed waiting for server to be deleted: %v", err))
+	}
 
 	return &driver.DeleteMachineResponse{}, nil
+}
+
+func (p *Provider) WaitUntilServerDeleted(ctx context.Context, projectID, region, serverID string) error {
+	return wait.PollUntilContextTimeout(ctx, p.pollingInterval, p.pollingTimeout, true, func(ctx context.Context) (bool, error) {
+		_, err := p.client.GetServer(ctx, projectID, region, serverID)
+		if err != nil {
+			// Server is deleted if we get a not found error
+			if errors.Is(err, client.ErrServerNotFound) {
+				klog.V(2).Infof("Server %q has been deleted", serverID)
+				return true, nil
+			}
+		}
+
+		return false, err
+	})
 }

@@ -3,6 +3,7 @@ package provider
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	client2 "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/client"
@@ -24,12 +25,17 @@ type Provider struct {
 	clientOnce          sync.Once             // Ensures client is initialized exactly once
 	clientErr           error                 // Stores initialization error if any
 	capturedCredentials string                // Service account key used for initialization (for defensive checks)
+	// intervals need to be configurable to speed up tests
+	pollingInterval time.Duration // Interval between polling attempts
+	pollingTimeout  time.Duration // Maximum time to wait during polling
 }
 
 // NewProvider returns an empty provider object
 func NewProvider(i spi.SessionProviderInterface) driver.Driver {
 	return &Provider{
-		SPI: i,
+		SPI:             i,
+		pollingInterval: 5 * time.Second,
+		pollingTimeout:  10 * time.Minute,
 	}
 }
 

@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
@@ -33,7 +34,9 @@ var _ = Describe("DeleteMachine", func() {
 		ctx = context.Background()
 		mockClient = &mock.StackitClient{}
 		provider = &Provider{
-			client: mockClient,
+			client:          mockClient,
+			pollingInterval: 10 * time.Millisecond,
+			pollingTimeout:  5 * time.Second,
 		}
 
 		// Create secret with projectId
@@ -87,6 +90,9 @@ var _ = Describe("DeleteMachine", func() {
 			mockClient.DeleteServerFunc = func(_ context.Context, _, _, _ string) error {
 				return nil
 			}
+			mockClient.GetServerFunc = func(_ context.Context, _, _, _ string) (*client.Server, error) {
+				return nil, fmt.Errorf("%w: status 404", client.ErrServerNotFound)
+			}
 
 			resp, err := provider.DeleteMachine(ctx, req)
 
@@ -103,6 +109,9 @@ var _ = Describe("DeleteMachine", func() {
 				capturedServerID = serverID
 				return nil
 			}
+			mockClient.GetServerFunc = func(_ context.Context, _, _, _ string) (*client.Server, error) {
+				return nil, fmt.Errorf("%w: status 404", client.ErrServerNotFound)
+			}
 
 			_, err := provider.DeleteMachine(ctx, req)
 
@@ -110,11 +119,47 @@ var _ = Describe("DeleteMachine", func() {
 			Expect(capturedProjectID).To(Equal("11111111-2222-3333-4444-555555555555"))
 			Expect(capturedServerID).To(Equal("550e8400-e29b-41d4-a716-446655440000"))
 		})
+
+		It("should poll GetServer until server is deleted", func() {
+			getServerCallCount := 0
+
+			mockClient.DeleteServerFunc = func(_ context.Context, _, _, _ string) error {
+				return nil
+			}
+			mockClient.GetServerFunc = func(_ context.Context, _, _, _ string) (*client.Server, error) {
+				getServerCallCount++
+				// First call returns server still exists, second call returns not found
+				if getServerCallCount == 1 {
+					return &client.Server{
+						ID:     "550e8400-e29b-41d4-a716-446655440000",
+						Name:   "test-machine",
+						Status: "SHUTTING_DOWN",
+					}, nil
+				}
+				return nil, fmt.Errorf("%w: status 404", client.ErrServerNotFound)
+			}
+
+			resp, err := provider.DeleteMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp).NotTo(BeNil())
+			Expect(getServerCallCount).To(BeNumerically(">=", 2))
+		})
 	})
 
 	Context("with missing or invalid ProviderID", func() {
 		It("should still delete the machine when ProviderID is missing", func() {
 			machine.Spec.ProviderID = ""
+
+			mockClient.GetServerFunc = func(_ context.Context, _, _, _ string) (*client.Server, error) {
+				return &client.Server{
+					ID:   "550e8400-e29b-41d4-a716-446655440000",
+					Name: "test-machine",
+				}, nil
+			}
+			mockClient.DeleteServerFunc = func(_ context.Context, _, _, _ string) error {
+				return nil
+			}
 
 			_, err := provider.DeleteMachine(ctx, req)
 
