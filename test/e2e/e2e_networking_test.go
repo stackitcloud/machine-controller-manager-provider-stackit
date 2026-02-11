@@ -186,8 +186,8 @@ providerSpec:
   networking:
     networkId: "770e8400-e29b-41d4-a716-446655440000"
   securityGroups:
-    - "default"
-    - "web-servers"
+    - "550e8400-e29b-41d4-a716-446655440001"
+    - "550e8400-e29b-41d4-a716-446655440002"
   labels:
     test: "networking-securitygroups"
 secretRef:
