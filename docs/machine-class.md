@@ -1,6 +1,6 @@
 # MachineClass ProviderSpec
 
-This document describes the STACKIT MachineClass ProviderSpec schema and validation rules used by the machine-controller-manager-provider-stackit.
+This document describes the STACKIT MachineClass ProviderSpec schema and validation rules used by the machine-controller-manager-provider-stackit. It is generated based on the [providerSpec source code](../pkg/provider/apis/provider_spec.go).
 
 ## Overview
 

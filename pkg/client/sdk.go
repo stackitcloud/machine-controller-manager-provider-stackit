@@ -84,7 +84,7 @@ func createIAASClient(serviceAccountKey string) (*iaas.APIClient, error) {
 
 // CreateServer creates a new server via STACKIT SDK
 //
-//nolint:gocyclo // TODO: refactor
+//nolint:gocyclo // this function is not complex at all
 func (c *SdkStackitClient) CreateServer(ctx context.Context, projectID, region string, req *CreateServerRequest) (*Server, error) {
 	// Convert our request to SDK payload
 	payload := &iaas.CreateServerPayload{}

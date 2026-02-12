@@ -10,7 +10,7 @@ The provider was built following the [MCM provider development guidelines](https
 
 ## Getting Started
 
-### Deployment
+### Examples
 
 See the [samples/](./samples/) directory for example manifests including:
 
@@ -43,7 +43,9 @@ For detailed information on all available configuration fields, see the [Machine
 
 ## Local Testing & Development
 
-Use the Makefile targets for development and testing:
+Local development runs the provider and MCM against a real Gardener shoot on STACKIT (kind is not suitable for this provider). Follow the steps in the [local development guide](./docs/development.md).
+
+Use the Makefile targets for testing:
 
 ```sh
 # Run tests

@@ -4,7 +4,7 @@ SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 SOURCES := Makefile go.mod go.sum $(shell find $(DEST) -name '*.go' 2>/dev/null)
 VERSION ?= $(shell git describe --dirty --tags --match='v*' 2>/dev/null || git rev-parse --short HEAD)
-REGISTRY ?= reg3.infra.ske.eu01.stackit.cloud
+REGISTRY ?= ghcr.io
 REPO ?= stackitcloud/machine-controller-manager-provider-stackit
 PUSH ?= true
 PLATFORMS ?= amd64 arm64
@@ -78,3 +78,19 @@ mocks: $(MOCKGEN)
 .PHONY: generate
 generate: mocks
 	go generate ./...
+
+.PHONY: start
+start:
+	go run \
+		cmd/machine-controller/main.go \
+		--control-kubeconfig=$(CONTROL_KUBECONFIG) \
+		--target-kubeconfig=$(TARGET_KUBECONFIG) \
+		--namespace=$(CONTROL_NAMESPACE) \
+		--machine-creation-timeout=20m \
+		--machine-drain-timeout=5m \
+		--machine-health-timeout=10m \
+		--machine-pv-detach-timeout=2m \
+		--machine-safety-apiserver-statuscheck-timeout=30s \
+		--machine-safety-apiserver-statuscheck-period=1m \
+		--machine-safety-orphan-vms-period=30m \
+		--v=3

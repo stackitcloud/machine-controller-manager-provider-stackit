@@ -48,7 +48,7 @@ var labelValueRegex = regexp.MustCompile(`^([a-zA-Z0-9]([-a-zA-Z0-9_.]*[a-zA-Z0-
 
 // ValidateProviderSpecNSecret validates provider spec and secret to check if all fields are present and valid
 //
-//nolint:gocyclo,funlen//TODO:refactor
+//nolint:gocyclo,funlen // splitting this function would make it unreadable
 func ValidateProviderSpecNSecret(spec *api.ProviderSpec, secrets *corev1.Secret) []error {
 	var errors []error
 
