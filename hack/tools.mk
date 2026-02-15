@@ -5,7 +5,7 @@ OS := $(shell uname -s | tr "[:upper:]" "[:lower:]")
 ARCH := $(shell uname -m)
 
 # renovate: datasource=github-releases depName=incu6us/goimports-reviser
-GOIMPORTS_REVISER_VERSION ?= v3.12.3
+GOIMPORTS_REVISER_VERSION ?= v3.12.4
 # renovate: datasource=github-releases depName=ko-build/ko
 KO_VERSION ?= v0.18.1
 # renovate: datasource=github-releases depName=golangci/golangci-lint
