@@ -23,19 +23,21 @@ MachineClass objects and Secrets are assumed to already exist. Running the provi
 
 ## 1. Get kubeconfigs with gardenctl
 
-Assume:
+Set these shell variables (replace with your values):
 
-- Shoot name: `foobar`
-- Seed name: `foobar-seed`
+```bash
+export SHOOT_NAME=foobar
+export SEED_NAME=foobar-seed
+```
 
 Export kubeconfigs using `gardenctl`:
 
 ```bash
 # Target (shoot) kubeconfig
-gardenctl kubeconfig --raw --shoot foobar > /tmp/target.kubeconfig
+gardenctl kubeconfig --raw --shoot $SHOOT_NAME > /tmp/target.kubeconfig
 
 # Control (seed) kubeconfig
-gardenctl kubeconfig --raw --seed foobar-seed > /tmp/control.kubeconfig
+gardenctl kubeconfig --raw --seed $SEED_NAME > /tmp/control.kubeconfig
 ```
 
 Set these environment variables on every spun up terminal:
@@ -43,7 +45,7 @@ Set these environment variables on every spun up terminal:
 ```bash
 export TARGET_KUBECONFIG=/tmp/target.kubeconfig
 export CONTROL_KUBECONFIG=/tmp/control.kubeconfig
-export CONTROL_NAMESPACE=shoot--testing--foobar
+export CONTROL_NAMESPACE=shoot--testing--$SHOOT_NAME
 ```
 
 ## 2. Scale down the in-cluster MCM
@@ -65,20 +67,11 @@ Make sure to set the environment variables.
 
 ## 3. Run the provider (driver)
 
-On another terminal in your provider repo:
-
-If you are running against QA, export these environment variables before starting:
-
-```bash
-export STACKIT_TOKEN_BASEURL="https://service-account.api.qa.stackit.cloud/token"
-export STACKIT_IAAS_ENDPOINT="https://iaas.api.qa.stackit.cloud"
-```
+Set the environment varialbes from above and run another terminal in your provider repo:
 
 ```bash
 make start
 ```
-
-Make sure to set the environment varialbes.
 
 ## 4. Run MCM locally
 
@@ -89,13 +82,11 @@ git clone git@github.com:gardener/machine-controller-manager.git
 cd machine-controller-manager
 ```
 
-Run MCM:
+Set the environment varialbes from above and run the MCM:
 
 ```bash
 make start
 ```
-
-Make sure to set the environment varialbes.
 
 ## Notes
 

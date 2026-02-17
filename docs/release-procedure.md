@@ -1,12 +1,5 @@
 # Release Procedure
 
-## Table of Contents
-
-- [Overview](#overview)
-- [General Information](#general-information)
-- [Automated Release Process (Primary Method)](#automated-release-process-primary-method)
-- [Manual Release Process (Fallback Method)](#manual-release-process-fallback-method)
-
 ## Overview
 
 This document outlines the standard procedure for creating new releases of the STACKIT machine-controller-manager.

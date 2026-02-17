@@ -1,6 +1,6 @@
 # MachineClass ProviderSpec
 
-This document describes the STACKIT MachineClass ProviderSpec schema and validation rules used by the machine-controller-manager-provider-stackit. It is generated based on the [providerSpec source code](../pkg/provider/apis/provider_spec.go).
+This document describes the STACKIT MachineClass ProviderSpec schema and validation rules used by the machine-controller-manager-provider-stackit. It is AI generated based on the [providerSpec source code](../pkg/provider/apis/provider_spec.go).
 
 ## Overview
 
@@ -8,8 +8,8 @@ A MachineClass defines how STACKIT servers should be created. The ProviderSpec i
 
 ## Required Fields
 
-- `region` (string): STACKIT region such as "eu01" or "eu02".
-- `machineType` (string): STACKIT server type such as "c2i.2" or "m2i.8".
+- `region` (string): STACKIT region, such as "eu01" or "eu02".
+- `machineType` (string): STACKIT server type, such as "c2i.2" or "m2i.8".
 - `imageId` (string): UUID of the image to boot from, unless `bootVolume.source` is set.
 - `networking` (object): Must be set and must specify either `networkId` or `nicIds`.
 
