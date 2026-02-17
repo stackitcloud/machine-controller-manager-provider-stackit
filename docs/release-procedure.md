@@ -24,25 +24,16 @@ Publishing the release automatically creates the corresponding Git tag (e.g., `v
 
 ## Manual Release Process (Fallback Method)
 
-If the `release-tool` or its associated Prow job fails, you can manually trigger a release by creating and pushing a Git tag from the appropriate release branch.
+If the `release-tool` or its associated Prow job fails, use the GitHub web UI to create and publish a release:
 
-1. **Check out the release branch:** Ensure you have the latest changes from the correct release branch.
+1. Go to the repository on GitHub and click **Releases** on the right side, then click **Draft new release**.
 
-   ```bash
-   git checkout main
-   git pull origin main
-   ```
+2. Open the **Select tag** dropdown and choose **Create new tag** at the bottom. Enter the new tag name (for example `v2.1.0`) and pick the target branch/commit, then confirm.
 
-2. **Create the Git tag:** Create a new, annotated tag for the release, following semantic versioning.
+3. Click **Generate release notes** to let GitHub populate the changelog.
 
-   ```bash
-   git tag v2.1.0
-   ```
+4. In the release description, add a line `Released by @<your github handle>` to indicate the publisher.
 
-3. **Push the tag to the remote repository:**
+5. Click **Publish release** to create the release.
 
-   ```bash
-   git push origin v2.1.0
-   ```
-
-Pushing a tag that starts with `v` (e.g., `v2.1.0`) automatically triggers the same Prow release job that builds and publishes the final container images. You may need to manually update the release notes on GitHub afterward.
+Publishing a new release triggers the same Prow release job that builds and publishes the final container images.
