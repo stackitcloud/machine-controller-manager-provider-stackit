@@ -1,43 +1,16 @@
 # machine-controller-manager-provider-stackit
 
-[![GitHub License](https://img.shields.io/github/license/stackitcloud/stackit-sdk-go)](https://www.apache.org/licenses/LICENSE-2.0)
+[![GitHub License](https://img.shields.io/github/license/stackitcloud/machine-controller-manager-provider-stackit)](https://www.apache.org/licenses/LICENSE-2.0)
 
 Out of tree (controller based) implementation for `STACKIT` as a provider for Gardener.
 
-A Machine Controller Manager (MCM) external provider implementation for STACKIT cloud infrastructure. This provider enables Gardener to manage virtual machines on STACKIT using the declarative Kubernetes API.
+A Machine Controller Manager (MCM) provider implementation for STACKIT cloud infrastructure. This provider enables Gardener to manage virtual machines on STACKIT using the declarative Kubernetes API.
 
 The provider was built following the [MCM provider development guidelines](https://github.com/gardener/machine-controller-manager/blob/master/docs/development/cp_support_new.md) and bootstrapped from the [sample provider template](https://github.com/gardener/machine-controller-manager-provider-sampleprovider).
 
-## Project Structure
-
-```sh
-machine-controller-manager-provider-stackit/
-├── cmd/
-│   └── machine-controller/
-│       └── main.go                    # Provider entrypoint
-├── pkg/
-│   ├── provider/
-│   │   ├── core.go                    # Core provider implementation
-│   │   ├── provider.go                # Driver interface implementation
-│   │   ├── stackit_client.go          # STACKIT client interface
-│   │   ├── sdk_client.go              # STACKIT SDK wrapper implementation
-│   │   ├── helpers.go                 # SDK type conversion utilities
-│   │   ├── apis/
-│   │   │   ├── provider_spec.go       # ProviderSpec CRD definitions
-│   │   │   └── validation/            # Field validation logic
-│   │   └── *_test.go                  # Unit tests
-│   └── spi/
-│       └── spi.go                     # Service provider interface
-├── test/
-│   └── e2e/                           # End-to-end integration tests
-├── samples/                           # Example manifests
-├── kubernetes/                        # Deployment manifests
-└── vendor/                            # Go module dependencies
-```
-
 ## Getting Started
 
-### Deployment
+### Examples
 
 See the [samples/](./samples/) directory for example manifests including:
 
@@ -45,14 +18,47 @@ See the [samples/](./samples/) directory for example manifests including:
 - [`machine-class.yaml`](./samples/machine-class.yaml) - MachineClass definition
 - [`machine.yaml`](./samples/machine.yaml) - Individual Machine example
 - [`machine-deployment.yaml`](./samples/machine-deployment.yaml) - MachineDeployment for scaled workloads
-- [`deployment.yaml`](./kubernetes/deployment.yaml) - Provider controller deployment
+- [`deployment.yaml`](./samples/deployment.yaml) - Provider controller deployment
 
-Deploy using standard kubectl commands:
+### Minimal MachineClass Example
+
+Here's a bare minimum MachineClass configuration:
+
+```yaml
+apiVersion: machine.sapcloud.io/v1alpha1
+kind: MachineClass
+metadata:
+  name: stackit-machine
+  namespace: default
+providerSpec:
+  region: eu01
+  machineType: c2i.2
+  imageId: "12345678-1234-1234-1234-123456789012"
+secretRef:
+  name: stackit-credentials
+  namespace: default
+```
+
+For detailed information on all available configuration fields, see the [MachineClass documentation](./docs/machine-class.md).
+
+## Local Testing & Development
+
+Local development runs the provider and MCM against a real Gardener shoot on STACKIT (local kind cluster is not suitable). Follow the steps in the [local development guide](./docs/development.md).
+
+Use the Makefile targets for testing:
 
 ```sh
-kubectl apply -f samples/secret.yaml
-kubectl apply -f samples/machine-class.yaml
-kubectl apply -f samples/machine.yaml
+# Run tests
+make test
+
+# Verify code formatting and run all checks
+make verify
+
+# Format code
+make fmt
+
+# Build container image
+make image
 ```
 
 ## STACKIT SDK Integration
@@ -65,13 +71,11 @@ Each provider instance is bound to a single STACKIT project via the service acco
 
 The provider requires STACKIT credentials to be provided via a Kubernetes Secret. The Secret must contain the following fields:
 
-| Field               | Required | Description                                                      |
-| ------------------- | -------- | ---------------------------------------------------------------- |
-| `projectId`         | Yes      | STACKIT project UUID                                             |
-| `serviceAccountKey` | Yes      | STACKIT service account credentials (JSON format)                |
-| `region`            | Yes      | STACKIT region (e.g., `eu01-1`, `eu01-2`)                        |
-| `userData`          | No       | Default cloud-init user data (can be overridden in ProviderSpec) |
-| `networkId`         | No       | Default network UUID (can be overridden in ProviderSpec)         |
+| Field                 | Required | Description                                                      |
+| --------------------- | -------- | ---------------------------------------------------------------- |
+| `project-id`          | Yes      | STACKIT project UUID                                             |
+| `serviceaccount.json` | Yes      | STACKIT service account credentials (JSON format)                |
+| `userData`            | No       | Default cloud-init user data (can be overridden in ProviderSpec) |
 
 The service account key should be obtained from the STACKIT Portal (Project Settings → Service Accounts → Create Key) and contains JWT credentials and a private key for secure authentication.
 
@@ -81,45 +85,13 @@ The service account key should be obtained from the STACKIT Portal (Project Sett
 
 The provider supports the following environment variables for configuration:
 
-| Variable               | Default       | Description                                                        |
-| ---------------------- | ------------- | ------------------------------------------------------------------ |
-| `STACKIT_API_ENDPOINT` | (SDK default) | Override STACKIT API endpoint URL (useful for testing)             |
-| `STACKIT_NO_AUTH`      | `false`       | Skip authentication (for testing with mock servers, set to `true`) |
+| Variable                | Default       | Description                                                        |
+| ----------------------- | ------------- | ------------------------------------------------------------------ |
+| `STACKIT_IAAS_ENDPOINT` | (SDK default) | Override STACKIT API endpoint URL (useful for testing)             |
+| `STACKIT_TOKEN_BASEURL` | (SDK default) | Override STACKIT Token endpoint URL (useful for testing)           |
+| `STACKIT_NO_AUTH`       | `false`       | Skip authentication (for testing with mock servers, set to `true`) |
 
 **Note:** `STACKIT_NO_AUTH=true` is only intended for testing environments with mock servers. It skips the authenticaiton step and communicates with the STACKIT API without authenticating itself. Do not use in production.
-
-## Configuration Reference
-
-### ProviderSpec Fields
-
-| Field                 | Type                   | Required | Description                                      |
-| --------------------- | ---------------------- | -------- | ------------------------------------------------ |
-| `machineType`         | string                 | Yes      | STACKIT server type (e.g., "c2i.2", "m2i.8")     |
-| `imageId`             | string                 | Yes      | UUID of the OS image                             |
-| `labels`              | map[string]string      | No       | Labels for server identification                 |
-| `networking`          | NetworkingSpec         | No       | Network configuration (NetworkID or NICIDs)      |
-| `securityGroups`      | []string               | No       | Security group names                             |
-| `userData`            | string                 | No       | Cloud-init user data (overrides Secret.userData) |
-| `bootVolume`          | BootVolumeSpec         | No       | Boot disk configuration                          |
-| `volumes`             | []string               | No       | UUIDs of additional volumes to attach            |
-| `keypairName`         | string                 | No       | SSH keypair name                                 |
-| `availabilityZone`    | string                 | No       | Availability zone (e.g., "eu01-1")               |
-| `affinityGroup`       | string                 | No       | UUID of affinity group                           |
-| `serviceAccountMails` | []string               | No       | Service account email addresses (max 1)          |
-| `agent`               | AgentSpec              | No       | STACKIT agent configuration                      |
-| `metadata`            | map[string]interface{} | No       | Custom metadata key-value pairs                  |
-
-### Local Testing
-
-Use the local development environment for rapid iteration:
-
-```sh
-# Set up dev environment
-just dev
-
-# Or run provider locally for debugging
-just start
-```
 
 ## References
 
@@ -144,4 +116,4 @@ just start
 - [STACKIT Portal](https://portal.stackit.cloud/) - STACKIT management console
 - [Service Accounts](https://docs.stackit.cloud/stackit/en/service-accounts-134415819.html) - Creating and managing service accounts
 - [Service Account Keys](https://docs.stackit.cloud/stackit/en/usage-of-the-service-account-keys-in-stackit-175112464.html) - API authentication setup
-- [IaaS API Documentation](https://docs.stackit.cloud/) - STACKIT IaaS REST API reference
+- [IaaS API v2 Documentation](https://docs.api.stackit.cloud/documentation/iaas/version/v2) - STACKIT IaaS REST API reference

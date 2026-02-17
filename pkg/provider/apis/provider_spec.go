@@ -28,7 +28,7 @@ type ProviderSpec struct {
 	// Optional field. If specified, these ranges are configured as AllowedAddresses on the network interface of the server to bypass anti-spoofing rules.
 	AllowedAddresses []string `json:"allowedAddresses,omitempty"`
 
-	// SecurityGroups are the names of security groups to attach to the server
+	// SecurityGroups are the UUIDs of security groups to attach to the server
 	// Optional field. If not specified, the project's default security group will be used.
 	SecurityGroups []string `json:"securityGroups,omitempty"`
 

@@ -4,6 +4,9 @@ metadata:
   name: test-mc
   namespace: default
 providerSpec:
+  # Required: STACKIT region (e.g., "eu01", "eu02")
+  region: "eu01"
+
   # Required: STACKIT machine type (e.g., "c2i.2", "m2i.8")
   machineType: "c2i.2"
 
@@ -26,11 +29,11 @@ providerSpec:
     #   - "880e8400-e29b-41d4-a716-446655440000"
     #   - "990e8400-e29b-41d4-a716-446655440000"
 
-  # Optional: Security groups to apply to the server
+  # Optional: Security group UUIDs to apply to the server
   # If not specified, the project's default security group will be used
   securityGroups:
-    - "default"
-    - "web-servers"
+    - "550e8400-e29b-41d4-a716-446655440001"
+    - "550e8400-e29b-41d4-a716-446655440002"
 
   # Optional: Cloud-init user data for VM bootstrapping
   # Can be used to override/customize Secret.userData for this specific MachineClass
@@ -38,7 +41,7 @@ providerSpec:
   # Note: Secret.userData is typically required by MCM for node bootstrapping
   # Use this to add MachineClass-specific customizations
   userData: |
-    #cloud-config
+    # cloud-config
     runcmd:
       - echo "Machine bootstrapped via ProviderSpec"
       - apt-get update
@@ -55,6 +58,7 @@ metadata:
   name: minimal-mc
   namespace: default
 providerSpec:
+  region: "eu01"
   machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
 secretRef:
@@ -69,13 +73,14 @@ metadata:
   name: custom-userdata-mc
   namespace: default
 providerSpec:
+  region: "eu01"
   machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   # UserData in ProviderSpec overrides Secret.userData
   # Useful for MachineClass-specific bootstrapping (e.g., different software per class)
   # Make sure this still includes necessary bootstrap commands for node registration!
   userData: |
-    #cloud-config
+    # cloud-config
     package_update: true
     package_upgrade: true
     packages:
@@ -98,6 +103,7 @@ metadata:
   name: custom-bootvolume-mc
   namespace: default
 providerSpec:
+  region: "eu01"
   machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   # BootVolume allows fine-grained control over boot disk
@@ -125,6 +131,7 @@ metadata:
   name: with-volumes-mc
   namespace: default
 providerSpec:
+  region: "eu01"
   machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   # Volumes: attach existing volumes by UUID
@@ -144,6 +151,7 @@ metadata:
   name: full-storage-mc
   namespace: default
 providerSpec:
+  region: "eu01"
   machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   # Custom boot volume configuration
@@ -165,6 +173,7 @@ metadata:
   name: with-keypair-mc
   namespace: default
 providerSpec:
+  region: "eu01"
   machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   # KeypairName: SSH keypair for server access
@@ -185,6 +194,7 @@ metadata:
   name: with-az-mc
   namespace: default
 providerSpec:
+  region: "eu01"
   machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   # AvailabilityZone: Specify the AZ where the server will be created
@@ -204,6 +214,7 @@ metadata:
   name: with-affinity-mc
   namespace: default
 providerSpec:
+  region: "eu01"
   machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   # AffinityGroup: UUID of affinity group to control server placement
@@ -224,6 +235,7 @@ metadata:
   name: with-service-accounts-mc
   namespace: default
 providerSpec:
+  region: "eu01"
   machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   # ServiceAccountMails: Email addresses of service accounts to associate with the server
@@ -245,6 +257,7 @@ metadata:
   name: with-agent-mc
   namespace: default
 providerSpec:
+  region: "eu01"
   machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   # Agent: Configure the STACKIT agent on the server
@@ -265,6 +278,7 @@ metadata:
   name: with-metadata-mc
   namespace: default
 providerSpec:
+  region: "eu01"
   machineType: "c2i.2"
   imageId: "550e8400-e29b-41d4-a716-446655440000"
   # Metadata: Generic JSON object for storing arbitrary key-value pairs

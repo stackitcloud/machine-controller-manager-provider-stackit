@@ -34,7 +34,7 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 
 	Context("SecurityGroups validation", func() {
 		It("should succeed with valid SecurityGroups", func() {
-			providerSpec.SecurityGroups = []string{"default", "web-servers"}
+			providerSpec.SecurityGroups = []string{"550e8400-e29b-41d4-a716-446655440001", "550e8400-e29b-41d4-a716-446655440002"}
 			errors := ValidateProviderSpecNSecret(providerSpec, secret)
 			Expect(errors).To(BeEmpty())
 		})
