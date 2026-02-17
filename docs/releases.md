@@ -9,8 +9,6 @@ This document outlines the standard procedure for creating new releases of the S
 - **Versioning:** Versioning follows official [SemVer 2.0](https://semver.org/)
 - **CI/CD System:** All release and image builds are managed by our **Prow CI** infrastructure.
 
----
-
 ## Automated Release Process (Primary Method)
 
 The primary release method is automated using a tool called `release-tool`. This process is designed to be straightforward and require minimal manual intervention.
@@ -19,8 +17,6 @@ The primary release method is automated using a tool called `release-tool`. This
 2. **Publishing the Release:** When the draft is ready, navigate to the repository's "Releases" page on GitHub. Locate the draft, review the changelog, replace the placeholder with your GitHub handle and publish it by clicking the "Publish release" button.
 
 Publishing the release automatically creates the corresponding Git tag (e.g., `v1.3.1`), which triggers a separate Prow job to build the final container images and attach them to the GitHub release.
-
----
 
 ## Manual Release Process (Fallback Method)
 
