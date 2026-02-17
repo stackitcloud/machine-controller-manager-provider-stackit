@@ -17,7 +17,7 @@ You will run the provider and MCM locally while pointing them at real clusters:
 
 - `$TARGET_KUBECONFIG` points to the cluster where you want machines to join (the shoot).
 - `$CONTROL_KUBECONFIG` points to the cluster that stores Machine objects (the seed).
-- `$CONTROL_NAMESPACE` is where MCM watches Machine objects (usually `shoot--projectname--shootname` in the seed).
+- `$CONTROL_NAMESPACE` is where MCM watches Machine objects (usually `shoot--projectname--shootname` on the seed).
 
 MachineClass objects and Secrets are assumed to already exist. Running the provider locally results in faster feedback loops when developing new features and enables using the go debugger.
 
@@ -38,7 +38,7 @@ gardenctl kubeconfig --raw --shoot foobar > /tmp/target.kubeconfig
 gardenctl kubeconfig --raw --seed foobar-seed > /tmp/control.kubeconfig
 ```
 
-Set these environment variables on every terminal used:
+Set these environment variables on every spun up terminal:
 
 ```bash
 export TARGET_KUBECONFIG=/tmp/target.kubeconfig
@@ -48,7 +48,7 @@ export CONTROL_NAMESPACE=shoot--testing--foobar
 
 ## 2. Scale down the in-cluster MCM
 
-Scale the existing MCM in the seed to 0 so your local controller can take over:
+Scale the existing MCM in the seed to `0`, so your local controller can take over:
 
 ```bash
 kubectl --kubeconfig "$CONTROL_KUBECONFIG" -n "$CONTROL_NAMESPACE" scale deployment/machine-controller-manager --replicas=0
@@ -61,7 +61,7 @@ watch -n 5 "kubectl --kubeconfig '$CONTROL_KUBECONFIG' -n '$CONTROL_NAMESPACE' s
 ```
 
 This will check and scale down the deployment every 5 seconds.  
-Make sure to set the environment varialbes.
+Make sure to set the environment variables.
 
 ## 3. Run the provider (driver)
 

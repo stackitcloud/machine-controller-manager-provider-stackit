@@ -43,7 +43,7 @@ For detailed information on all available configuration fields, see the [Machine
 
 ## Local Testing & Development
 
-Local development runs the provider and MCM against a real Gardener shoot on STACKIT (kind is not suitable for this provider). Follow the steps in the [local development guide](./docs/development.md).
+Local development runs the provider and MCM against a real Gardener shoot on STACKIT (local kind cluster is not suitable). Follow the steps in the [local development guide](./docs/development.md).
 
 Use the Makefile targets for testing:
 
