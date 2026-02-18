@@ -95,6 +95,8 @@ The provider supports the following environment variables for configuration:
 
 ## References
 
+Special thanks to [@AOE](https://github.com/aoepeople) for the great collaboration by kickstarting this controller!
+
 ### Machine Controller Manager
 
 - [Machine Controller Manager](https://github.com/gardener/machine-controller-manager) - Core MCM project
