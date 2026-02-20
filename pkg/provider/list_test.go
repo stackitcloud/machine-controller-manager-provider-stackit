@@ -32,7 +32,8 @@ var _ = Describe("ListMachines", func() {
 		ctx = context.Background()
 		mockClient = &mock.StackitClient{}
 		provider = &Provider{
-			client: mockClient,
+			client:            mockClient,
+			customLabelDomain: "kubernetes.io",
 		}
 
 		// Create secret with projectId
@@ -140,6 +141,46 @@ var _ = Describe("ListMachines", func() {
 			statusErr, ok := status.FromError(err)
 			Expect(ok).To(BeTrue())
 			Expect(statusErr.Code()).To(Equal(codes.Internal))
+		})
+	})
+
+	Context("with custom label domain", func() {
+		It("should use custom domain in labels", func() {
+			customProvider := &Provider{
+				client:            mockClient,
+				customLabelDomain: "custom.domain",
+			}
+
+			Expect(customProvider.GetMachineLabelKey()).To(Equal("custom.domain/machine"))
+			Expect(customProvider.GetMachineClassLabelKey()).To(Equal("custom.domain/machineclass"))
+		})
+
+		It("should list machines filtered by custom MachineClass label", func() {
+			customProvider := &Provider{
+				client:            mockClient,
+				customLabelDomain: "custom.domain",
+			}
+
+			mockClient.ListServersFunc = func(_ context.Context, _, _ string, selector map[string]string) ([]*client.Server, error) {
+				Expect(selector["custom.domain/machineclass"]).To(Equal("test-machine-class"))
+
+				return []*client.Server{
+					{
+						ID:   "server-1",
+						Name: "machine-1",
+						Labels: map[string]string{
+							"custom.domain/machineclass": "test-machine-class",
+							"custom.domain/machine":      "machine-1",
+						},
+					},
+				}, nil
+			}
+
+			resp, err := customProvider.ListMachines(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp).NotTo(BeNil())
+			Expect(resp.MachineList).To(HaveLen(1))
 		})
 	})
 })
