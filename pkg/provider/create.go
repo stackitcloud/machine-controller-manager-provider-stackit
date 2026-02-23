@@ -15,6 +15,7 @@ import (
 	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis/validation"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 )
 
 // CreateMachine handles a machine creation request by creating a STACKIT server
@@ -155,7 +156,10 @@ func (p *Provider) createServerRequest(req *driver.CreateMachineRequest, provide
 	// Add boot volume configuration if specified
 	if providerSpec.BootVolume != nil {
 		createReq.BootVolume = &client.BootVolumeRequest{
-			DeleteOnTermination: providerSpec.BootVolume.DeleteOnTermination,
+			// DeleteOnTermination defaults to false in the IaaS API
+			// unless explicitly disabled, bootVolumes should always be cleaned up automatically
+			// otherwise this produces many orphaned volumes since node rolls happen frequently in k8s
+			DeleteOnTermination: ptr.To(ptr.Deref(providerSpec.BootVolume.DeleteOnTermination, true)),
 			PerformanceClass:    providerSpec.BootVolume.PerformanceClass,
 			Size:                providerSpec.BootVolume.Size,
 		}
