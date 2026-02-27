@@ -9,8 +9,8 @@ require (
 	github.com/spf13/pflag v1.0.10
 	github.com/stackitcloud/stackit-sdk-go/core v0.21.1
 	github.com/stackitcloud/stackit-sdk-go/services/iaas v1.3.5
-	k8s.io/api v0.35.1
-	k8s.io/apimachinery v0.35.1
+	k8s.io/api v0.35.2
+	k8s.io/apimachinery v0.35.2
 	k8s.io/component-base v0.35.1
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2
