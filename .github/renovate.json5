@@ -5,8 +5,7 @@
     'github>stackitcloud/ske-ci-infra//config/renovate/ske.json5',
   ],
   additionalReviewers: [
-    'dergeberl',
-    'nschad',
+    'team:ske-infrastructure',
   ],
   baseBranchPatterns: [
     'main',
