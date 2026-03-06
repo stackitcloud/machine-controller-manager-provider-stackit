@@ -10,9 +10,7 @@ import (
 )
 
 const (
-	StackitProviderName      = "stackit"
-	StackitMachineLabel      = "kubernetes.io/machine"
-	StackitMachineClassLabel = "kubernetes.io/machineclass"
+	StackitProviderName = "stackit"
 )
 
 // GetVolumeIDs extracts volume IDs from PersistentVolume specs
