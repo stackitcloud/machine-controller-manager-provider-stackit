@@ -61,19 +61,20 @@ When promoting major releases of machine-controller-manager-provider-stackit, th
 
 TODO: should we add hofixes part?
 
-## General Information
 
-- **Versioning:** Versioning follows official [SemVer 2.0](https://semver.org/)
-- **CI/CD System:** All release and image builds are managed by our **Prow CI** infrastructure.
+## 🔖 Publishing a Release
 
-## Automated Release Process (Primary Method)
+When changes are merged into `main` or a `release-v*` branch, the [release-tool](https://github.com/stackitcloud/ske-ci-infra/blob/main/docs/release-tool.md) generates a draft release for the next release on the branch as a preview of the to-be-released changes.
+It automatically chooses the correct tag. I.e., it bumps the major version if there are unreleased breaking changes on `main`, or otherwise bumps the minor version for `main` or bumps the patch version for `release-v*` branches.
 
-The primary release method is automated using a tool called `release-tool`. This process is designed to be straightforward and require minimal manual intervention.
+To publish a release, follow these steps:
 
-1. **Draft Creation:** On every successful merge (post-submit) to the `main` branch, a Prow job automatically runs the `release-tool`. This tool creates a new draft release on GitHub or updates the existing one with a changelog generated from recent commits.
-2. **Publishing the Release:** When the draft is ready, navigate to the repository's "Releases" page on GitHub. Locate the draft, review the changelog, replace the placeholder with your GitHub handle and publish it by clicking the "Publish release" button.
-
-Publishing the release automatically creates the corresponding Git tag (e.g., `v1.3.1`), which triggers a separate Prow job to build the final container images and attach them to the GitHub release.
+1. Open the repository's releases page.
+2. Navigate to the corresponding draft release (minor/major for `main`, patch for `release-v*`).
+3. Review to-be-released changes by checking the release notes.
+4. Edit the release by pressing the pen icon.
+5. Change `REPLACE_ME` with your github username.
+6. Press the "Publish release" button.
 
 ## Manual Release Process (Fallback Method)
 
