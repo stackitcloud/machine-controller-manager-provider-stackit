@@ -2,7 +2,37 @@
 
 ## Overview
 
-This document outlines the standard procedure for creating new releases of the STACKIT machine-controller-manager.
+To push new changes to the release, start with a PR to the main branch. Make sure to follow the PR template.
+
+### 🏷️ Versioning
+
+When releasing machine-controller-manager-provider-stackit, we follow semantic versioning (see https://semver.org/).
+
+In short:
+- versions have the `vX.Y.Z` pattern, with `X` being the major version, `Y` being the minor version, and `Z` being the patch version
+- ⚠️ a new major version (`vX.0.0`, `X` is bumped)
+   - brings new features/refactorings/etc.
+   - implies breaking changes to consumers of the package (i.e., incompatible with the last major)
+- 🚀 a new minor version (`vX.Y.0`, `Y` is bumped)
+   - brings new features/refactorings/etc.
+   - does not imply breaking changes (i.e., compatible with the last minor)
+- 🚑 a new patch version (`vX.Y.Z`, `Z` is bumped)
+   - brings bug fixes without new features/refactorings/etc.
+   - does not imply breaking changes (i.e., compatible with the last patch)
+
+For major version changes, consumers typically need to adapt their usage of the package to the breaking changes before they can successfully upgrade. For minor and patch version changes, no adaptions are needed.
+
+In case of machine-controller-manager-provider-stackit, we use the following types of releases:
+
+- ⚠️ a new major version is released if
+   - manual steps are required after rolling out the change TODO: ask if it is required
+   - Gardener Upgrades
+- 🚀 a new minor version is released if
+   - it doesn't come with a known impact on customers
+   - it can be promoted automatically
+- 🚑 a new patch version is released if
+   - a critical change needs to be rolled out without other major/minor changes
+   - it can be promoted automatically
 
 ## General Information
 
