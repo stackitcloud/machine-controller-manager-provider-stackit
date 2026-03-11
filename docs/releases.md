@@ -34,6 +34,33 @@ In case of machine-controller-manager-provider-stackit, we use the following typ
    - a critical change needs to be rolled out without other major/minor changes
    - it can be promoted automatically
 
+Both major and minor releases are created from the main branch. Patch releases are created from a release branch that is based on a minor version release.
+
+To make sure we release with the correct version bump, every breaking PR needs to be labeled with the breaking label (e.g., via /label breaking) so that it is automatically categorized correctly when generating release notes.
+
+### 🚀 Basic Promotion (Minor Releases)
+
+> [!NOTE]
+> We are now reconciling in maintenance only.
+> There is no more reconciliation every hour!
+
+The basic promotion workflow is quite simple:
+
+1. Create a PR to merge your changes on [:octocat: machine-controller-manager-provider-stackit](https://github.com/stackitcloud/machine-controller-manager-provider-stackit) into the `main` branch.
+2. Once you have verified the changes on dev [TODO: if the dev is okay to write here], you can promote the changes by creating a new minor release of ske-base.
+   For this, publish the draft release on the `main` branch for the next minor version (`vx.y.0`) (see [Publishing a Release](#-publishing-a-release)).
+   Review the release notes and make sure, the changes since the last release don't contain any breaking changes.
+
+### ⚠️ Promotion with Adaptions (Major Releases)
+
+When promoting major releases of machine-controller-manager-provider-stackit, the promotion workflow is the following:
+
+1. Create a PR to merge your changes on [:octocat: machine-controller-manager-provider-stackit](https://github.com/stackitcloud/machine-controller-manager-provider-stackit) into the `main` branch. Add `/label breaking` to your PR description.
+2. Once you have verified the changes, you can promote the changes by creating a new major release of ske-base.
+   For this, publish the draft release on the `main` branch for the next major version (`vx.0.0`) (see [Publishing a Release](#-publishing-a-release)).
+
+TODO: should we add hofixes part?
+
 ## General Information
 
 - **Versioning:** Versioning follows official [SemVer 2.0](https://semver.org/)
