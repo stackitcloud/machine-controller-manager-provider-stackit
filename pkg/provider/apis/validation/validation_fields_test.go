@@ -129,11 +129,30 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 				"eu01-2",
 				"eu02-1",
 				"eu02-4",
+				"eu01-m",
+				"eu02-m",
 			}
 			for _, az := range testCases {
 				providerSpec.AvailabilityZone = az
 				errors := ValidateProviderSpecNSecret(providerSpec, secret)
 				Expect(errors).To(BeEmpty(), "AvailabilityZone %q should be valid", az)
+			}
+		})
+
+		It("should fail with invalid availabilityZone formats", func() {
+			invalidCases := []string{
+				"eu01-a",  // letter other than 'm'
+				"eu01-m1", // 'm' followed by digit
+				"eu01",    // missing dash and suffix
+				"eu01-",   // missing suffix
+				"-1",      // missing prefix
+				"eu01-mm", // multiple letters
+			}
+			for _, az := range invalidCases {
+				providerSpec.AvailabilityZone = az
+				errors := ValidateProviderSpecNSecret(providerSpec, secret)
+				Expect(errors).NotTo(BeEmpty(), "AvailabilityZone %q should be invalid", az)
+				Expect(errors[0].Error()).To(ContainSubstring("invalid format"))
 			}
 		})
 	})
