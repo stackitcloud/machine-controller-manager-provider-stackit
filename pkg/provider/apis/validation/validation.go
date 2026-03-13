@@ -35,8 +35,8 @@ var machineTypeRegex = regexp.MustCompile(`^[a-z]+\d+[a-z]*\.\d+[a-z]*(\.[a-z]+\
 var regionRegex = regexp.MustCompile(`^[a-z0-9]+$`)
 
 // availabilityZoneRegex is a regex pattern for validating STACKIT availability zone format
-// Pattern: lowercase letters/digits followed by digits, dash, then digit(s) (e.g., eu01-1, eu01-2)
-var availabilityZoneRegex = regexp.MustCompile(`^[a-z0-9]+-\d+$`)
+// Pattern: lowercase letters/digits followed by dash, then digits or letter 'm' (e.g., eu01-1, eu01-2, eu01-m)
+var availabilityZoneRegex = regexp.MustCompile(`^[a-z0-9]+-(?:\d+|m)$`)
 
 // labelKeyRegex validates Kubernetes label keys (must start/end with alphanumeric, can contain -, _, ., /)
 // Maximum length: 63 characters
