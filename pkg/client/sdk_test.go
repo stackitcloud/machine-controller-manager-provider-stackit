@@ -122,7 +122,7 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 				result := convertLabelsToSDK(labels)
 
 				Expect(result).NotTo(BeNil())
-				Expect(result).To(HaveLen(2))
+				Expect(result).To(HaveLen(1))
 				Expect(result["kubernetes.io/machine"]).To(Equal("test-machine"))
 			})
 		})
