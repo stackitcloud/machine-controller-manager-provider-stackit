@@ -118,6 +118,24 @@ var _ = Describe("CreateMachine", func() {
 			Expect(capturedReq.ImageID).To(Equal("12345678-1234-1234-1234-123456789abc"))
 		})
 
+		It("should return internal IPs from NICs in Addresses", func() {
+			mockClient.GetNICsFunc = func(_ context.Context, _, _, _ string) ([]*client.NIC, error) {
+				return []*client.NIC{
+					{ID: "nic-1", NetworkID: "net-1", IPv4: "10.0.0.5", IPv6: "fd00::1"},
+					{ID: "nic-2", NetworkID: "net-2", IPv4: "10.0.1.5"},
+				}, nil
+			}
+
+			resp, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp.Addresses).To(ConsistOf(
+				corev1.NodeAddress{Type: corev1.NodeInternalIP, Address: "10.0.0.5"},
+				corev1.NodeAddress{Type: corev1.NodeInternalIP, Address: "fd00::1"},
+				corev1.NodeAddress{Type: corev1.NodeInternalIP, Address: "10.0.1.5"},
+			))
+		})
+
 		It("should poll GetServer until server is ACTIVE", func() {
 			getServerCallCount := 0
 
@@ -207,6 +225,22 @@ var _ = Describe("CreateMachine", func() {
 			statusErr, ok := status.FromError(err)
 			Expect(ok).To(BeTrue())
 			Expect(statusErr.Code()).To(Equal(codes.InvalidArgument))
+		})
+	})
+
+	Context("when server has no NICs", func() {
+		It("should return Unavailable error", func() {
+			mockClient.GetNICsFunc = func(_ context.Context, _, _, _ string) ([]*client.NIC, error) {
+				return []*client.NIC{}, nil
+			}
+
+			_, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).To(HaveOccurred())
+			statusErr, ok := status.FromError(err)
+			Expect(ok).To(BeTrue())
+			Expect(statusErr.Code()).To(Equal(codes.Unavailable))
+			Expect(err.Error()).To(ContainSubstring("no NICs found"))
 		})
 	})
 
