@@ -339,7 +339,7 @@ var _ = Describe("CreateMachine", func() {
 					NetworkID: "770e8400-e29b-41d4-a716-446655440000",
 				},
 				ImageID: "12345678-1234-1234-1234-123456789abc",
-				Metadata: map[string]interface{}{
+				Metadata: map[string]any{
 					"environment": "production",
 					"cost-center": "12345",
 					"count":       42,

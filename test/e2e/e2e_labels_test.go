@@ -479,12 +479,12 @@ spec:
 			output, err := cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred())
 
-			var machineData map[string]interface{}
+			var machineData map[string]any
 			err = json.Unmarshal(output, &machineData)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Extract spec.providerID
-			spec, ok := machineData["spec"].(map[string]interface{})
+			spec, ok := machineData["spec"].(map[string]any)
 			Expect(ok).To(BeTrue())
 			providerID, ok := spec["providerID"].(string)
 			Expect(ok).To(BeTrue())
@@ -496,16 +496,16 @@ spec:
 			output, err = cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred())
 
-			var machineClassData map[string]interface{}
+			var machineClassData map[string]any
 			err = json.Unmarshal(output, &machineClassData)
 			Expect(err).NotTo(HaveOccurred())
 
-			providerSpecRaw, ok := machineClassData["providerSpec"].(map[string]interface{})
+			providerSpecRaw, ok := machineClassData["providerSpec"].(map[string]any)
 			Expect(ok).To(BeTrue())
 
 			// Verify labels field is either missing or empty
 			if labelsField, exists := providerSpecRaw["labels"]; exists {
-				labels, ok := labelsField.(map[string]interface{})
+				labels, ok := labelsField.(map[string]any)
 				if ok {
 					Expect(labels).To(BeEmpty(), "Labels field should be empty if present")
 				}

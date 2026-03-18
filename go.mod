@@ -1,6 +1,6 @@
 module github.com/stackitcloud/machine-controller-manager-provider-stackit
 
-go 1.25.0
+go 1.26.1
 
 require (
 	github.com/gardener/machine-controller-manager v0.61.2

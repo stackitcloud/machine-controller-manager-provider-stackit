@@ -80,7 +80,7 @@ type ProviderSpec struct {
 	// Metadata is a generic JSON object for storing arbitrary key-value pairs
 	// Optional field. Can be used to store custom metadata that doesn't fit into other fields
 	// Example: {"environment": "production", "cost-center": "12345"}
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Metadata map[string]any `json:"metadata,omitempty"`
 }
 
 // AgentSpec defines the STACKIT agent configuration for a server

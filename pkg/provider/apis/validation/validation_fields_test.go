@@ -251,13 +251,13 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 		})
 
 		It("should succeed with empty metadata", func() {
-			providerSpec.Metadata = map[string]interface{}{}
+			providerSpec.Metadata = map[string]any{}
 			errors := ValidateProviderSpecNSecret(providerSpec, secret)
 			Expect(errors).To(BeEmpty())
 		})
 
 		It("should succeed with valid metadata", func() {
-			providerSpec.Metadata = map[string]interface{}{
+			providerSpec.Metadata = map[string]any{
 				"environment": "production",
 				"cost-center": "12345",
 				"owner":       "team-a",
@@ -267,8 +267,8 @@ var _ = Describe("ValidateProviderSpecNSecret", func() {
 		})
 
 		It("should succeed with nested metadata objects", func() {
-			providerSpec.Metadata = map[string]interface{}{
-				"tags": map[string]interface{}{
+			providerSpec.Metadata = map[string]any{
+				"tags": map[string]any{
 					"env":  "prod",
 					"tier": "backend",
 				},
