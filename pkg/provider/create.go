@@ -159,7 +159,7 @@ func (p *Provider) createServerRequest(req *driver.CreateMachineRequest, provide
 			// DeleteOnTermination defaults to false in the IaaS API
 			// unless explicitly disabled, bootVolumes should always be cleaned up automatically
 			// otherwise this produces many orphaned volumes since node rolls happen frequently in k8s
-			DeleteOnTermination: ptr.To(ptr.Deref(providerSpec.BootVolume.DeleteOnTermination, true)),
+			DeleteOnTermination: new(ptr.Deref(providerSpec.BootVolume.DeleteOnTermination, true)),
 			PerformanceClass:    providerSpec.BootVolume.PerformanceClass,
 			Size:                providerSpec.BootVolume.Size,
 		}

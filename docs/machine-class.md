@@ -15,24 +15,24 @@ A MachineClass defines how STACKIT servers should be created. The ProviderSpec i
 
 ## ProviderSpec Fields
 
-| Field                 | Type                   | Required | Description                                                   |
-| --------------------- | ---------------------- | -------- | ------------------------------------------------------------- |
-| `region`              | string                 | Yes      | STACKIT region (e.g., "eu01", "eu02").                        |
-| `machineType`         | string                 | Yes      | STACKIT server type (e.g., "c2i.2", "m2i.8").                 |
-| `imageId`             | string                 | Yes\*    | Image UUID. Required unless `bootVolume.source` is specified. |
-| `labels`              | map[string]string      | No       | Labels for server identification.                             |
-| `networking`          | NetworkingSpec         | Yes      | Network configuration (either `networkId` or `nicIds`).       |
-| `allowedAddresses`    | []string               | No       | CIDR ranges allowed for anti-spoofing bypass.                 |
-| `securityGroups`      | []string               | No       | Security group UUIDs.                                         |
-| `userData`            | string                 | No       | Cloud-init user data (overrides Secret.userData).             |
-| `bootVolume`          | BootVolumeSpec         | No       | Boot disk configuration.                                      |
-| `volumes`             | []string               | No       | UUIDs of existing volumes to attach.                          |
-| `keypairName`         | string                 | No       | SSH keypair name.                                             |
-| `availabilityZone`    | string                 | No       | Availability zone (e.g., "eu01-1").                           |
-| `affinityGroup`       | string                 | No       | UUID of affinity group.                                       |
-| `serviceAccountMails` | []string               | No       | Service account emails (max 1).                               |
-| `agent`               | AgentSpec              | No       | STACKIT agent configuration.                                  |
-| `metadata`            | map[string]interface{} | No       | Freeform metadata.                                            |
+| Field                 | Type              | Required | Description                                                   |
+| --------------------- | ----------------- | -------- | ------------------------------------------------------------- |
+| `region`              | string            | Yes      | STACKIT region (e.g., "eu01", "eu02").                        |
+| `machineType`         | string            | Yes      | STACKIT server type (e.g., "c2i.2", "m2i.8").                 |
+| `imageId`             | string            | Yes\*    | Image UUID. Required unless `bootVolume.source` is specified. |
+| `labels`              | map[string]string | No       | Labels for server identification.                             |
+| `networking`          | NetworkingSpec    | Yes      | Network configuration (either `networkId` or `nicIds`).       |
+| `allowedAddresses`    | []string          | No       | CIDR ranges allowed for anti-spoofing bypass.                 |
+| `securityGroups`      | []string          | No       | Security group UUIDs.                                         |
+| `userData`            | string            | No       | Cloud-init user data (overrides Secret.userData).             |
+| `bootVolume`          | BootVolumeSpec    | No       | Boot disk configuration.                                      |
+| `volumes`             | []string          | No       | UUIDs of existing volumes to attach.                          |
+| `keypairName`         | string            | No       | SSH keypair name.                                             |
+| `availabilityZone`    | string            | No       | Availability zone (e.g., "eu01-1").                           |
+| `affinityGroup`       | string            | No       | UUID of affinity group.                                       |
+| `serviceAccountMails` | []string          | No       | Service account emails (max 1).                               |
+| `agent`               | AgentSpec         | No       | STACKIT agent configuration.                                  |
+| `metadata`            | map[string]any    | No       | Freeform metadata.                                            |
 
 ## NetworkingSpec
 

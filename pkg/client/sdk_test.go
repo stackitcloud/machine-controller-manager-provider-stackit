@@ -139,7 +139,7 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 	Describe("convertLabelsFromSDK", func() {
 		Context("with valid SDK labels", func() {
 			It("should convert SDK labels to string map", func() {
-				sdkLabels := map[string]interface{}{
+				sdkLabels := map[string]any{
 					"app":  "web-server",
 					"team": "platform",
 				}
@@ -153,7 +153,7 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 			})
 
 			It("should convert empty SDK labels map", func() {
-				sdkLabels := map[string]interface{}{}
+				sdkLabels := map[string]any{}
 
 				result := convertLabelsFromSDK(&sdkLabels)
 
@@ -162,7 +162,7 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 			})
 
 			It("should skip non-string values", func() {
-				sdkLabels := map[string]interface{}{
+				sdkLabels := map[string]any{
 					"app":     "web-server",
 					"count":   42,         // not a string
 					"enabled": true,       // not a string
@@ -180,7 +180,7 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 			})
 
 			It("should handle nil values in map", func() {
-				sdkLabels := map[string]interface{}{
+				sdkLabels := map[string]any{
 					"app":  "web-server",
 					"team": nil,
 				}
