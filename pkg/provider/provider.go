@@ -2,6 +2,7 @@ package provider
 
 import (
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -28,14 +29,23 @@ type Provider struct {
 	// intervals need to be configurable to speed up tests
 	pollingInterval time.Duration // Interval between polling attempts
 	pollingTimeout  time.Duration // Maximum time to wait during polling
+	// NOTE: only change this if you know what you are doing!
+	// changing this value without a migration plan could lead to orphaned cloud resources
+	customLabelDomain string
 }
 
 // NewProvider returns an empty provider object
 func NewProvider(i spi.SessionProviderInterface) driver.Driver {
+	customLabelDomain := os.Getenv("CUSTOM_LABEL_DOMAIN")
+	if customLabelDomain == "" {
+		customLabelDomain = "kubernetes.io"
+	}
+
 	return &Provider{
-		SPI:             i,
-		pollingInterval: 5 * time.Second,
-		pollingTimeout:  10 * time.Minute,
+		SPI:               i,
+		pollingInterval:   5 * time.Second,
+		pollingTimeout:    10 * time.Minute,
+		customLabelDomain: customLabelDomain,
 	}
 }
 
@@ -71,4 +81,14 @@ func (p *Provider) ensureClient(serviceAccountKey string) error {
 	}
 
 	return p.clientErr
+}
+
+// GetMachineLabelKey returns the fully-qualified machine label key using the configured label domain
+func (p *Provider) GetMachineLabelKey() string {
+	return fmt.Sprintf("%s/machine", p.customLabelDomain)
+}
+
+// GetMachineClassLabelKey returns the fully-qualified machine class label key using the configured label domain
+func (p *Provider) GetMachineClassLabelKey() string {
+	return fmt.Sprintf("%s/machineclass", p.customLabelDomain)
 }

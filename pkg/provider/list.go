@@ -42,7 +42,7 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 
 	// Call STACKIT API to list all servers
 	labelSelector := map[string]string{
-		StackitMachineClassLabel: req.MachineClass.Name,
+		p.GetMachineClassLabelKey(): req.MachineClass.Name,
 	}
 	servers, err := p.client.ListServers(ctx, projectID, providerSpec.Region, labelSelector)
 	if err != nil {
@@ -51,7 +51,7 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 	}
 
 	// Filter servers by MachineClass label
-	// We use the "kubernetes.io/machineclass" label to identify which servers belong to this MachineClass
+	// We use the label to identify which servers belong to this MachineClass
 	machineList := make(map[string]string)
 	for _, server := range servers {
 		// Generate ProviderID in format: stackit://<projectId>/<serverId>
@@ -59,7 +59,7 @@ func (p *Provider) ListMachines(ctx context.Context, req *driver.ListMachinesReq
 
 		// Get machine name from labels (fallback to server name if not found)
 		machineName := server.Name
-		if machineLabel, ok := server.Labels[StackitMachineLabel]; ok {
+		if machineLabel, ok := server.Labels[p.GetMachineLabelKey()]; ok {
 			machineName = machineLabel
 		}
 
