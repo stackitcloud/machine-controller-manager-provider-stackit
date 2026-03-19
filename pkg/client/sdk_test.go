@@ -144,7 +144,7 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 					"team": "platform",
 				}
 
-				result := convertLabelsFromSDK(&sdkLabels)
+				result := convertLabelsFromSDK(sdkLabels)
 
 				Expect(result).NotTo(BeNil())
 				Expect(result).To(HaveLen(2))
@@ -155,7 +155,7 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 			It("should convert empty SDK labels map", func() {
 				sdkLabels := map[string]any{}
 
-				result := convertLabelsFromSDK(&sdkLabels)
+				result := convertLabelsFromSDK(sdkLabels)
 
 				Expect(result).NotTo(BeNil())
 				Expect(result).To(BeEmpty())
@@ -169,7 +169,7 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 					"team":    "platform", // string
 				}
 
-				result := convertLabelsFromSDK(&sdkLabels)
+				result := convertLabelsFromSDK(sdkLabels)
 
 				Expect(result).NotTo(BeNil())
 				Expect(result).To(HaveLen(2))
@@ -185,7 +185,7 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 					"team": nil,
 				}
 
-				result := convertLabelsFromSDK(&sdkLabels)
+				result := convertLabelsFromSDK(sdkLabels)
 
 				Expect(result).NotTo(BeNil())
 				Expect(result).To(HaveLen(1))
