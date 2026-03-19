@@ -9,7 +9,7 @@ import (
 
 	"github.com/stackitcloud/stackit-sdk-go/core/config"
 	"github.com/stackitcloud/stackit-sdk-go/core/oapierror"
-	"github.com/stackitcloud/stackit-sdk-go/services/iaas"
+	iaas "github.com/stackitcloud/stackit-sdk-go/services/iaas/v2api"
 )
 
 // SdkStackitClient is an SDK implementation of StackitClient
@@ -136,14 +136,14 @@ func (c *SdkStackitClient) CreateServer(ctx context.Context, projectID, region s
 		payload.SetSecurityGroups(req.SecurityGroups)
 	}
 
-	// UserData - SDK expects *[]byte (base64-encoded bytes)
+	// UserData
 	if req.UserData != "" {
-		payload.SetUserData([]byte(req.UserData))
+		payload.SetUserData(req.UserData)
 	}
 
 	// Boot Volume
 	if req.BootVolume != nil {
-		bootVolume := iaas.NewServerBootVolume()
+		bootVolume := iaas.NewBootVolume()
 		if req.BootVolume.Size > 0 {
 			bootVolume.SetSize(int64(req.BootVolume.Size))
 		}
@@ -198,7 +198,7 @@ func (c *SdkStackitClient) CreateServer(ctx context.Context, projectID, region s
 	}
 
 	// Call SDK using the stored client
-	sdkServer, err := c.iaasClient.CreateServer(ctx, projectID, region).
+	sdkServer, err := c.iaasClient.DefaultAPI.CreateServer(ctx, projectID, region).
 		CreateServerPayload(*payload).
 		Execute()
 	if err != nil {
@@ -213,7 +213,7 @@ func (c *SdkStackitClient) CreateServer(ctx context.Context, projectID, region s
 
 // GetServer retrieves a server by ID via STACKIT SDK
 func (c *SdkStackitClient) GetServer(ctx context.Context, projectID, region, serverID string) (*Server, error) {
-	sdkServer, err := c.iaasClient.GetServer(ctx, projectID, region, serverID).Execute()
+	sdkServer, err := c.iaasClient.DefaultAPI.GetServer(ctx, projectID, region, serverID).Execute()
 	if err != nil {
 		// Check if error is 404 Not Found
 		if isNotFoundError(err) {
@@ -230,7 +230,7 @@ func (c *SdkStackitClient) GetServer(ctx context.Context, projectID, region, ser
 
 // DeleteServer deletes a server by ID via STACKIT SDK
 func (c *SdkStackitClient) DeleteServer(ctx context.Context, projectID, region, serverID string) error {
-	err := c.iaasClient.DeleteServer(ctx, projectID, region, serverID).Execute()
+	err := c.iaasClient.DefaultAPI.DeleteServer(ctx, projectID, region, serverID).Execute()
 	if err != nil {
 		// Check if error is 404 Not Found - this is OK (idempotent)
 		if isNotFoundError(err) {
@@ -244,7 +244,7 @@ func (c *SdkStackitClient) DeleteServer(ctx context.Context, projectID, region, 
 
 // ListServers lists all servers in a project via STACKIT SDK
 func (c *SdkStackitClient) ListServers(ctx context.Context, projectID, region string, labelSelector map[string]string) ([]*Server, error) {
-	serverRequest := c.iaasClient.ListServers(ctx, projectID, region)
+	serverRequest := c.iaasClient.DefaultAPI.ListServers(ctx, projectID, region)
 
 	if labelSelector != nil {
 		sb := strings.Builder{}
@@ -269,30 +269,25 @@ func (c *SdkStackitClient) ListServers(ctx context.Context, projectID, region st
 
 	// Convert SDK servers to our Server type
 	servers := make([]*Server, 0)
-	if sdkResponse.Items != nil {
-		for i := range *sdkResponse.Items {
-			sdkServer := &(*sdkResponse.Items)[i]
-			server := convertSDKServerToServer(sdkServer)
-			servers = append(servers, server)
-		}
+
+	for i := range sdkResponse.Items {
+		sdkServer := &sdkResponse.Items[i]
+		server := convertSDKServerToServer(sdkServer)
+		servers = append(servers, server)
 	}
 
 	return servers, nil
 }
 
 func (c *SdkStackitClient) GetNICsForServer(ctx context.Context, projectID, region, serverID string) ([]*NIC, error) {
-	res, err := c.iaasClient.ListServerNICs(ctx, projectID, region, serverID).Execute()
+	res, err := c.iaasClient.DefaultAPI.ListServerNICs(ctx, projectID, region, serverID).Execute()
 	if err != nil {
 		return nil, fmt.Errorf("SDK ListServerNICs failed: %w", err)
 	}
 
-	if res.Items == nil {
-		return []*NIC{}, nil
-	}
-
 	nics := make([]*NIC, 0)
-	for _, nic := range *res.Items {
-		nics = append(nics, convertSDKNICtoNIC(&nic))
+	for i := range res.Items {
+		nics = append(nics, convertSDKNICtoNIC(&res.Items[i]))
 	}
 
 	return nics, nil
@@ -301,17 +296,17 @@ func (c *SdkStackitClient) GetNICsForServer(ctx context.Context, projectID, regi
 func (c *SdkStackitClient) UpdateNIC(ctx context.Context, projectID, region, networkID, nicID string, allowedAddresses []string) (*NIC, error) {
 	addresses := make([]iaas.AllowedAddressesInner, len(allowedAddresses))
 
-	for i, addr := range allowedAddresses {
+	for i := range allowedAddresses {
 		addresses[i] = iaas.AllowedAddressesInner{
-			String: &addr,
+			String: &allowedAddresses[i],
 		}
 	}
 
 	payload := iaas.UpdateNicPayload{
-		AllowedAddresses: &addresses,
+		AllowedAddresses: addresses,
 	}
 
-	sdkNic, err := c.iaasClient.UpdateNic(ctx, projectID, region, networkID, nicID).UpdateNicPayload(payload).Execute()
+	sdkNic, err := c.iaasClient.DefaultAPI.UpdateNic(ctx, projectID, region, networkID, nicID).UpdateNicPayload(payload).Execute()
 	if err != nil {
 		return nil, fmt.Errorf("SDK UpdateNic failed: %w", err)
 	}
@@ -327,11 +322,9 @@ func (c *SdkStackitClient) UpdateNIC(ctx context.Context, projectID, region, net
 
 func convertSDKNICtoNIC(nic *iaas.NIC) *NIC {
 	addresses := make([]string, 0)
-	if nic.AllowedAddresses != nil {
-		for _, addr := range *nic.AllowedAddresses {
-			if addr.String != nil {
-				addresses = append(addresses, *addr.String)
-			}
+	for _, addr := range nic.AllowedAddresses {
+		if addr.String != nil {
+			addresses = append(addresses, *addr.String)
 		}
 	}
 
