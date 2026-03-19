@@ -4,19 +4,40 @@
 
 This document outlines the standard procedure for creating new releases of the STACKIT machine-controller-manager.
 
-## General Information
+### 🏷️ Versioning
 
-- **Versioning:** Versioning follows official [SemVer 2.0](https://semver.org/)
-- **CI/CD System:** All release and image builds are managed by our **Prow CI** infrastructure.
+When releasing machine-controller-manager-provider-stackit, we follow semantic versioning (see https://semver.org/).
 
-## Automated Release Process (Primary Method)
+In short:
+- ⚠️ a new major version (`vX.0.0`, `X` is bumped)
+   - brings new features/refactorings/etc.
+   - implies breaking changes to consumers of the package (i.e., incompatible with the last major)
+- 🚀 a new minor version (`vX.Y.0`, `Y` is bumped)
+   - brings new features/refactorings/etc.
+   - does not imply breaking changes (i.e., compatible with the last minor)
+- 🚑 a new patch version (`vX.Y.Z`, `Z` is bumped)
+   - brings bug fixes without new features/refactorings/etc.
+   - does not imply breaking changes (i.e., compatible with the last patch)
 
-The primary release method is automated using a tool called `release-tool`. This process is designed to be straightforward and require minimal manual intervention.
+For major version changes, the configuration typically needs to be adapted to accommodate breaking changes before successfully upgrading. For minor and patch updates, no configuration adjustments are required.
 
-1. **Draft Creation:** On every successful merge (post-submit) to the `main` branch, a Prow job automatically runs the `release-tool`. This tool creates a new draft release on GitHub or updates the existing one with a changelog generated from recent commits.
-2. **Publishing the Release:** When the draft is ready, navigate to the repository's "Releases" page on GitHub. Locate the draft, review the changelog, replace the placeholder with your GitHub handle and publish it by clicking the "Publish release" button.
+Both major and minor releases are created from the main branch. Patch releases are created from a release branch that is based on a minor version release.
 
-Publishing the release automatically creates the corresponding Git tag (e.g., `v1.3.1`), which triggers a separate Prow job to build the final container images and attach them to the GitHub release.
+To make sure we release with the correct version bump, every breaking PR needs to be labeled with the breaking label (e.g., via /label breaking) so that it is automatically categorized correctly when generating release notes.
+
+## 🔖 Publishing a Release
+
+When changes are merged into `main` or a `release-v*` branch, the `release-tool` creates a draft release to preview the upcoming updates.
+The tool automatically determines the appropriate version tag based on the target branch and the labels of the merged Pull Requests:
+
+To publish a release, follow these steps:
+
+1. Open the repository's releases page.
+2. Navigate to the corresponding draft release (minor/major for `main`, patch for `release-v*`).
+3. Review to-be-released changes by checking the release notes.
+4. Edit the release by pressing the pen icon.
+5. Change `REPLACE_ME` with your github username.
+6. Press the "Publish release" button.
 
 ## Manual Release Process (Fallback Method)
 
