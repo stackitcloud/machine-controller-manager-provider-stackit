@@ -8,8 +8,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stackitcloud/stackit-sdk-go/core/oapierror"
-	"github.com/stackitcloud/stackit-sdk-go/services/iaas"
-	"k8s.io/utils/ptr"
+	iaas "github.com/stackitcloud/stackit-sdk-go/services/iaas/v2api"
 )
 
 var _ = Describe("SDK Client Helpers", func() {
@@ -208,10 +207,10 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 	Describe("convertSDKNICtoNIC", func() {
 		It("should populate IPv4 and IPv6 from SDK NIC", func() {
 			sdkNIC := &iaas.NIC{
-				Id:        ptr.To("nic-1"),
-				NetworkId: ptr.To("net-1"),
-				Ipv4:      ptr.To("10.0.0.5"),
-				Ipv6:      ptr.To("fd00::1"),
+				Id:        new("nic-1"),
+				NetworkId: new("net-1"),
+				Ipv4:      new("10.0.0.5"),
+				Ipv6:      new("fd00::1"),
 			}
 
 			result := convertSDKNICtoNIC(sdkNIC)
@@ -224,9 +223,9 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 
 		It("should handle a NIC with only IPv4", func() {
 			sdkNIC := &iaas.NIC{
-				Id:        ptr.To("nic-1"),
-				NetworkId: ptr.To("net-1"),
-				Ipv4:      ptr.To("10.0.0.5"),
+				Id:        new("nic-1"),
+				NetworkId: new("net-1"),
+				Ipv4:      new("10.0.0.5"),
 			}
 
 			result := convertSDKNICtoNIC(sdkNIC)
@@ -237,8 +236,8 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 
 		It("should handle a NIC with neither IPv4 nor IPv6", func() {
 			sdkNIC := &iaas.NIC{
-				Id:        ptr.To("nic-1"),
-				NetworkId: ptr.To("net-1"),
+				Id:        new("nic-1"),
+				NetworkId: new("net-1"),
 			}
 
 			result := convertSDKNICtoNIC(sdkNIC)
@@ -250,9 +249,9 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 		It("should populate AllowedAddresses", func() {
 			addr := "10.0.0.0/8"
 			sdkNIC := &iaas.NIC{
-				Id:        ptr.To("nic-1"),
-				NetworkId: ptr.To("net-1"),
-				AllowedAddresses: &[]iaas.AllowedAddressesInner{
+				Id:        new("nic-1"),
+				NetworkId: new("net-1"),
+				AllowedAddresses: []iaas.AllowedAddressesInner{
 					{String: &addr},
 				},
 			}

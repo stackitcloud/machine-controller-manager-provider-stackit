@@ -94,20 +94,10 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		return nil, status.Error(codes.DeadlineExceeded, fmt.Sprintf("failed waiting for server to be ACTIVE: %v", err))
 	}
 
-	nics, err := p.client.GetNICsForServer(ctx, projectID, providerSpec.Region, server.ID)
+	nics, err := p.patchNetworkInterfaces(ctx, projectID, server.ID, providerSpec)
 	if err != nil {
-		klog.Errorf("Failed to get NICs for server %q: %v", req.Machine.Name, err)
-		return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to get NICs for server: %v", err))
-	}
-
-	if len(nics) == 0 {
-		klog.Errorf("No NICs found for server %q (ID: %s)", req.Machine.Name, server.ID)
-		return nil, status.Error(codes.Unavailable, fmt.Sprintf("no NICs found for server %q", server.ID))
-	}
-
-	if err := p.patchNetworkInterface(ctx, projectID, nics, providerSpec); err != nil {
-		klog.Errorf("Failed to patch network interface for server %q: %v", req.Machine.Name, err)
-		return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to patch network interface for server: %v", err))
+		klog.Errorf("Failed to patch NICs for server %q: %v", req.Machine.Name, err)
+		return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to patch NICs for server: %v", err))
 	}
 
 	// Generate ProviderID in format: stackit://<projectId>/<serverId>
@@ -265,17 +255,28 @@ func (p *Provider) getServerByName(ctx context.Context, projectID, region, serve
 	return nil, nil
 }
 
-func (p *Provider) patchNetworkInterface(ctx context.Context, projectID string, nics []*client.NIC, providerSpec *api.ProviderSpec) error {
-	if len(providerSpec.AllowedAddresses) == 0 {
-		return nil
+func (p *Provider) patchNetworkInterfaces(ctx context.Context, projectID, serverID string, providerSpec *api.ProviderSpec) ([]*client.NIC, error) {
+	nics, err := p.client.GetNICsForServer(ctx, projectID, providerSpec.Region, serverID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get NICs for server %q: %w", serverID, err)
 	}
 
+	if len(nics) == 0 {
+		return nil, fmt.Errorf("no NICs found for server %q", serverID)
+	}
+
+	if len(providerSpec.AllowedAddresses) == 0 {
+		return nics, nil
+	}
+
+	result := make([]*client.NIC, 0, len(nics))
 	for _, nic := range nics {
 		// if networking is not set, server is inside the default network
 		// just patch the interface since the server should only have one
 		if providerSpec.Networking != nil {
 			// only process interfaces that are either in the configured network (NetworkID) or are defined in NICIDs
 			if providerSpec.Networking.NetworkID != nic.NetworkID && !slices.Contains(providerSpec.Networking.NICIDs, nic.ID) {
+				result = append(result, nic)
 				continue
 			}
 		}
@@ -290,17 +291,20 @@ func (p *Provider) patchNetworkInterface(ctx context.Context, projectID string, 
 		}
 
 		if !updateNic {
+			result = append(result, nic)
 			continue
 		}
 
-		if _, err := p.client.UpdateNIC(ctx, projectID, providerSpec.Region, nic.NetworkID, nic.ID, nic.AllowedAddresses); err != nil {
-			return fmt.Errorf("failed to update allowed addresses for NIC %s: %w", nic.ID, err)
+		updatedNic, err := p.client.UpdateNIC(ctx, projectID, providerSpec.Region, nic.NetworkID, nic.ID, nic.AllowedAddresses)
+		if err != nil {
+			return nil, fmt.Errorf("failed to update allowed addresses for NIC %s: %w", nic.ID, err)
 		}
 
 		klog.V(2).Infof("Updated allowed addresses for NIC %s to %v", nic.ID, nic.AllowedAddresses)
+		result = append(result, updatedNic)
 	}
 
-	return nil
+	return result, nil
 }
 
 func (p *Provider) WaitUntilServerRunning(ctx context.Context, projectID, region, serverID string) error {
