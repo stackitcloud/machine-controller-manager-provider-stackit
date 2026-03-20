@@ -59,7 +59,9 @@ func (m *StackitClient) GetNICsForServer(ctx context.Context, projectID, region,
 	if m.GetNICsFunc != nil {
 		return m.GetNICsFunc(ctx, projectID, region, serverID)
 	}
-	return []*client.NIC{}, nil
+	return []*client.NIC{
+		{ID: "default-nic-id", NetworkID: "default-network-id"},
+	}, nil
 }
 
 func (m *StackitClient) UpdateNIC(ctx context.Context, projectID, region, networkID, nicID string, allowedAddresses []string) (*client.NIC, error) {
