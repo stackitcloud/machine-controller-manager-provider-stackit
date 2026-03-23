@@ -13,6 +13,7 @@ import (
 	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/client"
 	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
 	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis/validation"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -27,10 +28,14 @@ import (
 // Returns:
 //   - ProviderID: Unique identifier in format "stackit://<projectId>/<serverId>"
 //   - NodeName: Name that the VM will register with in Kubernetes (matches Machine name)
+//   - Addresses: Internal IP addresses of the server's NICs (NodeInternalIP)
 //
-// Error codes:
-//   - InvalidArgument: Invalid ProviderSpec or missing required fields
-//   - Internal: Failed to create server or communicate with STACKIT API
+// Error codes (see machine_error_codes.md for retry semantics):
+//   - InvalidArgument (no retry): Invalid ProviderSpec fields or missing required values
+//   - Internal (no retry): Malformed ProviderSpec JSON or failed to initialize STACKIT client
+//   - Unavailable (retry): Transient API failure (create/get server, get NICs, patch NIC)
+//   - ResourceExhausted (no retry): No capacity available (e.g. "no valid host was found")
+//   - DeadlineExceeded (retry): Server did not reach ACTIVE state within the polling timeout
 func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineRequest) (*driver.CreateMachineResponse, error) {
 	// Log messages to track request
 	klog.V(2).Infof("Machine creation request has been received for %q", req.Machine.Name)
@@ -89,9 +94,10 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		return nil, status.Error(codes.DeadlineExceeded, fmt.Sprintf("failed waiting for server to be ACTIVE: %v", err))
 	}
 
-	if err := p.patchNetworkInterface(ctx, projectID, server.ID, providerSpec); err != nil {
-		klog.Errorf("Failed to patch network interface for server %q: %v", req.Machine.Name, err)
-		return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to patch network interface for server: %v", err))
+	nics, err := p.patchNetworkInterfaces(ctx, projectID, server.ID, providerSpec)
+	if err != nil {
+		klog.Errorf("Failed to patch NICs for server %q: %v", req.Machine.Name, err)
+		return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to patch NICs for server: %v", err))
 	}
 
 	// Generate ProviderID in format: stackit://<projectId>/<serverId>
@@ -101,6 +107,7 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	return &driver.CreateMachineResponse{
 		ProviderID: providerID,
 		NodeName:   req.Machine.Name,
+		Addresses:  nicAddresses(nics),
 	}, nil
 }
 
@@ -213,6 +220,19 @@ func (p *Provider) createServerRequest(req *driver.CreateMachineRequest, provide
 	return createReq
 }
 
+func nicAddresses(nics []*client.NIC) []corev1.NodeAddress {
+	var addresses []corev1.NodeAddress
+	for _, nic := range nics {
+		if nic.IPv4 != "" {
+			addresses = append(addresses, corev1.NodeAddress{Type: corev1.NodeInternalIP, Address: nic.IPv4})
+		}
+		if nic.IPv6 != "" {
+			addresses = append(addresses, corev1.NodeAddress{Type: corev1.NodeInternalIP, Address: nic.IPv6})
+		}
+	}
+	return addresses
+}
+
 func (p *Provider) getServerByName(ctx context.Context, projectID, region, serverName string) (*client.Server, error) {
 	// Check if the server got already created
 	labelSelector := map[string]string{
@@ -235,26 +255,28 @@ func (p *Provider) getServerByName(ctx context.Context, projectID, region, serve
 	return nil, nil
 }
 
-func (p *Provider) patchNetworkInterface(ctx context.Context, projectID, serverID string, providerSpec *api.ProviderSpec) error {
-	if len(providerSpec.AllowedAddresses) == 0 {
-		return nil
-	}
-
+func (p *Provider) patchNetworkInterfaces(ctx context.Context, projectID, serverID string, providerSpec *api.ProviderSpec) ([]*client.NIC, error) {
 	nics, err := p.client.GetNICsForServer(ctx, projectID, providerSpec.Region, serverID)
 	if err != nil {
-		return fmt.Errorf("failed to get NICs for server %q: %w", serverID, err)
+		return nil, fmt.Errorf("failed to get NICs for server %q: %w", serverID, err)
 	}
 
 	if len(nics) == 0 {
-		return fmt.Errorf("failed to find NIC for server %q", serverID)
+		return nil, fmt.Errorf("no NICs found for server %q", serverID)
 	}
 
+	if len(providerSpec.AllowedAddresses) == 0 {
+		return nics, nil
+	}
+
+	result := make([]*client.NIC, 0, len(nics))
 	for _, nic := range nics {
 		// if networking is not set, server is inside the default network
 		// just patch the interface since the server should only have one
 		if providerSpec.Networking != nil {
 			// only process interfaces that are either in the configured network (NetworkID) or are defined in NICIDs
 			if providerSpec.Networking.NetworkID != nic.NetworkID && !slices.Contains(providerSpec.Networking.NICIDs, nic.ID) {
+				result = append(result, nic)
 				continue
 			}
 		}
@@ -269,17 +291,20 @@ func (p *Provider) patchNetworkInterface(ctx context.Context, projectID, serverI
 		}
 
 		if !updateNic {
+			result = append(result, nic)
 			continue
 		}
 
-		if _, err := p.client.UpdateNIC(ctx, projectID, providerSpec.Region, nic.NetworkID, nic.ID, nic.AllowedAddresses); err != nil {
-			return fmt.Errorf("failed to update allowed addresses for NIC %s: %w", nic.ID, err)
+		updatedNic, err := p.client.UpdateNIC(ctx, projectID, providerSpec.Region, nic.NetworkID, nic.ID, nic.AllowedAddresses)
+		if err != nil {
+			return nil, fmt.Errorf("failed to update allowed addresses for NIC %s: %w", nic.ID, err)
 		}
 
 		klog.V(2).Infof("Updated allowed addresses for NIC %s to %v", nic.ID, nic.AllowedAddresses)
+		result = append(result, updatedNic)
 	}
 
-	return nil
+	return result, nil
 }
 
 func (p *Provider) WaitUntilServerRunning(ctx context.Context, projectID, region, serverID string) error {

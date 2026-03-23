@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stackitcloud/stackit-sdk-go/core/oapierror"
+	iaas "github.com/stackitcloud/stackit-sdk-go/services/iaas/v2api"
 )
 
 var _ = Describe("SDK Client Helpers", func() {
@@ -122,7 +123,7 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 				result := convertLabelsToSDK(labels)
 
 				Expect(result).NotTo(BeNil())
-				Expect(result).To(HaveLen(2))
+				Expect(result).To(HaveLen(1))
 				Expect(result["kubernetes.io/machine"]).To(Equal("test-machine"))
 			})
 		})
@@ -200,6 +201,64 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 
 				Expect(result).To(BeNil())
 			})
+		})
+	})
+
+	Describe("convertSDKNICtoNIC", func() {
+		It("should populate IPv4 and IPv6 from SDK NIC", func() {
+			sdkNIC := &iaas.NIC{
+				Id:        new("nic-1"),
+				NetworkId: new("net-1"),
+				Ipv4:      new("10.0.0.5"),
+				Ipv6:      new("fd00::1"),
+			}
+
+			result := convertSDKNICtoNIC(sdkNIC)
+
+			Expect(result.ID).To(Equal("nic-1"))
+			Expect(result.NetworkID).To(Equal("net-1"))
+			Expect(result.IPv4).To(Equal("10.0.0.5"))
+			Expect(result.IPv6).To(Equal("fd00::1"))
+		})
+
+		It("should handle a NIC with only IPv4", func() {
+			sdkNIC := &iaas.NIC{
+				Id:        new("nic-1"),
+				NetworkId: new("net-1"),
+				Ipv4:      new("10.0.0.5"),
+			}
+
+			result := convertSDKNICtoNIC(sdkNIC)
+
+			Expect(result.IPv4).To(Equal("10.0.0.5"))
+			Expect(result.IPv6).To(BeEmpty())
+		})
+
+		It("should handle a NIC with neither IPv4 nor IPv6", func() {
+			sdkNIC := &iaas.NIC{
+				Id:        new("nic-1"),
+				NetworkId: new("net-1"),
+			}
+
+			result := convertSDKNICtoNIC(sdkNIC)
+
+			Expect(result.IPv4).To(BeEmpty())
+			Expect(result.IPv6).To(BeEmpty())
+		})
+
+		It("should populate AllowedAddresses", func() {
+			addr := "10.0.0.0/8"
+			sdkNIC := &iaas.NIC{
+				Id:        new("nic-1"),
+				NetworkId: new("net-1"),
+				AllowedAddresses: []iaas.AllowedAddressesInner{
+					{String: &addr},
+				},
+			}
+
+			result := convertSDKNICtoNIC(sdkNIC)
+
+			Expect(result.AllowedAddresses).To(ConsistOf("10.0.0.0/8"))
 		})
 	})
 

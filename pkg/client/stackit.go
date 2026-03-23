@@ -90,7 +90,9 @@ type Server struct {
 
 // NIC represents a STACKIT network interface
 type NIC struct {
-	ID               string
-	NetworkID        string
-	AllowedAddresses []string
+	ID               string   `json:"id"`
+	NetworkID        string   `json:"networkId"`
+	AllowedAddresses []string `json:"allowedAddresses,omitempty"`
+	IPv4             string   `json:"ipv4,omitempty"`
+	IPv6             string   `json:"ipv6,omitempty"`
 }

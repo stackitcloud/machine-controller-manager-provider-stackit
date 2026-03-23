@@ -332,6 +332,8 @@ func convertSDKNICtoNIC(nic *iaas.NIC) *NIC {
 		ID:               nic.GetId(),
 		NetworkID:        nic.GetNetworkId(),
 		AllowedAddresses: addresses,
+		IPv4:             nic.GetIpv4(),
+		IPv6:             nic.GetIpv6(),
 	}
 }
 
