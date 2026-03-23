@@ -122,8 +122,8 @@ func (p *Provider) createServerRequest(req *driver.CreateMachineRequest, provide
 	}
 
 	// Add MCM-specific labels for server identification and orphan VM detection
-	labels[StackitMachineLabel] = req.Machine.Name
-	labels[StackitMachineClassLabel] = req.MachineClass.Name
+	labels[p.GetMachineLabelKey()] = req.Machine.Name
+	labels[p.GetMachineClassLabelKey()] = req.MachineClass.Name
 
 	// Create server request
 	createReq := &client.CreateServerRequest{
@@ -236,7 +236,7 @@ func nicAddresses(nics []*client.NIC) []corev1.NodeAddress {
 func (p *Provider) getServerByName(ctx context.Context, projectID, region, serverName string) (*client.Server, error) {
 	// Check if the server got already created
 	labelSelector := map[string]string{
-		StackitMachineLabel: serverName,
+		p.GetMachineLabelKey(): serverName,
 	}
 	servers, err := p.client.ListServers(ctx, projectID, region, labelSelector)
 	if err != nil {
