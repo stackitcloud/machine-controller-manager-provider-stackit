@@ -23,6 +23,41 @@ For major version changes, the configuration typically needs to be adapted to ac
 
 Both major and minor releases are created from the main branch. Patch releases are created from a release branch that is based on a minor version release.
 
+### 🚑 Hotfixes
+
+A Hotfix is required when a critical bug or security vulnerability is discovered in a stable version that is currently in production, but the main branch has already moved forward with breaking changes or features not yet ready for release.
+
+We follow a "Fix-First-in-Main" policy. All fixes must be merged into the main branch before being cherry-picked into a specific release branch.
+
+For example:
+
+```mermaid
+gitGraph:
+    commit id: "v1.0.0" tag: "v1.0.0"
+    branch release-v1.0
+    checkout main
+    commit id: "Feature A"
+    commit id: "Breaking Change" tag: "v2.0.0-beta"
+    commit id: "Critical Bugfix"
+    commit id: "Feature B"
+    checkout release-v1.0
+    commit id: "cherry-pick Bugfix" tag: "v1.0.1"
+```
+
+> In the example above, the "Critical Bugfix" cannot be released via the main branch because main contains a "Breaking Change" that isn't ready for general availability. By using a release branch (release-v1.0), we can ship the fix as a patch (v1.0.1) immediately.
+
+1. Create a Pull Request (PR) targeting the main branch. Once reviewed and merged, identify the PR number.
+2. If a branch for your specific minor version (e.g., release-v1.x) doesn't exist yet, create it from the last known stable tag:
+   ```bash
+   git fetch --all --tags
+   git checkout -b release-vx.y vx.y.0
+   git push -u origin release-vx.y
+   ```
+3. Use our helper script to pull the specific PR(s) into your release branch. This ensures metadata and credits remain intact.
+4. Once the cherry-pick PR has been reviewed, approved, and merged, you can promote the changes by creating a new patch release of machine-controller-manager-provider-stackit.
+   For this, publish the draft release on the `release-vx.y` branch for the next patch version (`vx.y.z`) (see [Publishing a Release](#-publishing-a-release)).
+
+
 To make sure we release with the correct version bump, every breaking PR needs to be labeled with the breaking label (e.g., via /label breaking) so that it is automatically categorized correctly when generating release notes.
 
 ## 🔖 Publishing a Release
