@@ -1,10 +1,17 @@
 # Release Procedure
 
+# Table of Contents
+
+- [Overview](#overview)
+- [General Information](#general-information)
+- [Automated Release Process (Primary Method)](#automated-release-process-primary-method)
+- [Manual Release Process (Fallback Method)](#manual-release-process-fallback-method)
+
 ## Overview
 
 This document outlines the standard procedure for creating new releases of the STACKIT machine-controller-manager.
 
-### Versioning
+## General Information
 
 When releasing machine-controller-manager-provider-stackit, we follow semantic versioning (see https://semver.org/).
 
@@ -42,11 +49,11 @@ gitGraph:
    git checkout -b release-vx.y vx.y.0
    git push -u origin release-vx.y
    ```
-3. Use `/cherry-pick release-vx.y` command in the PR with the changes. The ronovate will open the cherry-pick PR automatically.
+3. Use `/cherry-pick release-vx.y` command in the PR with the changes. The prow will open the cherry-pick PR automatically.
 4. Once the cherry-pick PR has been reviewed, approved, and merged, you can promote the changes by creating a new patch release of machine-controller-manager-provider-stackit.
    For this, publish the draft release on the `release-vx.y` branch for the next patch version (`vx.y.z`) (see [Publishing a Release](#-publishing-a-release)).
 
-### Publishing a Release
+## Automated Release Process (Primary Method)
 
 When changes are merged into `main` or a `release-v*` branch, the `release-tool` creates a draft release to preview the upcoming updates.
 The tool automatically determines the appropriate version tag based on the target branch and the labels of the merged Pull Requests:
@@ -60,7 +67,7 @@ To publish a release, follow these steps:
 5. Change `REPLACE_ME` with your github username.
 6. Press the "Publish release" button.
 
-### Manual Release Process (Fallback Method)
+## Manual Release Process (Fallback Method)
 
 If the `release-tool` or its associated Prow job fails, use the GitHub web UI to create and publish a release:
 
