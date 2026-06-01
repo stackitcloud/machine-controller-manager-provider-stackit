@@ -8,7 +8,7 @@ require (
 	github.com/onsi/gomega v1.41.0
 	github.com/spf13/pflag v1.0.10
 	github.com/stackitcloud/stackit-sdk-go/core v0.26.0
-	github.com/stackitcloud/stackit-sdk-go/services/iaas v1.12.0
+	github.com/stackitcloud/stackit-sdk-go/services/iaas v1.12.1
 	k8s.io/api v0.36.1
 	k8s.io/apimachinery v0.36.1
 	k8s.io/component-base v0.36.1
