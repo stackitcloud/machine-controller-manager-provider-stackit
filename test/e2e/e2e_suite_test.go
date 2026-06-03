@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"slices"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -89,8 +90,7 @@ var _ = AfterSuite(func(ctx context.Context) {
 	_, _ = fmt.Fprintf(GinkgoWriter, "MCM uninstall output: %s\n", string(output))
 
 	By("cleaning up tracked test resources after MCM removal")
-	for i := len(testResources) - 1; i >= 0; i-- {
-		resource := testResources[i]
+	for _, resource := range slices.Backward(testResources) {
 		// Wrap each cleanup in a function with GinkgoRecover to prevent one failure
 		// from stopping cleanup of remaining resources
 		func(res TestResource) {
