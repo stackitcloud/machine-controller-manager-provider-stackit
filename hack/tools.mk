@@ -7,7 +7,7 @@ ARCH := $(shell uname -m)
 # renovate: datasource=github-releases depName=incu6us/goimports-reviser
 GOIMPORTS_REVISER_VERSION ?= v3.12.6
 # renovate: datasource=github-releases depName=ko-build/ko
-KO_VERSION ?= v0.18.1
+KO_VERSION ?= v0.19.0
 # renovate: datasource=github-releases depName=golangci/golangci-lint
 GOLANGCI_LINT_VERSION ?= v2.12.2
 
