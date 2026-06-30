@@ -318,6 +318,10 @@ func (c *SdkStackitClient) UpdateNIC(ctx context.Context, projectID, region, net
 	return convertSDKNICtoNIC(sdkNic), nil
 }
 
+func (c *SdkStackitClient) AttachServerToNetwork(ctx context.Context, projectID, region, networkID, serverID string) error {
+	return c.iaasClient.DefaultAPI.AddNetworkToServer(ctx, projectID, region, serverID, networkID).Execute()
+}
+
 // Helper functions
 
 func convertSDKNICtoNIC(nic *iaas.NIC) *NIC {

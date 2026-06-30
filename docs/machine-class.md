@@ -40,6 +40,7 @@ Exactly one of the following must be set:
 
 - `networkId` (string): UUID of the network to attach.
 - `nicIds` ([]string): UUIDs of pre-created NICs.
+- `secondaryNetworkIds` ([]string): UUID of additional networks to attach.
 
 ## BootVolumeSpec
 

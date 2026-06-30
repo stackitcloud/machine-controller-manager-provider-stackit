@@ -100,6 +100,12 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to patch NICs for server: %v", err))
 	}
 
+	if providerSpec.Networking != nil && len(providerSpec.Networking.SecondaryNetworkIDs) > 0 {
+		if err := p.ensureAdditionalNetworks(ctx, projectID, providerSpec.Region, server.ID, providerSpec.Networking, nics); err != nil {
+			return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to ensure additional networks for server: %v", err))
+		}
+	}
+
 	// Generate ProviderID in format: stackit://<projectId>/<serverId>
 	providerID := fmt.Sprintf("%s://%s/%s", StackitProviderName, projectID, server.ID)
 	klog.V(2).Infof("Successfully created server %q with ID %q for machine %q", server.Name, server.ID, req.Machine.Name)
@@ -109,6 +115,21 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		NodeName:   req.Machine.Name,
 		Addresses:  nicAddresses(nics),
 	}, nil
+}
+
+func (p *Provider) ensureAdditionalNetworks(ctx context.Context, projectID, region, serverID string, networkingSpec *api.NetworkingSpec, nics []*client.NIC) error {
+	for _, networkID := range networkingSpec.SecondaryNetworkIDs {
+		exists := slices.ContainsFunc(nics, func(nic *client.NIC) bool {
+			return nic.NetworkID == networkID
+		})
+		if exists {
+			continue
+		}
+		if err := p.client.AttachServerToNetwork(ctx, projectID, region, networkID, serverID); err != nil {
+			return fmt.Errorf("attaching server %s to network %s: %w", serverID, networkID, err)
+		}
+	}
+	return nil
 }
 
 // nolint: gocyclo // this function is already pretty simple

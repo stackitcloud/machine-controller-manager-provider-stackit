@@ -8,15 +8,26 @@ import (
 	api "github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/provider/apis"
 )
 
+var _ client.StackitClient = (*StackitClient)(nil)
+
 // StackitClient is a mock implementation of StackitClient for testing
 // Note: Single-tenant design - each client is bound to one set of credentials
 type StackitClient struct {
-	CreateServerFunc func(ctx context.Context, projectID, region string, req *client.CreateServerRequest) (*client.Server, error)
-	GetServerFunc    func(ctx context.Context, projectID, region, serverID string) (*client.Server, error)
-	DeleteServerFunc func(ctx context.Context, projectID, region, serverID string) error
-	ListServersFunc  func(ctx context.Context, projectID, region string, labelSelector map[string]string) ([]*client.Server, error)
-	GetNICsFunc      func(ctx context.Context, projectID, region, serverID string) ([]*client.NIC, error)
-	UpdateNICFunc    func(ctx context.Context, projectID, region, networkID, nicID string, allowedAddresses []string) (*client.NIC, error)
+	CreateServerFunc          func(ctx context.Context, projectID, region string, req *client.CreateServerRequest) (*client.Server, error)
+	GetServerFunc             func(ctx context.Context, projectID, region, serverID string) (*client.Server, error)
+	DeleteServerFunc          func(ctx context.Context, projectID, region, serverID string) error
+	ListServersFunc           func(ctx context.Context, projectID, region string, labelSelector map[string]string) ([]*client.Server, error)
+	GetNICsFunc               func(ctx context.Context, projectID, region, serverID string) ([]*client.NIC, error)
+	UpdateNICFunc             func(ctx context.Context, projectID, region, networkID, nicID string, allowedAddresses []string) (*client.NIC, error)
+	AttachNetworkToServerFunc func(ctx context.Context, projectID, region, networkID, serverID string) error
+}
+
+// AttachServerToNetwork implements [client.StackitClient].
+func (m *StackitClient) AttachServerToNetwork(ctx context.Context, projectID, region, networkID, serverID string) error {
+	if m.AttachNetworkToServerFunc != nil {
+		return m.AttachNetworkToServerFunc(ctx, projectID, region, networkID, serverID)
+	}
+	return nil
 }
 
 func (m *StackitClient) CreateServer(ctx context.Context, projectID, region string, req *client.CreateServerRequest) (*client.Server, error) {

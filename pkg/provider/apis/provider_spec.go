@@ -103,6 +103,9 @@ type NetworkingSpec struct {
 	// Advanced variant: Allows fine-grained control over NICs, IPs, and security groups
 	// Mutually exclusive with NetworkID
 	NICIDs []string `json:"nicIds,omitempty"`
+
+	// SecondaryNetworkIDs can be used to attach additional networks to the server
+	SecondaryNetworkIDs []string `json:"secondaryNetworkIds,omitempty"`
 }
 
 // BootVolumeSpec defines the boot disk configuration for a server

@@ -27,6 +27,8 @@ type StackitClient interface {
 	GetNICsForServer(ctx context.Context, projectID, region, serverID string) ([]*NIC, error)
 	// UpdateNIC updates a network interface
 	UpdateNIC(ctx context.Context, projectID, region, networkID, nicID string, allowedAddresses []string) (*NIC, error)
+	// AttachServerToNetwork attaches a server to a network
+	AttachServerToNetwork(ctx context.Context, projectID, region, networkID, serverID string) error
 }
 
 // CreateServerRequest represents the request to create a server
