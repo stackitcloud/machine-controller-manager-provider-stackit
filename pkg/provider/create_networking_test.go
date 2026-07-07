@@ -465,3 +465,61 @@ var _ = Describe("CreateMachine - Networking", func() {
 		})
 	})
 })
+
+var _ = Describe("#ensureAdditionalNetworks", func() {
+	var (
+		provider   *Provider
+		mockClient *mock.StackitClient
+		projectID  = "123"
+		region     = "eu01"
+		serverID   = "server"
+		spec       = api.NetworkingSpec{
+			SecondaryNetworkIDs: []string{"my-secondary-network"},
+		}
+	)
+
+	BeforeEach(func() {
+		mockClient = &mock.StackitClient{}
+		provider = &Provider{
+			client: mockClient,
+		}
+	})
+
+	It("should attach the server to network if no NIC of network is found", func(ctx context.Context) {
+		var called bool
+		mockClient.AttachNetworkToServerFunc = func(_ context.Context, _, _, networkID, _ string) error {
+			called = true
+			Expect(networkID).To(Equal("my-secondary-network"))
+			return nil
+		}
+
+		existingNics := []*client.NIC{
+			{
+				NetworkID: "not-my-network",
+			},
+		}
+
+		Expect(provider.ensureAdditionalNetworks(ctx, projectID, region, serverID, &spec, existingNics)).To(Succeed())
+		Expect(called).To(BeTrue(), "AttachNetworkToServer function called")
+	})
+
+	It("should not attach the server to network if NIC of network is already present", func(ctx context.Context) {
+		var called bool
+		mockClient.AttachNetworkToServerFunc = func(_ context.Context, _, _, _, _ string) error {
+			called = true
+			return nil
+		}
+
+		existingNics := []*client.NIC{
+			{
+				NetworkID: "my-secondary-network",
+			},
+			{
+				NetworkID: "not-my-network",
+			},
+		}
+
+		Expect(provider.ensureAdditionalNetworks(ctx, projectID, region, serverID, &spec, existingNics)).To(Succeed())
+		Expect(called).To(BeFalse(), "AttachNetworkToServer function called")
+	})
+})
