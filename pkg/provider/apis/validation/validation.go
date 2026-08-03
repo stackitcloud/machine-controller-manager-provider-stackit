@@ -250,6 +250,9 @@ func validateNetworking(networking *api.NetworkingSpec) []error {
 		if !isValidUUID(secondaryNet) {
 			errors = append(errors, fmt.Errorf("providerSpec.networking.secondaryNetworkIds[%d] must be a valid UUID", i))
 		}
+		if secondaryNet == networking.NetworkID {
+			errors = append(errors, fmt.Errorf("providerSpec.networking.secondaryNetworkIds[%d] has the same ID as providerSpec.networking.networkId", i))
+		}
 	}
 
 	return errors
