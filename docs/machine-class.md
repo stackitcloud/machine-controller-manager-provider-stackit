@@ -36,7 +36,7 @@ A MachineClass defines how STACKIT servers should be created. The ProviderSpec i
 
 ## NetworkingSpec
 
-Exactly one of the following must be set:
+`networkId` / `nicIds` is mutually exclusive and required while `secondaryNetworkIds` is additional.
 
 - `networkId` (string): UUID of the network to attach.
 - `nicIds` ([]string): UUIDs of pre-created NICs.
