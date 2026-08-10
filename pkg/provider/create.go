@@ -95,20 +95,9 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		return nil, status.Error(codes.DeadlineExceeded, fmt.Sprintf("failed waiting for server to be ACTIVE: %v", err))
 	}
 
-	nics, err := p.patchNetworkInterfaces(ctx, projectID, server.ID, providerSpec)
+	addrs, err := p.setupNetworking(ctx, projectID, providerSpec, server)
 	if err != nil {
-		klog.Errorf("Failed to patch NICs for server %q: %v", req.Machine.Name, err)
-		return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to patch NICs for server: %v", err))
-	}
-
-	if providerSpec.Networking != nil && len(providerSpec.Networking.SecondaryNetworkIDs) > 0 {
-		if err := p.ensureAdditionalNetworks(ctx, projectID, providerSpec.Region, server.ID, providerSpec.Networking, nics); err != nil {
-			code := codes.Unavailable
-			if errors.Is(err, client.ErrNetworkNotFound) {
-				code = codes.FailedPrecondition
-			}
-			return nil, status.Error(code, fmt.Sprintf("failed to ensure additional networks for server: %v", err))
-		}
+		return nil, fmt.Errorf("setup networking: %w", err)
 	}
 
 	// Generate ProviderID in format: stackit://<projectId>/<serverId>
@@ -121,8 +110,27 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		// We exclude the IPs of NICs from secondary networks to ensure,
 		// if MCM runs without a target cluster,
 		// consumers of Machine.Status.Addresses always use the IP from the default network.
-		Addresses: nicAddresses(nics),
+		Addresses: addrs,
 	}, nil
+}
+
+func (p *Provider) setupNetworking(ctx context.Context, projectID string, providerSpec *api.ProviderSpec, server *client.Server) ([]corev1.NodeAddress, error) {
+	nics, err := p.patchNetworkInterfaces(ctx, projectID, server.ID, providerSpec)
+	if err != nil {
+		klog.Errorf("Failed to patch NICs for server %q: %v", server.Name, err)
+		return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to patch NICs for server: %v", err))
+	}
+
+	if providerSpec.Networking != nil && len(providerSpec.Networking.SecondaryNetworkIDs) > 0 {
+		if err := p.ensureAdditionalNetworks(ctx, projectID, providerSpec.Region, server.ID, providerSpec.Networking, nics); err != nil {
+			code := codes.Unavailable
+			if errors.Is(err, client.ErrNetworkNotFound) {
+				code = codes.FailedPrecondition
+			}
+			return nil, status.Error(code, fmt.Sprintf("failed to ensure additional networks for server: %v", err))
+		}
+	}
+	return nicAddresses(nics), nil
 }
 
 func (p *Provider) ensureAdditionalNetworks(ctx context.Context, projectID, region, serverID string, networkingSpec *api.NetworkingSpec, nics []*client.NIC) error {

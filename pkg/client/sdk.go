@@ -329,7 +329,6 @@ func (c *SdkStackitClient) AttachServerToNetwork(ctx context.Context, projectID,
 		return err
 	}
 	return nil
-
 }
 
 // Helper functions
