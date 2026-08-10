@@ -118,7 +118,10 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	return &driver.CreateMachineResponse{
 		ProviderID: providerID,
 		NodeName:   req.Machine.Name,
-		Addresses:  nicAddresses(nics),
+		// We exclude the IPs of NICs from secondary networks to ensure,
+		// if MCM runs without a target cluster,
+		// consumers of Machine.Status.Addresses always use the IP from the default network.
+		Addresses: nicAddresses(nics),
 	}, nil
 }
 
@@ -282,6 +285,8 @@ func (p *Provider) getServerByName(ctx context.Context, projectID, region, serve
 	return nil, nil
 }
 
+// patchNetworkInterfaces updates the primary network interfaces of the server that belong to the primary network with AllowedAddresses.
+// NICs of secondary networks are excluded.
 func (p *Provider) patchNetworkInterfaces(ctx context.Context, projectID, serverID string, providerSpec *api.ProviderSpec) ([]*client.NIC, error) {
 	nics, err := p.client.GetNICsForServer(ctx, projectID, providerSpec.Region, serverID)
 	if err != nil {
