@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"maps"
 	"slices"
@@ -102,7 +103,11 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 
 	if providerSpec.Networking != nil && len(providerSpec.Networking.SecondaryNetworkIDs) > 0 {
 		if err := p.ensureAdditionalNetworks(ctx, projectID, providerSpec.Region, server.ID, providerSpec.Networking, nics); err != nil {
-			return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to ensure additional networks for server: %v", err))
+			code := codes.Unavailable
+			if errors.Is(err, client.ErrNetworkNotFound) {
+				code = codes.FailedPrecondition
+			}
+			return nil, status.Error(code, fmt.Sprintf("failed to ensure additional networks for server: %v", err))
 		}
 	}
 
@@ -118,6 +123,7 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 }
 
 func (p *Provider) ensureAdditionalNetworks(ctx context.Context, projectID, region, serverID string, networkingSpec *api.NetworkingSpec, nics []*client.NIC) error {
+	var errs error
 	for _, networkID := range networkingSpec.SecondaryNetworkIDs {
 		exists := slices.ContainsFunc(nics, func(nic *client.NIC) bool {
 			return nic.NetworkID == networkID
@@ -126,10 +132,10 @@ func (p *Provider) ensureAdditionalNetworks(ctx context.Context, projectID, regi
 			continue
 		}
 		if err := p.client.AttachServerToNetwork(ctx, projectID, region, networkID, serverID); err != nil {
-			return fmt.Errorf("attaching server %s to network %s: %w", serverID, networkID, err)
+			errs = errors.Join(errs, fmt.Errorf("attaching server %s to network %s: %w", serverID, networkID, err))
 		}
 	}
-	return nil
+	return errs
 }
 
 // nolint: gocyclo // this function is already pretty simple

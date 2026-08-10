@@ -37,6 +37,8 @@ func NewStackitClient(serviceAccountKey string) (*SdkStackitClient, error) {
 var (
 	// ErrServerNotFound indicates the server was not found (404)
 	ErrServerNotFound = errors.New("server not found")
+	// ErrNetworkNotFound indicates the network was not found (404)
+	ErrNetworkNotFound = errors.New("network not found")
 )
 
 // createIAASClient creates a new STACKIT SDK IAAS API client
@@ -319,7 +321,15 @@ func (c *SdkStackitClient) UpdateNIC(ctx context.Context, projectID, region, net
 }
 
 func (c *SdkStackitClient) AttachServerToNetwork(ctx context.Context, projectID, region, networkID, serverID string) error {
-	return c.iaasClient.DefaultAPI.AddNetworkToServer(ctx, projectID, region, serverID, networkID).Execute()
+	if err := c.iaasClient.DefaultAPI.AddNetworkToServer(ctx, projectID, region, serverID, networkID).Execute(); err != nil {
+		// Check if error is 404 Not Found
+		if isNotFoundError(err) {
+			return fmt.Errorf("%w: %v", ErrNetworkNotFound, err)
+		}
+		return err
+	}
+	return nil
+
 }
 
 // Helper functions
