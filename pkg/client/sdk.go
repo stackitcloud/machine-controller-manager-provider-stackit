@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/metrics"
 	"github.com/stackitcloud/stackit-sdk-go/core/config"
 	"github.com/stackitcloud/stackit-sdk-go/core/oapierror"
 	iaas "github.com/stackitcloud/stackit-sdk-go/services/iaas/v2api"
@@ -73,6 +74,8 @@ func createIAASClient(serviceAccountKey string) (*iaas.APIClient, error) {
 	if tokenEndpoint != "" {
 		opts = append(opts, config.WithTokenEndpoint(tokenEndpoint))
 	}
+
+	opts = append(opts, config.WithHTTPClient(metrics.NewHTTPClient("machine-controller-manager-provider-stackit")))
 
 	iaasClient, err := iaas.NewAPIClient(opts...)
 	if err != nil {
