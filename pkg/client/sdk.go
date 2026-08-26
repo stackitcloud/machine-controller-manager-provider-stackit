@@ -356,8 +356,7 @@ func isNotFoundError(err error) bool {
 		return false
 	}
 	// Use the SDK's structured error type to check the HTTP status code
-	var oapiErr *oapierror.GenericOpenAPIError
-	if errors.As(err, &oapiErr) {
+	if oapiErr, ok := errors.AsType[*oapierror.GenericOpenAPIError](err); ok {
 		return oapiErr.StatusCode == 404
 	}
 	return false
