@@ -30,7 +30,7 @@ func main() {
 
 	provider := cp.NewProvider(&spi.PluginSPIImpl{})
 
-	if err := app.Run(s, provider); err != nil {
+	if err := app.Run(s, provider); err != nil { //nolint:staticcheck // SA4023: app.Run never returns nil
 		klog.Fatalf("failed to run application: %v", err)
 	}
 }
