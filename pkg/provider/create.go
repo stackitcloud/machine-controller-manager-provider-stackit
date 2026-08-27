@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strconv"
 
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/codes"
@@ -47,6 +48,10 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
+	if m, _ := strconv.ParseBool(req.Machine.Annotations[migratedMachineAnnotation]); m {
+		return nil, status.Error(codes.AlreadyExists, fmt.Errorf("create for migrated machine %s will not work", req.Machine.Name).Error())
+	}
+
 	// Decode ProviderSpec from MachineClass
 	providerSpec, err := decodeProviderSpec(req.MachineClass)
 	if err != nil {
@@ -68,10 +73,23 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	}
 
 	// check if server already exists
-	server, err := p.getServerByName(ctx, projectID, providerSpec.Region, req.Machine.Name)
+	servers, err := p.getServersByName(ctx, projectID, providerSpec.Region, map[string]string{
+		StackitMachineLabel: req.Machine.Name,
+	})
 	if err != nil {
 		klog.Errorf("Failed to fetch server for machine %q: %v", req.Machine.Name, err)
 		return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to fetch server: %v", err))
+	}
+
+	if len(servers) > 1 {
+		klog.Errorf("Multiple servers already exists for this machine %q: %v", req.Machine.Name, err)
+		return nil, status.Error(codes.AlreadyExists, fmt.Sprintf("failed to fetch server: %v", err))
+	}
+
+	var server *client.Server
+
+	if len(servers) == 1 {
+		server = servers[0]
 	}
 
 	if server == nil {
@@ -233,26 +251,18 @@ func nicAddresses(nics []*client.NIC) []corev1.NodeAddress {
 	return addresses
 }
 
-func (p *Provider) getServerByName(ctx context.Context, projectID, region, serverName string) (*client.Server, error) {
+func (p *Provider) getServersByName(ctx context.Context, projectID, region string, selector map[string]string) ([]*client.Server, error) {
 	// Check if the server got already created
-	labelSelector := map[string]string{
-		StackitMachineLabel: serverName,
-	}
-	servers, err := p.client.ListServers(ctx, projectID, region, labelSelector)
+	servers, err := p.client.ListServers(ctx, projectID, region, selector)
 	if err != nil {
-		return nil, fmt.Errorf("SDK ListServers with labelSelector: %v failed: %w", labelSelector, err)
+		return nil, fmt.Errorf("SDK ListServers with labelSelector: %v failed: %w", selector, err)
 	}
 
-	if len(servers) > 1 {
-		return nil, fmt.Errorf("%v servers found for server name %v", len(servers), serverName)
+	if len(servers) == 0 {
+		return nil, nil
 	}
 
-	if len(servers) == 1 {
-		return servers[0], nil
-	}
-
-	// no servers found len == 0
-	return nil, nil
+	return servers, nil
 }
 
 func (p *Provider) patchNetworkInterfaces(ctx context.Context, projectID, serverID string, providerSpec *api.ProviderSpec) ([]*client.NIC, error) {
