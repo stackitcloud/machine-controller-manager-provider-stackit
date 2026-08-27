@@ -1,8 +1,4 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Gardener contributors
-//
-// SPDX-License-Identifier: Apache-2.0
-
-package provider
+package client
 
 import (
 	"context"
@@ -11,9 +7,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/stackitcloud/machine-controller-manager-provider-stackit/pkg/metrics"
 	"github.com/stackitcloud/stackit-sdk-go/core/config"
 	"github.com/stackitcloud/stackit-sdk-go/core/oapierror"
-	"github.com/stackitcloud/stackit-sdk-go/services/iaas"
+	iaas "github.com/stackitcloud/stackit-sdk-go/services/iaas/v2api"
 )
 
 // SdkStackitClient is an SDK implementation of StackitClient
@@ -301,7 +298,7 @@ func (c *SdkStackitClient) GetNICsForServer(ctx context.Context, projectID, regi
 }
 
 func (c *SdkStackitClient) ListNICs(ctx context.Context, projectID, region, networkID string) ([]*NIC, error) {
-	res, err := c.iaasClient.ListNics(ctx, projectID, region, networkID).Execute()
+	res, err := c.iaasClient.DefaultAPI.ListNics(ctx, projectID, region, networkID).Execute()
 	if err != nil {
 		return nil, fmt.Errorf("SDK ListServerNICs failed: %w", err)
 	}
@@ -311,7 +308,7 @@ func (c *SdkStackitClient) ListNICs(ctx context.Context, projectID, region, netw
 	}
 
 	nics := make([]*NIC, 0)
-	for _, nic := range *res.Items {
+	for _, nic := range res.Items {
 		nics = append(nics, convertSDKNICtoNIC(&nic))
 	}
 
@@ -319,7 +316,7 @@ func (c *SdkStackitClient) ListNICs(ctx context.Context, projectID, region, netw
 }
 
 func (c *SdkStackitClient) DeleteNIC(ctx context.Context, projectID, region, networkID, nicID string) error {
-	err := c.iaasClient.DeleteNic(ctx, projectID, region, networkID, nicID).Execute()
+	err := c.iaasClient.DefaultAPI.DeleteNic(ctx, projectID, region, networkID, nicID).Execute()
 	if err != nil {
 		// Check if error is 404 Not Found - this is OK (idempotent)
 		if isNotFoundError(err) {
