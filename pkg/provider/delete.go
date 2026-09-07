@@ -121,7 +121,6 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 				return nil, status.Error(codes.Internal, fmt.Sprintf("failed to delete nic: %v", err))
 			}
 		}
-
 	}
 	klog.V(2).Infof("Successfully deleted server for machine %q", req.Machine.Name)
 
