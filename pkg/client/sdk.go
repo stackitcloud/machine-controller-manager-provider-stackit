@@ -307,9 +307,9 @@ func (c *SdkStackitClient) ListNICs(ctx context.Context, projectID, region, netw
 		return []*NIC{}, nil
 	}
 
-	nics := make([]*NIC, 0)
-	for _, nic := range res.Items {
-		nics = append(nics, convertSDKNICtoNIC(&nic))
+	nics := make([]*NIC, 0, len(res.Items))
+	for i := range res.Items {
+		nics = append(nics, convertSDKNICtoNIC(&res.Items[i]))
 	}
 
 	return nics, nil
