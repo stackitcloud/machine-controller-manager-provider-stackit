@@ -42,11 +42,8 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 	}
 
 	// Missing annotation is teated as machine is not migrated.
-	migrated, err := strconv.ParseBool(req.Machine.Annotations[migratedMachineAnnotation])
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("failed to parse migrated annotation: %v", err))
-	}
-
+	// Error is ignored to have compatibility with non-migrated OpenStack Machines that has no annotations.
+	migrated, _ := strconv.ParseBool(req.Machine.Annotations[migratedMachineAnnotation])
 	// In case of a migrated machine with the stackit.cloud/migrated-machine annotation the deletion needs to get all servers and filters internally.
 	// This is needed as servers that are migrated during the creation are maybe created in the infrastructure but has no providerID.
 	projectID, serverIDs, err := p.serverIDsForMachine(ctx, req, projectIDFromSecret, providerSpec.Region, migrated)
