@@ -11,7 +11,7 @@ require (
 	github.com/prometheus/client_model v0.6.3
 	github.com/spf13/pflag v1.0.10
 	github.com/stackitcloud/stackit-sdk-go/core v0.27.0
-	github.com/stackitcloud/stackit-sdk-go/services/iaas v1.14.2
+	github.com/stackitcloud/stackit-sdk-go/services/iaas v1.14.3
 	k8s.io/api v0.36.4
 	k8s.io/apimachinery v0.36.4
 	k8s.io/component-base v0.36.4
