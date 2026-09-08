@@ -307,9 +307,9 @@ func (c *SdkStackitClient) ListNICs(ctx context.Context, projectID, region, netw
 		return []*NIC{}, nil
 	}
 
-	nics := make([]*NIC, 0, len(res.Items))
+	nics := make([]*NIC, len(res.Items))
 	for i := range res.Items {
-		nics = append(nics, convertSDKNICtoNIC(&res.Items[i]))
+		nics[i] = convertSDKNICtoNIC(&res.Items[i])
 	}
 
 	return nics, nil
@@ -368,7 +368,7 @@ func convertSDKNICtoNIC(nic *iaas.NIC) *NIC {
 		AllowedAddresses: addresses,
 		IPv4:             nic.GetIpv4(),
 		IPv6:             nic.GetIpv6(),
-		Name:             getStringValue(nic.Name),
+		Name:             nic.GetName(),
 	}
 }
 
@@ -392,11 +392,4 @@ func isNotFoundError(err error) bool {
 		return oapiErr.StatusCode == 404
 	}
 	return false
-}
-
-func getStringValue(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
 }

@@ -41,7 +41,14 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	migrated, _ := strconv.ParseBool(req.Machine.Annotations[migratedMachineAnnotation])
+	// Missing annotation is teated as machine is not migrated.
+	migrated, err := strconv.ParseBool(req.Machine.Annotations[migratedMachineAnnotation])
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("failed to parse migrated annotation: %v", err))
+	}
+
+	// In case of a migrated machine with the stackit.cloud/migrated-machine annotation the deletion needs to get all servers and filters internally.
+	// This is needed as servers that are migrated during the creation are maybe created in the infrastructure but has no providerID.
 	projectID, serverIDs, err := p.serverIDsForMachine(ctx, req, projectIDFromSecret, providerSpec.Region, migrated)
 	if err != nil {
 		return nil, err
@@ -67,10 +74,10 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 	return &driver.DeleteMachineResponse{}, nil
 }
 
-func (p *Provider) serverIDsForMachine(ctx context.Context, req *driver.DeleteMachineRequest, secretProjectID, region string, migrated bool) (projectID string, serverIDs []string, err error) {
+func (p *Provider) serverIDsForMachine(ctx context.Context, req *driver.DeleteMachineRequest, projectIDFromSecret, region string, migrated bool) (projectID string, serverIDs []string, err error) {
 	projectID, serverIDs = "", nil
 	if providerID := req.Machine.Spec.ProviderID; providerID != "" {
-		if !strings.HasPrefix(providerID, StackitProviderName) {
+		if !strings.HasPrefix(providerID, StackitProviderName+"://") {
 			return "", nil, status.Error(codes.InvalidArgument, "providerID is not empty and does not start with stackit://")
 		}
 
@@ -82,7 +89,7 @@ func (p *Provider) serverIDsForMachine(ctx context.Context, req *driver.DeleteMa
 		serverIDs = append(serverIDs, serverID)
 	}
 	if projectID == "" {
-		projectID = secretProjectID
+		projectID = projectIDFromSecret
 	}
 	if len(serverIDs) != 0 {
 		return projectID, serverIDs, nil
@@ -92,7 +99,7 @@ func (p *Provider) serverIDsForMachine(ctx context.Context, req *driver.DeleteMa
 	if migrated {
 		selector = nil
 	}
-	servers, err := p.getServersByName(ctx, projectID, region, selector)
+	servers, err := p.getServersByLabelSelector(ctx, projectID, region, selector)
 	if err != nil {
 		return "", nil, status.Error(codes.Internal, fmt.Sprintf("failed to find server by name: %v", err))
 	}

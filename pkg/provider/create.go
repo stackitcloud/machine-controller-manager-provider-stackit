@@ -38,6 +38,8 @@ import (
 //   - ResourceExhausted (no retry): No capacity available (e.g. "no valid host was found")
 //   - DeadlineExceeded (retry): Server did not reach ACTIVE state within the polling timeout
 func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineRequest) (*driver.CreateMachineResponse, error) {
+	var server *client.Server
+
 	// Log messages to track request
 	klog.V(2).Infof("Machine creation request has been received for %q", req.Machine.Name)
 	defer klog.V(2).Infof("Machine creation request has been processed for %q", req.Machine.Name)
@@ -73,7 +75,7 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	}
 
 	// check if server already exists
-	servers, err := p.getServersByName(ctx, projectID, providerSpec.Region, map[string]string{
+	servers, err := p.getServersByLabelSelector(ctx, projectID, providerSpec.Region, map[string]string{
 		StackitMachineLabel: req.Machine.Name,
 	})
 	if err != nil {
@@ -82,11 +84,18 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	}
 
 	if len(servers) > 1 {
-		klog.Errorf("Multiple servers already exists for this machine %q: %v", req.Machine.Name, err)
-		return nil, status.Error(codes.AlreadyExists, fmt.Sprintf("failed to fetch server: %v", err))
-	}
+		serverNames := make([]string, len(servers))
+		for i, server := range servers {
+			serverNames[i] = server.Name
+		}
 
-	var server *client.Server
+		klog.Errorf(
+			"Multiple servers already exist for this machine %q: servers=%v",
+			req.Machine.Name,
+			serverNames,
+		)
+		return nil, status.Error(codes.AlreadyExists, fmt.Sprintf("Multiple servers: %v already exists for the machine: %v", serverNames, req.Machine.Name))
+	}
 
 	if len(servers) == 1 {
 		server = servers[0]
@@ -251,7 +260,7 @@ func nicAddresses(nics []*client.NIC) []corev1.NodeAddress {
 	return addresses
 }
 
-func (p *Provider) getServersByName(ctx context.Context, projectID, region string, selector map[string]string) ([]*client.Server, error) {
+func (p *Provider) getServersByLabelSelector(ctx context.Context, projectID, region string, selector map[string]string) ([]*client.Server, error) {
 	// Check if the server got already created
 	servers, err := p.client.ListServers(ctx, projectID, region, selector)
 	if err != nil {
