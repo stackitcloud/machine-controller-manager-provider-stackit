@@ -38,32 +38,61 @@ import (
 //   - ResourceExhausted (no retry): No capacity available (e.g. "no valid host was found")
 //   - DeadlineExceeded (retry): Server did not reach ACTIVE state within the polling timeout
 func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineRequest) (*driver.CreateMachineResponse, error) {
-	var server *client.Server
-
 	// Log messages to track request
 	klog.V(2).Infof("Machine creation request has been received for %q", req.Machine.Name)
 	defer klog.V(2).Infof("Machine creation request has been processed for %q", req.Machine.Name)
 
-	// Check if incoming provider in the MachineClass is a provider we support
+	providerSpec, projectID, err := p.prepareMachineCreation(req)
+	if err != nil {
+		return nil, err
+	}
+
+	server, err := p.getOrCreateServer(ctx, req, projectID, providerSpec)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := p.waitForServer(ctx, req.Machine.Name, projectID, providerSpec.Region, server.ID); err != nil {
+		return nil, err
+	}
+
+	nics, err := p.patchNetworkInterfaces(ctx, projectID, server.ID, providerSpec)
+	if err != nil {
+		klog.Errorf("Failed to patch NICs for server %q: %v", req.Machine.Name, err)
+		return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to patch NICs for server: %v", err))
+	}
+
+	// Generate ProviderID in format: stackit://<projectId>/<serverId>
+	providerID := fmt.Sprintf("%s://%s/%s", StackitProviderName, projectID, server.ID)
+	klog.V(2).Infof("Successfully created server %q with ID %q for machine %q", server.Name, server.ID, req.Machine.Name)
+
+	return &driver.CreateMachineResponse{
+		ProviderID: providerID,
+		NodeName:   req.Machine.Name,
+		Addresses:  nicAddresses(nics),
+	}, nil
+}
+
+func (p *Provider) prepareMachineCreation(req *driver.CreateMachineRequest) (*api.ProviderSpec, string, error) {
 	if req.MachineClass.Provider != StackitProviderName {
 		err := fmt.Errorf("requested for Provider '%s', we only support '%s'", req.MachineClass.Provider, StackitProviderName)
-		return nil, status.Error(codes.InvalidArgument, err.Error())
+		return nil, "", status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	if m, _ := strconv.ParseBool(req.Machine.Annotations[migratedMachineAnnotation]); m {
-		return nil, status.Error(codes.AlreadyExists, fmt.Errorf("create for migrated machine %s will not work", req.Machine.Name).Error())
+		return nil, "", status.Error(codes.AlreadyExists, fmt.Errorf("create for migrated machine %s will not work", req.Machine.Name).Error())
 	}
 
 	// Decode ProviderSpec from MachineClass
 	providerSpec, err := decodeProviderSpec(req.MachineClass)
 	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, "", status.Error(codes.Internal, err.Error())
 	}
 
 	// Validate ProviderSpec and Secret
 	validationErrs := validation.ValidateProviderSpecNSecret(providerSpec, req.Secret)
 	if len(validationErrs) > 0 {
-		return nil, status.Error(codes.InvalidArgument, validationErrs[0].Error())
+		return nil, "", status.Error(codes.InvalidArgument, validationErrs[0].Error())
 	}
 
 	// Extract credentials from Secret
@@ -71,10 +100,12 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 
 	// Initialize client on first use (lazy initialization)
 	if err := p.ensureClient(serviceAccountKey); err != nil {
-		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to initialize STACKIT client: %v", err))
+		return nil, "", status.Error(codes.Internal, fmt.Sprintf("failed to initialize STACKIT client: %v", err))
 	}
+	return providerSpec, projectID, nil
+}
 
-	// check if server already exists
+func (p *Provider) getOrCreateServer(ctx context.Context, req *driver.CreateMachineRequest, projectID string, providerSpec *api.ProviderSpec) (*client.Server, error) {
 	servers, err := p.getServersByLabelSelector(ctx, projectID, providerSpec.Region, map[string]string{
 		StackitMachineLabel: req.Machine.Name,
 	})
@@ -98,44 +129,29 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	}
 
 	if len(servers) == 1 {
-		server = servers[0]
+		return servers[0], nil
 	}
 
-	if server == nil {
-		// Call STACKIT API to create server
-		server, err = p.client.CreateServer(ctx, projectID, providerSpec.Region, p.createServerRequest(req, providerSpec))
-		if err != nil {
-			klog.Errorf("Failed to create server for machine %q: %v", req.Machine.Name, err)
-			if isResourceExhaustedError(err) {
-				return nil, status.Error(codes.ResourceExhausted, fmt.Sprintf("failed to create server: %v", err))
-			}
-			return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to create server: %v", err))
-		}
-	}
-
-	if err := p.WaitUntilServerRunning(ctx, projectID, providerSpec.Region, server.ID); err != nil {
-		klog.Errorf("Failed waiting for server %q to reach ACTIVE state: %v", req.Machine.Name, err)
-		if isResourceExhaustedError(err) {
-			return nil, status.Error(codes.ResourceExhausted, fmt.Sprintf("failed waiting for server to be ACTIVE: %v", err))
-		}
-		return nil, status.Error(codes.DeadlineExceeded, fmt.Sprintf("failed waiting for server to be ACTIVE: %v", err))
-	}
-
-	nics, err := p.patchNetworkInterfaces(ctx, projectID, server.ID, providerSpec)
+	server, err := p.client.CreateServer(ctx, projectID, providerSpec.Region, p.createServerRequest(req, providerSpec))
 	if err != nil {
-		klog.Errorf("Failed to patch NICs for server %q: %v", req.Machine.Name, err)
-		return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to patch NICs for server: %v", err))
+		klog.Errorf("Failed to create server for machine %q: %v", req.Machine.Name, err)
+		if isResourceExhaustedError(err) {
+			return nil, status.Error(codes.ResourceExhausted, fmt.Sprintf("failed to create server: %v", err))
+		}
+		return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to create server: %v", err))
 	}
+	return server, nil
+}
 
-	// Generate ProviderID in format: stackit://<projectId>/<serverId>
-	providerID := fmt.Sprintf("%s://%s/%s", StackitProviderName, projectID, server.ID)
-	klog.V(2).Infof("Successfully created server %q with ID %q for machine %q", server.Name, server.ID, req.Machine.Name)
-
-	return &driver.CreateMachineResponse{
-		ProviderID: providerID,
-		NodeName:   req.Machine.Name,
-		Addresses:  nicAddresses(nics),
-	}, nil
+func (p *Provider) waitForServer(ctx context.Context, machineName, projectID, region, serverID string) error {
+	if err := p.WaitUntilServerRunning(ctx, projectID, region, serverID); err != nil {
+		klog.Errorf("Failed waiting for server %q to reach ACTIVE state: %v", machineName, err)
+		if isResourceExhaustedError(err) {
+			return status.Error(codes.ResourceExhausted, fmt.Sprintf("failed waiting for server to be ACTIVE: %v", err))
+		}
+		return status.Error(codes.DeadlineExceeded, fmt.Sprintf("failed waiting for server to be ACTIVE: %v", err))
+	}
+	return nil
 }
 
 // nolint: gocyclo // this function is already pretty simple
