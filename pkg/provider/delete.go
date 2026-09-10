@@ -71,6 +71,9 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 	return &driver.DeleteMachineResponse{}, nil
 }
 
+// serverIDsForMachine fetches server IDs for a machine.
+// during migration, there might be machines that has no providerID yet, so we need to fetch all servers and
+// filter them based on the machine name.
 func (p *Provider) serverIDsForMachine(ctx context.Context, req *driver.DeleteMachineRequest, projectIDFromSecret, region string, migrated bool) (projectID string, serverIDs []string, err error) {
 	projectID, serverIDs = "", nil
 	if providerID := req.Machine.Spec.ProviderID; providerID != "" {
