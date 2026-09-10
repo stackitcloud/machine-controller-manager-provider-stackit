@@ -131,7 +131,7 @@ func (p *Provider) deleteMachineNICs(ctx context.Context, projectID, region, net
 		if nic.Name != machineName {
 			continue
 		}
-		if err := p.client.DeleteNIC(ctx, projectID, region, nic.NetworkID, nic.ID); err != nil {
+		if err = p.client.DeleteNIC(ctx, projectID, region, nic.NetworkID, nic.ID); err != nil {
 			if errors.Is(err, client.ErrNicNotFound) {
 				klog.V(2).Infof("Nic %q already deleted for machine %q (idempotent)", nic.ID, machineName)
 				return true, nil
