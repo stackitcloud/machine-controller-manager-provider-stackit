@@ -112,17 +112,28 @@ func (p *Provider) serverIDsForMachine(ctx context.Context, req *driver.DeleteMa
 }
 
 func (p *Provider) deleteServers(ctx context.Context, projectID, region, machineName string, serverIDs []string) (bool, error) {
+	var allErrors error
+	deleted := false
+
 	for _, serverID := range serverIDs {
 		if err := p.client.DeleteServer(ctx, projectID, region, serverID); err != nil {
 			if errors.Is(err, client.ErrServerNotFound) {
 				klog.V(2).Infof("Server %q already deleted for machine %q (idempotent)", serverID, machineName)
-				return true, nil
+				deleted = true
+				continue
 			}
-			klog.Errorf("Failed to delete server for machine %q: %v", machineName, err)
-			return false, status.Error(codes.Internal, fmt.Sprintf("failed to delete server: %v", err))
+			klog.Errorf("Failed to delete server %q for machine %q: %v", serverID, machineName, err)
+			allErrors = errors.Join(allErrors, fmt.Errorf("failed to delete server %q: %w", serverID, err))
+			continue
 		}
+		deleted = true
 	}
-	return false, nil
+
+	if allErrors != nil {
+		return deleted, status.Error(codes.Internal, fmt.Sprintf("failed to delete servers: %v", allErrors))
+	}
+
+	return deleted, nil
 }
 
 func (p *Provider) deleteMachineNICs(ctx context.Context, projectID, region, networkID, machineName string) (bool, error) {
@@ -130,20 +141,35 @@ func (p *Provider) deleteMachineNICs(ctx context.Context, projectID, region, net
 	if err != nil {
 		return false, err
 	}
+
+	var allErrors error
+	deleted := false
+
 	for _, nic := range nics {
 		if nic.Name != machineName {
 			continue
 		}
-		if err = p.client.DeleteNIC(ctx, projectID, region, nic.NetworkID, nic.ID); err != nil {
+
+		if err := p.client.DeleteNIC(ctx, projectID, region, nic.NetworkID, nic.ID); err != nil {
 			if errors.Is(err, client.ErrNicNotFound) {
-				klog.V(2).Infof("Nic %q already deleted for machine %q (idempotent)", nic.ID, machineName)
-				return true, nil
+				klog.V(2).Infof("NIC %q already deleted for machine %q (idempotent)", nic.ID, machineName)
+				deleted = true
+				continue
 			}
-			klog.Errorf("Failed to delete nic for machine %q: %v", machineName, err)
-			return false, status.Error(codes.Internal, fmt.Sprintf("failed to delete nic: %v", err))
+
+			klog.Errorf("Failed to delete NIC %q for machine %q: %v", nic.ID, machineName, err)
+
+			allErrors = errors.Join(allErrors, fmt.Errorf("failed to delete NIC %q: %w", nic.ID, err))
+			continue
 		}
+		deleted = true
 	}
-	return false, nil
+
+	if allErrors != nil {
+		return deleted, status.Error(codes.Internal, fmt.Sprintf("failed to delete NICs: %v", allErrors))
+	}
+
+	return deleted, nil
 }
 
 func (p *Provider) WaitUntilServerDeleted(ctx context.Context, projectID, region, serverID string) error {
