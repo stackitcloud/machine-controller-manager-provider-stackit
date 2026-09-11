@@ -54,7 +54,10 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 	if err != nil {
 		return nil, err
 	}
-	if serverAlreadyDeleted {
+
+	// Migrated machines may have orphaned NICs that are not removed when their
+	// servers are deleted, so continue with NIC cleanup in that case.
+	if serverAlreadyDeleted && !migrated {
 		return &driver.DeleteMachineResponse{}, nil
 	}
 	if migrated {
