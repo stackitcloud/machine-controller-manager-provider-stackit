@@ -16,6 +16,8 @@ type StackitClient struct {
 	DeleteServerFunc func(ctx context.Context, projectID, region, serverID string) error
 	ListServersFunc  func(ctx context.Context, projectID, region string, labelSelector map[string]string) ([]*client.Server, error)
 	GetNICsFunc      func(ctx context.Context, projectID, region, serverID string) ([]*client.NIC, error)
+	ListNICsFunc     func(ctx context.Context, projectID, region, networkID string) ([]*client.NIC, error)
+	DeleteNICFunc    func(ctx context.Context, projectID, region, networkID, nicID string) error
 	UpdateNICFunc    func(ctx context.Context, projectID, region, networkID, nicID string, allowedAddresses []string) (*client.NIC, error)
 }
 
@@ -62,6 +64,20 @@ func (m *StackitClient) GetNICsForServer(ctx context.Context, projectID, region,
 	return []*client.NIC{
 		{ID: "default-nic-id", NetworkID: "default-network-id"},
 	}, nil
+}
+
+func (m *StackitClient) ListNICs(ctx context.Context, projectID, region, networkID string) ([]*client.NIC, error) {
+	if m.ListNICsFunc != nil {
+		return m.ListNICsFunc(ctx, projectID, region, networkID)
+	}
+	return []*client.NIC{}, nil
+}
+
+func (m *StackitClient) DeleteNIC(ctx context.Context, projectID, region, networkID, nicID string) error {
+	if m.DeleteNICFunc != nil {
+		return m.DeleteNICFunc(ctx, projectID, region, networkID, nicID)
+	}
+	return nil
 }
 
 func (m *StackitClient) UpdateNIC(ctx context.Context, projectID, region, networkID, nicID string, allowedAddresses []string) (*client.NIC, error) {

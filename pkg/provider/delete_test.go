@@ -53,6 +53,9 @@ var _ = Describe("DeleteMachine", func() {
 			MachineType: "c2i.2",
 			ImageID:     "image-uuid-123",
 			Region:      "eu01",
+			Networking: &api.NetworkingSpec{
+				NetworkID: "770e8400-e29b-41d4-a716-446655440000",
+			},
 		}
 		providerSpecRaw, _ := mock.EncodeProviderSpec(providerSpec)
 
@@ -120,42 +123,18 @@ var _ = Describe("DeleteMachine", func() {
 			Expect(capturedServerID).To(Equal("550e8400-e29b-41d4-a716-446655440000"))
 		})
 
-		It("should poll GetServer until server is deleted", func() {
-			getServerCallCount := 0
-
-			mockClient.DeleteServerFunc = func(_ context.Context, _, _, _ string) error {
-				return nil
-			}
-			mockClient.GetServerFunc = func(_ context.Context, _, _, _ string) (*client.Server, error) {
-				getServerCallCount++
-				// First call returns server still exists, second call returns not found
-				if getServerCallCount == 1 {
-					return &client.Server{
-						ID:     "550e8400-e29b-41d4-a716-446655440000",
-						Name:   "test-machine",
-						Status: "SHUTTING_DOWN",
-					}, nil
-				}
-				return nil, fmt.Errorf("%w: status 404", client.ErrServerNotFound)
-			}
-
-			resp, err := provider.DeleteMachine(ctx, req)
-
-			Expect(err).NotTo(HaveOccurred())
-			Expect(resp).NotTo(BeNil())
-			Expect(getServerCallCount).To(BeNumerically(">=", 2))
-		})
 	})
 
 	Context("with missing or invalid ProviderID", func() {
 		It("should still delete the machine when ProviderID is missing", func() {
 			machine.Spec.ProviderID = ""
 
-			mockClient.GetServerFunc = func(_ context.Context, _, _, _ string) (*client.Server, error) {
-				return &client.Server{
+			mockClient.ListServersFunc = func(_ context.Context, _, _ string, selector map[string]string) ([]*client.Server, error) {
+				Expect(selector).To(Equal(map[string]string{StackitMachineLabel: "test-machine"}))
+				return []*client.Server{{
 					ID:   "550e8400-e29b-41d4-a716-446655440000",
 					Name: "test-machine",
-				}, nil
+				}}, nil
 			}
 			mockClient.DeleteServerFunc = func(_ context.Context, _, _, _ string) error {
 				return nil
@@ -175,6 +154,46 @@ var _ = Describe("DeleteMachine", func() {
 			statusErr, ok := status.FromError(err)
 			Expect(ok).To(BeTrue())
 			Expect(statusErr.Code()).To(Equal(codes.InvalidArgument))
+		})
+	})
+
+	Context("when deleting a migrated machine", func() {
+		It("deletes all matching servers and NICs after an unfiltered lookup", func() {
+			machine.Spec.ProviderID = ""
+			machine.Annotations = map[string]string{migratedMachineAnnotation: "true"}
+			var deletedServerIDs, deletedNICIDs []string
+			mockClient.ListServersFunc = func(_ context.Context, _, _ string, selector map[string]string) ([]*client.Server, error) {
+				Expect(selector).To(BeNil())
+				return []*client.Server{
+					{ID: "server-1", Name: "test-machine"},
+					{ID: "other-server", Name: "another-machine"},
+					{ID: "server-2", Name: "test-machine"},
+				}, nil
+			}
+			mockClient.DeleteServerFunc = func(_ context.Context, _, _, serverID string) error {
+				deletedServerIDs = append(deletedServerIDs, serverID)
+				return nil
+			}
+			mockClient.ListNICsFunc = func(_ context.Context, _, _, networkID string) ([]*client.NIC, error) {
+				Expect(networkID).To(Equal("770e8400-e29b-41d4-a716-446655440000"))
+				return []*client.NIC{
+					{ID: "nic-1", NetworkID: networkID, Name: "test-machine"},
+					{ID: "other-nic", NetworkID: networkID, Name: "another-machine"},
+					{ID: "nic-2", NetworkID: networkID, Name: "test-machine"},
+				}, nil
+			}
+			mockClient.DeleteNICFunc = func(_ context.Context, _, _, networkID, nicID string) error {
+				Expect(networkID).To(Equal("770e8400-e29b-41d4-a716-446655440000"))
+				deletedNICIDs = append(deletedNICIDs, nicID)
+				return nil
+			}
+
+			resp, err := provider.DeleteMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp).NotTo(BeNil())
+			Expect(deletedServerIDs).To(ConsistOf("server-1", "server-2"))
+			Expect(deletedNICIDs).To(ConsistOf("nic-1", "nic-2"))
 		})
 	})
 

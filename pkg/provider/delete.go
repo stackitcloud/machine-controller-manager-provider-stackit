@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
@@ -35,65 +36,135 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 		return nil, status.Error(codes.Unauthenticated, fmt.Sprintf("failed to initialize STACKIT client: %v", err))
 	}
 
-	var projectID, serverID string
-	var err error
-	if req.Machine.Spec.ProviderID != "" {
-		if !strings.HasPrefix(req.Machine.Spec.ProviderID, StackitProviderName) {
-			return nil, status.Error(codes.InvalidArgument, "providerID is not empty and does not start with stackit://")
-		}
-
-		// Parse ProviderID to extract projectID and serverID
-		projectID, serverID, err = parseProviderID(req.Machine.Spec.ProviderID)
-		if err != nil {
-			klog.V(2).Infof("invalid ProviderID format: %v", err)
-		}
-	}
-
-	if projectID == "" {
-		// use the secret as a fallback
-		projectID = projectIDFromSecret
-	}
-
 	providerSpec, err := decodeProviderSpec(req.MachineClass)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	if serverID == "" {
-		server, err := p.getServerByName(ctx, projectID, providerSpec.Region, req.Machine.Name)
-		if err != nil {
-			return nil, status.Error(codes.Internal, fmt.Sprintf("failed to find server by name: %v", err))
-		}
-
-		if server != nil {
-			serverID = server.ID
-		}
+	// Missing annotation is teated as machine is not migrated.
+	// Error is ignored to have compatibility with non-migrated OpenStack Machines that has no annotations.
+	migrated, _ := strconv.ParseBool(req.Machine.Annotations[migratedMachineAnnotation])
+	// In case of a migrated machine with the stackit.cloud/migrated-machine annotation the deletion needs to get all servers and filters internally.
+	// This is needed as servers that are migrated during the creation are maybe created in the infrastructure but has no providerID.
+	projectID, serverIDs, err := p.serverIDsForMachine(ctx, req, projectIDFromSecret, providerSpec.Region, migrated)
+	if err != nil {
+		return nil, err
+	}
+	serverAlreadyDeleted, err := p.deleteServers(ctx, projectID, providerSpec.Region, req.Machine.Name, serverIDs)
+	if err != nil {
+		return nil, err
 	}
 
-	if serverID == "" {
-		klog.V(2).Infof("Server is already deleted for machine %q", req.Machine.Name)
+	// Migrated machines may have orphaned NICs that are not removed when their
+	// servers are deleted, so continue with NIC cleanup in that case.
+	if serverAlreadyDeleted && !migrated {
 		return &driver.DeleteMachineResponse{}, nil
 	}
-
-	// Call STACKIT API to delete server
-	err = p.client.DeleteServer(ctx, projectID, providerSpec.Region, serverID)
-	if err != nil {
-		// Check if server was not found (404) - this is OK for idempotency
-		if errors.Is(err, client.ErrServerNotFound) {
-			klog.V(2).Infof("Server %q already deleted for machine %q (idempotent)", serverID, req.Machine.Name)
+	if migrated {
+		nicAlreadyDeleted, err := p.deleteMachineNICs(ctx, projectID, providerSpec.Region, providerSpec.Networking.NetworkID, req.Machine.Name)
+		if err != nil {
+			return nil, err
+		}
+		if nicAlreadyDeleted {
 			return &driver.DeleteMachineResponse{}, nil
 		}
-		// All other errors are internal errors
-		klog.Errorf("Failed to delete server for machine %q: %v", req.Machine.Name, err)
-		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to delete server: %v", err))
 	}
-
-	if err := p.WaitUntilServerDeleted(ctx, projectID, providerSpec.Region, serverID); err != nil {
-		klog.Errorf("Failed waiting for server %q to be deleted for machine %q: %v", serverID, req.Machine.Name, err)
-		return nil, status.Error(codes.DeadlineExceeded, fmt.Sprintf("failed waiting for server to be deleted: %v", err))
-	}
+	klog.V(2).Infof("Successfully deleted server for machine %q", req.Machine.Name)
 
 	return &driver.DeleteMachineResponse{}, nil
+}
+
+// serverIDsForMachine fetches server IDs for a machine.
+// during migration, there might be machines that has no providerID yet, so we need to fetch all servers and
+// filter them based on the machine name.
+func (p *Provider) serverIDsForMachine(ctx context.Context, req *driver.DeleteMachineRequest, projectIDFromSecret, region string, migrated bool) (projectID string, serverIDs []string, err error) {
+	projectID, serverIDs = "", nil
+	if providerID := req.Machine.Spec.ProviderID; providerID != "" {
+		if !strings.HasPrefix(providerID, StackitProviderName+"://") {
+			return "", nil, status.Error(codes.InvalidArgument, "providerID is not empty and does not start with stackit://")
+		}
+
+		var serverID string
+		projectID, serverID, err = parseProviderID(providerID)
+		if err != nil {
+			klog.V(2).Infof("invalid ProviderID format: %v", err)
+		}
+		serverIDs = append(serverIDs, serverID)
+	}
+	if projectID == "" {
+		projectID = projectIDFromSecret
+	}
+	if len(serverIDs) != 0 {
+		return projectID, serverIDs, nil
+	}
+
+	selector := map[string]string{StackitMachineLabel: req.Machine.Name}
+	if migrated {
+		selector = nil
+	}
+	servers, err := p.getServersByLabelSelector(ctx, projectID, region, selector)
+	if err != nil {
+		return "", nil, status.Error(codes.Internal, fmt.Sprintf("failed to find server by name: %v", err))
+	}
+	for _, server := range servers {
+		if server.Name == req.Machine.Name {
+			serverIDs = append(serverIDs, server.ID)
+		}
+	}
+	return projectID, serverIDs, nil
+}
+
+func (p *Provider) deleteServers(ctx context.Context, projectID, region, machineName string, serverIDs []string) (bool, error) {
+	var allErrors error
+
+	for _, serverID := range serverIDs {
+		if err := p.client.DeleteServer(ctx, projectID, region, serverID); err != nil {
+			if errors.Is(err, client.ErrServerNotFound) {
+				klog.V(2).Infof("Server %q already deleted for machine %q (idempotent)", serverID, machineName)
+				continue
+			}
+
+			klog.Errorf("Failed to delete server %q for machine %q: %v", serverID, machineName, err)
+			allErrors = errors.Join(allErrors, fmt.Errorf("failed to delete server %q: %w", serverID, err))
+		}
+	}
+
+	if allErrors != nil {
+		return false, status.Error(codes.Internal, fmt.Sprintf("failed to delete servers: %v", allErrors))
+	}
+
+	return true, nil
+}
+
+func (p *Provider) deleteMachineNICs(ctx context.Context, projectID, region, networkID, machineName string) (bool, error) {
+	nics, err := p.client.ListNICs(ctx, projectID, region, networkID)
+	if err != nil {
+		return false, err
+	}
+
+	var allErrors error
+
+	for _, nic := range nics {
+		if nic.Name != machineName {
+			continue
+		}
+
+		if err = p.client.DeleteNIC(ctx, projectID, region, nic.NetworkID, nic.ID); err != nil {
+			if errors.Is(err, client.ErrNicNotFound) {
+				klog.V(2).Infof("NIC %q already deleted for machine %q (idempotent)", nic.ID, machineName)
+				continue
+			}
+
+			klog.Errorf("Failed to delete NIC %q for machine %q: %v", nic.ID, machineName, err)
+			allErrors = errors.Join(allErrors, fmt.Errorf("failed to delete NIC %q: %w", nic.ID, err))
+		}
+	}
+
+	if allErrors != nil {
+		return false, status.Error(codes.Internal, fmt.Sprintf("failed to delete NICs: %v", allErrors))
+	}
+
+	return true, nil
 }
 
 func (p *Provider) WaitUntilServerDeleted(ctx context.Context, projectID, region, serverID string) error {
