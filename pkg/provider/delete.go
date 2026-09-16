@@ -22,6 +22,7 @@ import (
 //
 // Error codes:
 //   - InvalidArgument: Missing or invalid ProviderID
+//   - DeadlineExceeded: Failed waiting for server to be deleted
 //   - Internal: Failed to delete server or communicate with STACKIT API
 func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineRequest) (*driver.DeleteMachineResponse, error) {
 	// Log messages to track delete request
@@ -118,6 +119,7 @@ func (p *Provider) serverIDsForMachine(ctx context.Context, req *driver.DeleteMa
 
 func (p *Provider) deleteServers(ctx context.Context, projectID, region, machineName string, serverIDs []string) (bool, error) {
 	var allErrors error
+	var deletedServerIDs []string
 
 	for _, serverID := range serverIDs {
 		if err := p.client.DeleteServer(ctx, projectID, region, serverID); err != nil {
@@ -128,11 +130,24 @@ func (p *Provider) deleteServers(ctx context.Context, projectID, region, machine
 
 			klog.Errorf("Failed to delete server %q for machine %q: %v", serverID, machineName, err)
 			allErrors = errors.Join(allErrors, fmt.Errorf("failed to delete server %q: %w", serverID, err))
+			continue
 		}
+		deletedServerIDs = append(deletedServerIDs, serverID)
 	}
 
 	if allErrors != nil {
 		return false, status.Error(codes.Internal, fmt.Sprintf("failed to delete servers: %v", allErrors))
+	}
+
+	for _, serverID := range deletedServerIDs {
+		if err := p.WaitUntilServerDeleted(ctx, projectID, region, serverID); err != nil {
+			klog.Errorf("Failed waiting for server %q to be deleted for machine %q: %v", serverID, machineName, err)
+			allErrors = errors.Join(allErrors, fmt.Errorf("failed waiting for server %q to be deleted: %w", serverID, err))
+		}
+	}
+
+	if allErrors != nil {
+		return false, status.Error(codes.DeadlineExceeded, fmt.Sprintf("failed waiting for server to be deleted: %v", allErrors))
 	}
 
 	return true, nil

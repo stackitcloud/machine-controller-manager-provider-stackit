@@ -32,7 +32,11 @@ var _ = Describe("DeleteMachine", func() {
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		mockClient = &mock.StackitClient{}
+		mockClient = &mock.StackitClient{
+			GetServerFunc: func(_ context.Context, _, _, _ string) (*client.Server, error) {
+				return nil, fmt.Errorf("%w: status 404", client.ErrServerNotFound)
+			},
+		}
 		provider = &Provider{
 			client:          mockClient,
 			pollingInterval: 10 * time.Millisecond,
@@ -123,6 +127,31 @@ var _ = Describe("DeleteMachine", func() {
 			Expect(capturedServerID).To(Equal("550e8400-e29b-41d4-a716-446655440000"))
 		})
 
+		It("should poll GetServer until server is deleted", func() {
+			getServerCallCount := 0
+
+			mockClient.DeleteServerFunc = func(_ context.Context, _, _, _ string) error {
+				return nil
+			}
+			mockClient.GetServerFunc = func(_ context.Context, _, _, _ string) (*client.Server, error) {
+				getServerCallCount++
+				// First call returns server still exists, second call returns not found
+				if getServerCallCount == 1 {
+					return &client.Server{
+						ID:     "550e8400-e29b-41d4-a716-446655440000",
+						Name:   "test-machine",
+						Status: "SHUTTING_DOWN",
+					}, nil
+				}
+				return nil, fmt.Errorf("%w: status 404", client.ErrServerNotFound)
+			}
+
+			resp, err := provider.DeleteMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp).NotTo(BeNil())
+			Expect(getServerCallCount).To(BeNumerically(">=", 2))
+		})
 	})
 
 	Context("with missing or invalid ProviderID", func() {
@@ -195,6 +224,78 @@ var _ = Describe("DeleteMachine", func() {
 			Expect(deletedServerIDs).To(ConsistOf("server-1", "server-2"))
 			Expect(deletedNICIDs).To(ConsistOf("nic-1", "nic-2"))
 		})
+
+		It("waits for server deletion before deleting NICs", func() {
+			machine.Spec.ProviderID = ""
+			machine.Annotations = map[string]string{migratedMachineAnnotation: "true"}
+
+			var executionOrder []string
+			mockClient.ListServersFunc = func(_ context.Context, _, _ string, _ map[string]string) ([]*client.Server, error) {
+				return []*client.Server{
+					{ID: "server-1", Name: "test-machine"},
+				}, nil
+			}
+			mockClient.DeleteServerFunc = func(_ context.Context, _, _, serverID string) error {
+				executionOrder = append(executionOrder, "delete-server:"+serverID)
+				return nil
+			}
+			mockClient.GetServerFunc = func(_ context.Context, _, _, serverID string) (*client.Server, error) {
+				executionOrder = append(executionOrder, "wait-server:"+serverID)
+				return nil, fmt.Errorf("%w: status 404", client.ErrServerNotFound)
+			}
+			mockClient.ListNICsFunc = func(_ context.Context, _, _, networkID string) ([]*client.NIC, error) {
+				executionOrder = append(executionOrder, "list-nics")
+				return []*client.NIC{
+					{ID: "nic-1", NetworkID: networkID, Name: "test-machine"},
+				}, nil
+			}
+			mockClient.DeleteNICFunc = func(_ context.Context, _, _, _, nicID string) error {
+				executionOrder = append(executionOrder, "delete-nic:"+nicID)
+				return nil
+			}
+
+			resp, err := provider.DeleteMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp).NotTo(BeNil())
+			Expect(executionOrder).To(Equal([]string{
+				"delete-server:server-1",
+				"wait-server:server-1",
+				"list-nics",
+				"delete-nic:nic-1",
+			}))
+		})
+
+		It("does not delete NICs if server deletion wait times out", func() {
+			machine.Spec.ProviderID = ""
+			machine.Annotations = map[string]string{migratedMachineAnnotation: "true"}
+			provider.pollingTimeout = 20 * time.Millisecond
+
+			mockClient.ListServersFunc = func(_ context.Context, _, _ string, _ map[string]string) ([]*client.Server, error) {
+				return []*client.Server{
+					{ID: "server-1", Name: "test-machine"},
+				}, nil
+			}
+			mockClient.DeleteServerFunc = func(_ context.Context, _, _, _ string) error {
+				return nil
+			}
+			mockClient.GetServerFunc = func(_ context.Context, _, _, serverID string) (*client.Server, error) {
+				return &client.Server{ID: serverID, Status: "SHUTTING_DOWN"}, nil
+			}
+			deleteNICCalled := false
+			mockClient.DeleteNICFunc = func(_ context.Context, _, _, _, _ string) error {
+				deleteNICCalled = true
+				return nil
+			}
+
+			_, err := provider.DeleteMachine(ctx, req)
+
+			Expect(err).To(HaveOccurred())
+			statusErr, ok := status.FromError(err)
+			Expect(ok).To(BeTrue())
+			Expect(statusErr.Code()).To(Equal(codes.DeadlineExceeded))
+			Expect(deleteNICCalled).To(BeFalse())
+		})
 	})
 
 	Context("when machine not found", func() {
@@ -222,6 +323,24 @@ var _ = Describe("DeleteMachine", func() {
 			statusErr, ok := status.FromError(err)
 			Expect(ok).To(BeTrue())
 			Expect(statusErr.Code()).To(Equal(codes.Internal))
+		})
+
+		It("should return DeadlineExceeded when waiting for server deletion times out", func() {
+			provider.pollingTimeout = 20 * time.Millisecond
+
+			mockClient.DeleteServerFunc = func(_ context.Context, _, _, _ string) error {
+				return nil
+			}
+			mockClient.GetServerFunc = func(_ context.Context, _, _, serverID string) (*client.Server, error) {
+				return &client.Server{ID: serverID, Status: "SHUTTING_DOWN"}, nil
+			}
+
+			_, err := provider.DeleteMachine(ctx, req)
+
+			Expect(err).To(HaveOccurred())
+			statusErr, ok := status.FromError(err)
+			Expect(ok).To(BeTrue())
+			Expect(statusErr.Code()).To(Equal(codes.DeadlineExceeded))
 		})
 	})
 })
