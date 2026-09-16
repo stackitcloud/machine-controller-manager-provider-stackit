@@ -55,7 +55,7 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 		return nil, err
 	}
 
-	if migrated {
+	if migrated && providerSpec.Networking != nil && providerSpec.Networking.NetworkID != "" {
 		if err := p.deleteMachineNICs(ctx, projectID, providerSpec.Region, providerSpec.Networking.NetworkID, req.Machine.Name); err != nil {
 			return nil, err
 		}

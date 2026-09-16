@@ -296,6 +296,75 @@ var _ = Describe("DeleteMachine", func() {
 			Expect(statusErr.Code()).To(Equal(codes.DeadlineExceeded))
 			Expect(deleteNICCalled).To(BeFalse())
 		})
+
+		It("safely skips NIC cleanup if Networking is nil", func() {
+			machine.Spec.ProviderID = ""
+			machine.Annotations = map[string]string{migratedMachineAnnotation: "true"}
+
+			spec := &api.ProviderSpec{
+				MachineType: "c2i.2",
+				ImageID:     "image-uuid-123",
+				Region:      "eu01",
+			}
+			specRaw, _ := mock.EncodeProviderSpec(spec)
+			machineClass.ProviderSpec.Raw = specRaw
+
+			mockClient.ListServersFunc = func(_ context.Context, _, _ string, _ map[string]string) ([]*client.Server, error) {
+				return []*client.Server{
+					{ID: "server-1", Name: "test-machine"},
+				}, nil
+			}
+			mockClient.DeleteServerFunc = func(_ context.Context, _, _, _ string) error {
+				return nil
+			}
+			listNICsCalled := false
+			mockClient.ListNICsFunc = func(_ context.Context, _, _, _ string) ([]*client.NIC, error) {
+				listNICsCalled = true
+				return nil, nil
+			}
+
+			resp, err := provider.DeleteMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp).NotTo(BeNil())
+			Expect(listNICsCalled).To(BeFalse())
+		})
+
+		It("safely skips NIC cleanup if NetworkID is empty", func() {
+			machine.Spec.ProviderID = ""
+			machine.Annotations = map[string]string{migratedMachineAnnotation: "true"}
+
+			spec := &api.ProviderSpec{
+				MachineType: "c2i.2",
+				ImageID:     "image-uuid-123",
+				Region:      "eu01",
+				Networking: &api.NetworkingSpec{
+					NICIDs: []string{"nic-123"},
+				},
+			}
+			specRaw, _ := mock.EncodeProviderSpec(spec)
+			machineClass.ProviderSpec.Raw = specRaw
+
+			mockClient.ListServersFunc = func(_ context.Context, _, _ string, _ map[string]string) ([]*client.Server, error) {
+				return []*client.Server{
+					{ID: "server-1", Name: "test-machine"},
+				}, nil
+			}
+			mockClient.DeleteServerFunc = func(_ context.Context, _, _, _ string) error {
+				return nil
+			}
+			listNICsCalled := false
+			mockClient.ListNICsFunc = func(_ context.Context, _, _, _ string) ([]*client.NIC, error) {
+				listNICsCalled = true
+				return nil, nil
+			}
+
+			resp, err := provider.DeleteMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp).NotTo(BeNil())
+			Expect(listNICsCalled).To(BeFalse())
+		})
 	})
 
 	Context("when machine not found", func() {
