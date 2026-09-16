@@ -51,23 +51,13 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 	if err != nil {
 		return nil, err
 	}
-	serverAlreadyDeleted, err := p.deleteServers(ctx, projectID, providerSpec.Region, req.Machine.Name, serverIDs)
-	if err != nil {
+	if err := p.deleteServers(ctx, projectID, providerSpec.Region, req.Machine.Name, serverIDs); err != nil {
 		return nil, err
 	}
 
-	// Migrated machines may have orphaned NICs that are not removed when their
-	// servers are deleted, so continue with NIC cleanup in that case.
-	if serverAlreadyDeleted && !migrated {
-		return &driver.DeleteMachineResponse{}, nil
-	}
 	if migrated {
-		nicAlreadyDeleted, err := p.deleteMachineNICs(ctx, projectID, providerSpec.Region, providerSpec.Networking.NetworkID, req.Machine.Name)
-		if err != nil {
+		if err := p.deleteMachineNICs(ctx, projectID, providerSpec.Region, providerSpec.Networking.NetworkID, req.Machine.Name); err != nil {
 			return nil, err
-		}
-		if nicAlreadyDeleted {
-			return &driver.DeleteMachineResponse{}, nil
 		}
 	}
 	klog.V(2).Infof("Successfully deleted server for machine %q", req.Machine.Name)
@@ -117,7 +107,7 @@ func (p *Provider) serverIDsForMachine(ctx context.Context, req *driver.DeleteMa
 	return projectID, serverIDs, nil
 }
 
-func (p *Provider) deleteServers(ctx context.Context, projectID, region, machineName string, serverIDs []string) (bool, error) {
+func (p *Provider) deleteServers(ctx context.Context, projectID, region, machineName string, serverIDs []string) error {
 	var allErrors error
 	var deletedServerIDs []string
 
@@ -136,7 +126,7 @@ func (p *Provider) deleteServers(ctx context.Context, projectID, region, machine
 	}
 
 	if allErrors != nil {
-		return false, status.Error(codes.Internal, fmt.Sprintf("failed to delete servers: %v", allErrors))
+		return status.Error(codes.Internal, fmt.Sprintf("failed to delete servers: %v", allErrors))
 	}
 
 	for _, serverID := range deletedServerIDs {
@@ -147,16 +137,16 @@ func (p *Provider) deleteServers(ctx context.Context, projectID, region, machine
 	}
 
 	if allErrors != nil {
-		return false, status.Error(codes.DeadlineExceeded, fmt.Sprintf("failed waiting for server to be deleted: %v", allErrors))
+		return status.Error(codes.DeadlineExceeded, fmt.Sprintf("failed waiting for server to be deleted: %v", allErrors))
 	}
 
-	return true, nil
+	return nil
 }
 
-func (p *Provider) deleteMachineNICs(ctx context.Context, projectID, region, networkID, machineName string) (bool, error) {
+func (p *Provider) deleteMachineNICs(ctx context.Context, projectID, region, networkID, machineName string) error {
 	nics, err := p.client.ListNICs(ctx, projectID, region, networkID)
 	if err != nil {
-		return false, err
+		return status.Error(codes.Internal, fmt.Sprintf("failed to list NICs: %v", err))
 	}
 
 	var allErrors error
@@ -178,10 +168,10 @@ func (p *Provider) deleteMachineNICs(ctx context.Context, projectID, region, net
 	}
 
 	if allErrors != nil {
-		return false, status.Error(codes.Internal, fmt.Sprintf("failed to delete NICs: %v", allErrors))
+		return status.Error(codes.Internal, fmt.Sprintf("failed to delete NICs: %v", allErrors))
 	}
 
-	return true, nil
+	return nil
 }
 
 func (p *Provider) WaitUntilServerDeleted(ctx context.Context, projectID, region, serverID string) error {
