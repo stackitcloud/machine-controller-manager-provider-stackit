@@ -300,7 +300,7 @@ func (c *SdkStackitClient) GetNICsForServer(ctx context.Context, projectID, regi
 func (c *SdkStackitClient) ListNICs(ctx context.Context, projectID, region, networkID string) ([]*NIC, error) {
 	res, err := c.iaasClient.DefaultAPI.ListNics(ctx, projectID, region, networkID).Execute()
 	if err != nil {
-		return nil, fmt.Errorf("SDK ListServerNICs failed: %w", err)
+		return nil, fmt.Errorf("SDK ListNICs failed: %w", err)
 	}
 
 	if res.Items == nil {

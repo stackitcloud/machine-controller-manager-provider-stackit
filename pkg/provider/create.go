@@ -80,7 +80,7 @@ func (p *Provider) prepareMachineCreation(req *driver.CreateMachineRequest) (*ap
 	}
 
 	if m, _ := strconv.ParseBool(req.Machine.Annotations[migratedMachineAnnotation]); m {
-		return nil, "", status.Error(codes.AlreadyExists, fmt.Errorf("create for migrated machine %s will not work", req.Machine.Name).Error())
+		return nil, "", status.Error(codes.AlreadyExists, fmt.Sprintf("creation of migrated machine %q is not supported", req.Machine.Name))
 	}
 
 	// Decode ProviderSpec from MachineClass
@@ -117,7 +117,7 @@ func (p *Provider) getOrCreateServer(ctx context.Context, req *driver.CreateMach
 	if len(servers) > 1 {
 		serverNames := make([]string, len(servers))
 		for i, server := range servers {
-			serverNames[i] = server.Name
+			serverNames[i] = fmt.Sprintf("%s (id: %s)", server.Name, server.ID)
 		}
 
 		klog.Errorf(
@@ -125,7 +125,7 @@ func (p *Provider) getOrCreateServer(ctx context.Context, req *driver.CreateMach
 			req.Machine.Name,
 			serverNames,
 		)
-		return nil, status.Error(codes.AlreadyExists, fmt.Sprintf("Multiple servers: %v already exists for the machine: %v", serverNames, req.Machine.Name))
+		return nil, status.Error(codes.AlreadyExists, fmt.Sprintf("multiple servers %v already exist for machine %q", serverNames, req.Machine.Name))
 	}
 
 	if len(servers) == 1 {
