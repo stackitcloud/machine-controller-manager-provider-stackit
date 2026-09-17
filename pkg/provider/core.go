@@ -13,6 +13,8 @@ const (
 	StackitProviderName      = "stackit"
 	StackitMachineLabel      = "kubernetes.io/machine"
 	StackitMachineClassLabel = "kubernetes.io/machineclass"
+
+	migratedMachineAnnotation = "stackit.cloud/migrated-machine"
 )
 
 // GetVolumeIDs extracts volume IDs from PersistentVolume specs

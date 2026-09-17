@@ -85,6 +85,63 @@ var _ = Describe("CreateMachine", func() {
 	})
 
 	Context("with valid inputs", func() {
+		It("rejects creation of a migrated machine", func() {
+			machine.Annotations = map[string]string{migratedMachineAnnotation: "true"}
+			listServersCalled := false
+			mockClient.ListServersFunc = func(_ context.Context, _, _ string, _ map[string]string) ([]*client.Server, error) {
+				listServersCalled = true
+				return nil, nil
+			}
+
+			_, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).To(HaveOccurred())
+			statusErr, ok := status.FromError(err)
+			Expect(ok).To(BeTrue())
+			Expect(statusErr.Code()).To(Equal(codes.AlreadyExists))
+			Expect(listServersCalled).To(BeFalse())
+		})
+
+		It("returns AlreadyExists when more than one server has the machine label", func() {
+			createServerCalled := false
+			mockClient.ListServersFunc = func(_ context.Context, projectID, region string, selector map[string]string) ([]*client.Server, error) {
+				Expect(projectID).To(Equal("11111111-2222-3333-4444-555555555555"))
+				Expect(region).To(Equal("eu01"))
+				Expect(selector).To(Equal(map[string]string{StackitMachineLabel: "test-machine"}))
+				return []*client.Server{{ID: "server-1"}, {ID: "server-2"}}, nil
+			}
+			mockClient.CreateServerFunc = func(_ context.Context, _, _ string, _ *client.CreateServerRequest) (*client.Server, error) {
+				createServerCalled = true
+				return nil, nil
+			}
+
+			_, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).To(HaveOccurred())
+			statusErr, ok := status.FromError(err)
+			Expect(ok).To(BeTrue())
+			Expect(statusErr.Code()).To(Equal(codes.AlreadyExists))
+			Expect(createServerCalled).To(BeFalse())
+		})
+
+		It("reuses the sole server returned for the machine label", func() {
+			createServerCalled := false
+			mockClient.ListServersFunc = func(_ context.Context, _, _ string, selector map[string]string) ([]*client.Server, error) {
+				Expect(selector).To(Equal(map[string]string{StackitMachineLabel: "test-machine"}))
+				return []*client.Server{{ID: "existing-server", Name: "test-machine", Status: "ACTIVE"}}, nil
+			}
+			mockClient.CreateServerFunc = func(_ context.Context, _, _ string, _ *client.CreateServerRequest) (*client.Server, error) {
+				createServerCalled = true
+				return nil, nil
+			}
+
+			resp, err := provider.CreateMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp.ProviderID).To(Equal("stackit://11111111-2222-3333-4444-555555555555/existing-server"))
+			Expect(createServerCalled).To(BeFalse())
+		})
+
 		It("should successfully create a machine", func() {
 			resp, err := provider.CreateMachine(ctx, req)
 
