@@ -66,7 +66,7 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 }
 
 // serverIDsForMachine fetches server IDs for a machine.
-// during migration, there might be machines that has no providerID yet, so we need to fetch all servers and
+// during migration, there might be machines that have no providerID yet, so we need to fetch all servers and
 // filter them based on the machine name.
 func (p *Provider) serverIDsForMachine(ctx context.Context, req *driver.DeleteMachineRequest, projectIDFromSecret, region string, migrated bool) (projectID string, serverIDs []string, err error) {
 	projectID, serverIDs = "", nil
@@ -156,7 +156,7 @@ func (p *Provider) deleteMachineNICs(ctx context.Context, projectID, region, net
 			continue
 		}
 
-		if err = p.client.DeleteNIC(ctx, projectID, region, nic.NetworkID, nic.ID); err != nil {
+		if err = p.client.DeleteNIC(ctx, projectID, region, networkID, nic.ID); err != nil {
 			if errors.Is(err, client.ErrNicNotFound) {
 				klog.V(2).Infof("NIC %q already deleted for machine %q (idempotent)", nic.ID, machineName)
 				continue
