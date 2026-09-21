@@ -201,9 +201,11 @@ func (c *SdkStackitClient) CreateServer(ctx context.Context, projectID, region s
 	}
 
 	// Call SDK using the stored client
-	sdkServer, err := c.iaasClient.DefaultAPI.CreateServer(ctx, projectID, region).
-		CreateServerPayload(*payload).
-		Execute()
+	sdkServer, err := execute(ctx, func(ctx context.Context) (*iaas.Server, error) {
+		return c.iaasClient.DefaultAPI.CreateServer(ctx, projectID, region).
+			CreateServerPayload(*payload).
+			Execute()
+	})
 	if err != nil {
 		return nil, fmt.Errorf("SDK CreateServer failed: %w", err)
 	}
@@ -216,7 +218,9 @@ func (c *SdkStackitClient) CreateServer(ctx context.Context, projectID, region s
 
 // GetServer retrieves a server by ID via STACKIT SDK
 func (c *SdkStackitClient) GetServer(ctx context.Context, projectID, region, serverID string) (*Server, error) {
-	sdkServer, err := c.iaasClient.DefaultAPI.GetServer(ctx, projectID, region, serverID).Execute()
+	sdkServer, err := execute(ctx, func(ctx context.Context) (*iaas.Server, error) {
+		return c.iaasClient.DefaultAPI.GetServer(ctx, projectID, region, serverID).Execute()
+	})
 	if err != nil {
 		// Check if error is 404 Not Found
 		if isNotFoundError(err) {
@@ -233,7 +237,9 @@ func (c *SdkStackitClient) GetServer(ctx context.Context, projectID, region, ser
 
 // DeleteServer deletes a server by ID via STACKIT SDK
 func (c *SdkStackitClient) DeleteServer(ctx context.Context, projectID, region, serverID string) error {
-	err := c.iaasClient.DefaultAPI.DeleteServer(ctx, projectID, region, serverID).Execute()
+	_, err := execute(ctx, func(ctx context.Context) (any, error) {
+		return nil, c.iaasClient.DefaultAPI.DeleteServer(ctx, projectID, region, serverID).Execute()
+	})
 	if err != nil {
 		// Check if error is 404 Not Found - this is OK (idempotent)
 		if isNotFoundError(err) {
@@ -247,8 +253,7 @@ func (c *SdkStackitClient) DeleteServer(ctx context.Context, projectID, region, 
 
 // ListServers lists all servers in a project via STACKIT SDK
 func (c *SdkStackitClient) ListServers(ctx context.Context, projectID, region string, labelSelector map[string]string) ([]*Server, error) {
-	serverRequest := c.iaasClient.DefaultAPI.ListServers(ctx, projectID, region)
-
+	var selector string
 	if labelSelector != nil {
 		sb := strings.Builder{}
 		for k, v := range labelSelector {
@@ -262,10 +267,16 @@ func (c *SdkStackitClient) ListServers(ctx context.Context, projectID, region st
 			}
 		}
 
-		serverRequest = serverRequest.LabelSelector(sb.String())
+		selector = sb.String()
 	}
 
-	sdkResponse, err := serverRequest.Execute()
+	sdkResponse, err := execute(ctx, func(ctx context.Context) (*iaas.ServerListResponse, error) {
+		serverRequest := c.iaasClient.DefaultAPI.ListServers(ctx, projectID, region)
+		if selector != "" {
+			serverRequest = serverRequest.LabelSelector(selector)
+		}
+		return serverRequest.Execute()
+	})
 	if err != nil {
 		return nil, fmt.Errorf("SDK ListServers failed: %w", err)
 	}
@@ -283,7 +294,9 @@ func (c *SdkStackitClient) ListServers(ctx context.Context, projectID, region st
 }
 
 func (c *SdkStackitClient) GetNICsForServer(ctx context.Context, projectID, region, serverID string) ([]*NIC, error) {
-	res, err := c.iaasClient.DefaultAPI.ListServerNICs(ctx, projectID, region, serverID).Execute()
+	res, err := execute(ctx, func(ctx context.Context) (*iaas.NICListResponse, error) {
+		return c.iaasClient.DefaultAPI.ListServerNICs(ctx, projectID, region, serverID).Execute()
+	})
 	if err != nil {
 		return nil, fmt.Errorf("SDK ListServerNICs failed: %w", err)
 	}
@@ -309,7 +322,9 @@ func (c *SdkStackitClient) UpdateNIC(ctx context.Context, projectID, region, net
 		AllowedAddresses: addresses,
 	}
 
-	sdkNic, err := c.iaasClient.DefaultAPI.UpdateNic(ctx, projectID, region, networkID, nicID).UpdateNicPayload(payload).Execute()
+	sdkNic, err := execute(ctx, func(ctx context.Context) (*iaas.NIC, error) {
+		return c.iaasClient.DefaultAPI.UpdateNic(ctx, projectID, region, networkID, nicID).UpdateNicPayload(payload).Execute()
+	})
 	if err != nil {
 		return nil, fmt.Errorf("SDK UpdateNic failed: %w", err)
 	}
