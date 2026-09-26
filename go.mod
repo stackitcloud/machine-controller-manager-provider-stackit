@@ -3,7 +3,7 @@ module github.com/stackitcloud/machine-controller-manager-provider-stackit
 go 1.26.2
 
 require (
-	github.com/gardener/machine-controller-manager v0.62.1
+	github.com/gardener/machine-controller-manager v0.63.0
 	github.com/google/uuid v1.6.0
 	github.com/onsi/ginkgo/v2 v2.33.0
 	github.com/onsi/gomega v1.43.1
