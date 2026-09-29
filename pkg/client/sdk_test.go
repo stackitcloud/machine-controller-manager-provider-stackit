@@ -1,8 +1,11 @@
 package client
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -429,6 +432,90 @@ var _ = Describe("SDK Type Conversion Helpers", func() {
 				// Note: We can't easily verify they're different instances without
 				// accessing internal SDK state, but the test documents the intent
 			})
+		})
+	})
+
+	Describe("SdkStackitClient error wrapping with trace and request IDs", func() {
+		var (
+			server    *httptest.Server
+			client    *SdkStackitClient
+			projectID = "00000000-0000-0000-0000-000000000000"
+			serverID  = "11111111-1111-1111-1111-111111111111"
+			networkID = "22222222-2222-2222-2222-222222222222"
+			nicID     = "33333333-3333-3333-3333-333333333333"
+		)
+
+		BeforeEach(func() {
+			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("X-Trace-Id", "trace-test-123")
+				w.Header().Set("X-Request-Id", "req-test-456")
+				w.WriteHeader(http.StatusInternalServerError)
+				_, _ = w.Write([]byte(`{"message": "internal server error"}`))
+			}))
+
+			origEndpoint := os.Getenv("STACKIT_IAAS_ENDPOINT")
+			origNoAuth := os.Getenv("STACKIT_NO_AUTH")
+			os.Setenv("STACKIT_IAAS_ENDPOINT", server.URL)
+			os.Setenv("STACKIT_NO_AUTH", "true")
+			DeferCleanup(func() {
+				server.Close()
+				if origEndpoint == "" {
+					os.Unsetenv("STACKIT_IAAS_ENDPOINT")
+				} else {
+					os.Setenv("STACKIT_IAAS_ENDPOINT", origEndpoint)
+				}
+				if origNoAuth == "" {
+					os.Unsetenv("STACKIT_NO_AUTH")
+				} else {
+					os.Setenv("STACKIT_NO_AUTH", origNoAuth)
+				}
+			})
+
+			var err error
+			client, err = NewStackitClient("")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("GetServer wraps error with trace ID and request ID", func() {
+			_, err := client.GetServer(context.Background(), projectID, "eu01-1", serverID)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("[X-Request-Id:req-test-456]: [X-Trace-Id:trace-test-123]"))
+		})
+
+		It("DeleteServer wraps error with trace ID and request ID", func() {
+			err := client.DeleteServer(context.Background(), projectID, "eu01-1", serverID)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("[X-Request-Id:req-test-456]: [X-Trace-Id:trace-test-123]"))
+		})
+
+		It("CreateServer wraps error with trace ID and request ID", func() {
+			_, err := client.CreateServer(context.Background(), projectID, "eu01-1", &CreateServerRequest{
+				Name:        "test-srv",
+				MachineType: "c1.2",
+				Networking: &ServerNetworkingRequest{
+					NetworkID: networkID,
+				},
+			})
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("[X-Request-Id:req-test-456]: [X-Trace-Id:trace-test-123]"))
+		})
+
+		It("ListServers wraps error with trace ID and request ID", func() {
+			_, err := client.ListServers(context.Background(), projectID, "eu01-1", nil)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("[X-Request-Id:req-test-456]: [X-Trace-Id:trace-test-123]"))
+		})
+
+		It("GetNICsForServer wraps error with trace ID and request ID", func() {
+			_, err := client.GetNICsForServer(context.Background(), projectID, "eu01-1", serverID)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("[X-Request-Id:req-test-456]: [X-Trace-Id:trace-test-123]"))
+		})
+
+		It("UpdateNIC wraps error with trace ID and request ID", func() {
+			_, err := client.UpdateNIC(context.Background(), projectID, "eu01-1", networkID, nicID, []string{"10.0.0.1"})
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("[X-Request-Id:req-test-456]: [X-Trace-Id:trace-test-123]"))
 		})
 	})
 
