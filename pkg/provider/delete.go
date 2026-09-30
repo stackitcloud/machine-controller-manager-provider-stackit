@@ -71,11 +71,7 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 // serverIDsForMachine retruns a list if IDs servernames are not uniq on infrastructure side.
 // In case of a migrated machine with the stackit.cloud/migrated-machine annotation the deletion needs to get all servers and filters internally.
 // We can not relay on labels as servers that are migrated during the creation (without a providerID) does not have the new labels.
-func (p *Provider) serverIDsForMachine(ctx context.Context, req *driver.DeleteMachineRequest, projectIDFromSecret, region string, migrated bool) (string, []string, error) {
-	var projectID string
-	var serverIDs []string
-	var err error
-
+func (p *Provider) serverIDsForMachine(ctx context.Context, req *driver.DeleteMachineRequest, projectIDFromSecret, region string, migrated bool) (projectID string, serverIDs []string, err error) {
 	if providerID := req.Machine.Spec.ProviderID; providerID != "" {
 		if !strings.HasPrefix(providerID, StackitProviderName+"://") {
 			return "", nil, status.Error(codes.InvalidArgument, "providerID is not empty and does not start with stackit://")
