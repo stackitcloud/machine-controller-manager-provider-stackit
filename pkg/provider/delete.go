@@ -62,7 +62,8 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 	return &driver.DeleteMachineResponse{}, nil
 }
 
-// serverIDsForMachine fetches server IDs for a machine.
+// serverIDsForMachine gets the projectID and serverID from the providerID. In case it could not find a ServerID in the providerID it lists all servers based in labels to find the serverIDs.
+// serverIDsForMachine retruns a list if IDs servernames are not uniq on infrastrucutre side.
 // In case of a migrated machine with the stackit.cloud/migrated-machine annotation the deletion needs to get all servers and filters internally.
 // We can not relay on labels as servers that are migrated during the creation (without a providerID) does not have the new labels.
 
