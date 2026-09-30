@@ -44,8 +44,6 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 
 	// Error is ignored to have compatibility with non-migrated OpenStack Machines that have no annotations.
 	migrated, _ := strconv.ParseBool(req.Machine.Annotations[migratedMachineAnnotation])
-	// In case of a migrated machine with the stackit.cloud/migrated-machine annotation the deletion needs to get all servers and filters internally.
-	// This is needed as servers that are migrated during the creation are maybe created in the infrastructure but has no providerID.
 	projectID, serverIDs, err := p.serverIDsForMachine(ctx, req, projectIDFromSecret, providerSpec.Region, migrated)
 	if err != nil {
 		return nil, err
