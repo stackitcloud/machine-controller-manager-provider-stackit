@@ -52,6 +52,11 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 		return nil, err
 	}
 
+	// Migrated servers are created with the openstack MCM.
+	// The openstack MCM creates a NIC and attaches it to a server.
+	// The STACKIT API unifies this in one call which results in IaaS deleting the NIC on server deletion aswell.
+	// This does not happen when NICs are created independently and were attached to the server.
+	// Therefore NICs get cleaned up for migrated machines.
 	if migrated && providerSpec.Networking != nil && providerSpec.Networking.NetworkID != "" {
 		if err := p.deleteMachineNICs(ctx, projectID, providerSpec.Region, providerSpec.Networking.NetworkID, req.Machine.Name); err != nil {
 			return nil, err
@@ -66,9 +71,11 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 // serverIDsForMachine retruns a list if IDs servernames are not uniq on infrastrucutre side.
 // In case of a migrated machine with the stackit.cloud/migrated-machine annotation the deletion needs to get all servers and filters internally.
 // We can not relay on labels as servers that are migrated during the creation (without a providerID) does not have the new labels.
+func (p *Provider) serverIDsForMachine(ctx context.Context, req *driver.DeleteMachineRequest, projectIDFromSecret, region string, migrated bool) (string, []string, error) {
+	var projectID string
+	var serverIDs []string
+	var err error
 
-func (p *Provider) serverIDsForMachine(ctx context.Context, req *driver.DeleteMachineRequest, projectIDFromSecret, region string, migrated bool) (projectID string, serverIDs []string, err error) {
-	projectID, serverIDs = "", nil
 	if providerID := req.Machine.Spec.ProviderID; providerID != "" {
 		if !strings.HasPrefix(providerID, StackitProviderName+"://") {
 			return "", nil, status.Error(codes.InvalidArgument, "providerID is not empty and does not start with stackit://")
@@ -90,10 +97,11 @@ func (p *Provider) serverIDsForMachine(ctx context.Context, req *driver.DeleteMa
 		return projectID, serverIDs, nil
 	}
 
-	selector := map[string]string{StackitMachineLabel: req.Machine.Name}
-	if migrated {
-		selector = nil
+	var selector map[string]string
+	if !migrated {
+		selector = map[string]string{StackitMachineLabel: req.Machine.Name}
 	}
+
 	servers, err := p.getServersByLabelSelector(ctx, projectID, region, selector)
 	if err != nil {
 		return "", nil, status.Error(codes.Internal, fmt.Sprintf("failed to find server by name: %v", err))

@@ -124,7 +124,7 @@ var _ = Describe("CreateMachine", func() {
 			Expect(createServerCalled).To(BeFalse())
 		})
 
-		It("reuses the sole server returned for the machine label", func() {
+		It("reuses the server returned for the machine label", func() {
 			createServerCalled := false
 			mockClient.ListServersFunc = func(_ context.Context, _, _ string, selector map[string]string) ([]*client.Server, error) {
 				Expect(selector).To(Equal(map[string]string{StackitMachineLabel: "test-machine"}))

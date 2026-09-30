@@ -42,9 +42,33 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	klog.V(2).Infof("Machine creation request has been received for %q", req.Machine.Name)
 	defer klog.V(2).Infof("Machine creation request has been processed for %q", req.Machine.Name)
 
-	providerSpec, projectID, err := p.prepareMachineCreation(req)
+	if req.MachineClass.Provider != StackitProviderName {
+		err := fmt.Errorf("requested for Provider '%s', we only support '%s'", req.MachineClass.Provider, StackitProviderName)
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	if m, _ := strconv.ParseBool(req.Machine.Annotations[migratedMachineAnnotation]); m {
+		return nil, status.Error(codes.AlreadyExists, fmt.Sprintf("creation of migrated machine %q is not supported", req.Machine.Name))
+	}
+
+	// Decode ProviderSpec from MachineClass
+	providerSpec, err := decodeProviderSpec(req.MachineClass)
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	// Validate ProviderSpec and Secret
+	validationErrs := validation.ValidateProviderSpecNSecret(providerSpec, req.Secret)
+	if len(validationErrs) > 0 {
+		return nil, status.Error(codes.InvalidArgument, validationErrs[0].Error())
+	}
+
+	// Extract credentials from Secret
+	projectID, serviceAccountKey := extractSecretCredentials(req.Secret.Data)
+
+	// Initialize client on first use (lazy initialization)
+	if err := p.ensureClient(serviceAccountKey); err != nil {
+		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to initialize STACKIT client: %v", err))
 	}
 
 	server, err := p.getOrCreateServer(ctx, req, projectID, providerSpec)
@@ -52,8 +76,12 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		return nil, err
 	}
 
-	if err := p.waitForServer(ctx, req.Machine.Name, projectID, providerSpec.Region, server.ID); err != nil {
-		return nil, err
+	if err := p.WaitUntilServerRunning(ctx, projectID, providerSpec.Region, server.ID); err != nil {
+		klog.Errorf("Failed waiting for server %q to reach ACTIVE state: %v", req.Machine.Name, err)
+		if isResourceExhaustedError(err) {
+			return nil, status.Error(codes.ResourceExhausted, fmt.Sprintf("failed waiting for server to be ACTIVE: %v", err))
+		}
+		return nil, status.Error(codes.DeadlineExceeded, fmt.Sprintf("failed waiting for server to be ACTIVE: %v", err))
 	}
 
 	nics, err := p.patchNetworkInterfaces(ctx, projectID, server.ID, providerSpec)
@@ -71,38 +99,6 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		NodeName:   req.Machine.Name,
 		Addresses:  nicAddresses(nics),
 	}, nil
-}
-
-func (p *Provider) prepareMachineCreation(req *driver.CreateMachineRequest) (*api.ProviderSpec, string, error) {
-	if req.MachineClass.Provider != StackitProviderName {
-		err := fmt.Errorf("requested for Provider '%s', we only support '%s'", req.MachineClass.Provider, StackitProviderName)
-		return nil, "", status.Error(codes.InvalidArgument, err.Error())
-	}
-
-	if m, _ := strconv.ParseBool(req.Machine.Annotations[migratedMachineAnnotation]); m {
-		return nil, "", status.Error(codes.AlreadyExists, fmt.Sprintf("creation of migrated machine %q is not supported", req.Machine.Name))
-	}
-
-	// Decode ProviderSpec from MachineClass
-	providerSpec, err := decodeProviderSpec(req.MachineClass)
-	if err != nil {
-		return nil, "", status.Error(codes.Internal, err.Error())
-	}
-
-	// Validate ProviderSpec and Secret
-	validationErrs := validation.ValidateProviderSpecNSecret(providerSpec, req.Secret)
-	if len(validationErrs) > 0 {
-		return nil, "", status.Error(codes.InvalidArgument, validationErrs[0].Error())
-	}
-
-	// Extract credentials from Secret
-	projectID, serviceAccountKey := extractSecretCredentials(req.Secret.Data)
-
-	// Initialize client on first use (lazy initialization)
-	if err := p.ensureClient(serviceAccountKey); err != nil {
-		return nil, "", status.Error(codes.Internal, fmt.Sprintf("failed to initialize STACKIT client: %v", err))
-	}
-	return providerSpec, projectID, nil
 }
 
 func (p *Provider) getOrCreateServer(ctx context.Context, req *driver.CreateMachineRequest, projectID string, providerSpec *api.ProviderSpec) (*client.Server, error) {
@@ -141,17 +137,6 @@ func (p *Provider) getOrCreateServer(ctx context.Context, req *driver.CreateMach
 		return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to create server: %v", err))
 	}
 	return server, nil
-}
-
-func (p *Provider) waitForServer(ctx context.Context, machineName, projectID, region, serverID string) error {
-	if err := p.WaitUntilServerRunning(ctx, projectID, region, serverID); err != nil {
-		klog.Errorf("Failed waiting for server %q to reach ACTIVE state: %v", machineName, err)
-		if isResourceExhaustedError(err) {
-			return status.Error(codes.ResourceExhausted, fmt.Sprintf("failed waiting for server to be ACTIVE: %v", err))
-		}
-		return status.Error(codes.DeadlineExceeded, fmt.Sprintf("failed waiting for server to be ACTIVE: %v", err))
-	}
-	return nil
 }
 
 // nolint: gocyclo // this function is already pretty simple
