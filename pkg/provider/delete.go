@@ -42,7 +42,6 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	// Missing annotation is treated as machine is not migrated.
 	// Error is ignored to have compatibility with non-migrated OpenStack Machines that have no annotations.
 	migrated, _ := strconv.ParseBool(req.Machine.Annotations[migratedMachineAnnotation])
 	// In case of a migrated machine with the stackit.cloud/migrated-machine annotation the deletion needs to get all servers and filters internally.
