@@ -19,6 +19,7 @@ type StackitClient struct {
 	ListNICsFunc     func(ctx context.Context, projectID, region, networkID string) ([]*client.NIC, error)
 	DeleteNICFunc    func(ctx context.Context, projectID, region, networkID, nicID string) error
 	ListVolumesFunc  func(ctx context.Context, projectID, region string) ([]*client.Volume, error)
+	GetVolumeFunc    func(ctx context.Context, projectID, region, volumeID string) (*client.Volume, error)
 	DeleteVolumeFunc func(ctx context.Context, projectID, region, volumeID string) error
 	UpdateNICFunc    func(ctx context.Context, projectID, region, networkID, nicID string, allowedAddresses []string) (*client.NIC, error)
 }
@@ -87,6 +88,16 @@ func (m *StackitClient) ListVolumes(ctx context.Context, projectID, region strin
 		return m.ListVolumesFunc(ctx, projectID, region)
 	}
 	return []*client.Volume{}, nil
+}
+
+func (m *StackitClient) GetVolume(ctx context.Context, projectID, region, volumeID string) (*client.Volume, error) {
+	if m.GetVolumeFunc != nil {
+		return m.GetVolumeFunc(ctx, projectID, region, volumeID)
+	}
+	return &client.Volume{
+		ID:   volumeID,
+		Name: "test-volume",
+	}, nil
 }
 
 func (m *StackitClient) DeleteVolume(ctx context.Context, projectID, region, volumeID string) error {

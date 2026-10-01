@@ -33,6 +33,8 @@ type StackitClient interface {
 	UpdateNIC(ctx context.Context, projectID, region, networkID, nicID string, allowedAddresses []string) (*NIC, error)
 	// ListVolumes list all volumes
 	ListVolumes(ctx context.Context, projectID, region string) ([]*Volume, error)
+	// GetVolume retrieves a volume by ID from STACKIT
+	GetVolume(ctx context.Context, projectID, region, volumeID string) (*Volume, error)
 	// DeleteVolume delete a given volume by ID
 	DeleteVolume(ctx context.Context, projectID, region, volumeID string) error
 }

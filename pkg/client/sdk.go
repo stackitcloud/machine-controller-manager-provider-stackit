@@ -371,6 +371,19 @@ func (c *SdkStackitClient) ListVolumes(ctx context.Context, projectID, region st
 	return volumes, nil
 }
 
+func (c *SdkStackitClient) GetVolume(ctx context.Context, projectID, region, volumeID string) (*Volume, error) {
+	sdkVolume, err := c.iaasClient.DefaultAPI.GetVolume(ctx, projectID, region, volumeID).Execute()
+	if err != nil {
+		// Check if error is 404 Not Found
+		if isNotFoundError(err) {
+			return nil, fmt.Errorf("%w: %v", ErrVolumeNotFound, err)
+		}
+		return nil, fmt.Errorf("SDK GetVolume failed: %w", err)
+	}
+
+	return convertSDKVolumeToVolume(sdkVolume), nil
+}
+
 func (c *SdkStackitClient) DeleteVolume(ctx context.Context, projectID, region, volumeID string) error {
 	err := c.iaasClient.DefaultAPI.DeleteVolume(ctx, projectID, region, volumeID).Execute()
 	if err != nil {

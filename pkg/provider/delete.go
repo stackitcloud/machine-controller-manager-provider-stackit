@@ -22,7 +22,7 @@ import (
 //
 // Error codes:
 //   - InvalidArgument: Missing or invalid ProviderID
-//   - DeadlineExceeded: Failed waiting for server to be deleted
+//   - DeadlineExceeded: Failed waiting for server or volume to be deleted
 //   - Internal: Failed to delete server or communicate with STACKIT API
 func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineRequest) (*driver.DeleteMachineResponse, error) {
 	// Log messages to track delete request
@@ -189,6 +189,7 @@ func (p *Provider) deleteMachineVolumes(ctx context.Context, projectID, region, 
 	}
 
 	var allErrors error
+	var deletedVolumeIDs []string
 
 	for _, volume := range volumes {
 		if volume.Name != machineName {
@@ -203,14 +204,42 @@ func (p *Provider) deleteMachineVolumes(ctx context.Context, projectID, region, 
 
 			klog.Errorf("Failed to delete volume %q for machine %q: %v", volume.ID, machineName, err)
 			allErrors = errors.Join(allErrors, fmt.Errorf("failed to delete volume %q: %w", volume.ID, err))
+			continue
 		}
+		deletedVolumeIDs = append(deletedVolumeIDs, volume.ID)
 	}
 
 	if allErrors != nil {
 		return status.Error(codes.Internal, fmt.Sprintf("failed to delete volumes: %v", allErrors))
 	}
 
+	for _, volumeID := range deletedVolumeIDs {
+		if err := p.WaitUntilVolumeDeleted(ctx, projectID, region, volumeID); err != nil {
+			klog.Errorf("Failed waiting for volume %q to be deleted for machine %q: %v", volumeID, machineName, err)
+			allErrors = errors.Join(allErrors, fmt.Errorf("failed waiting for volume %q to be deleted: %w", volumeID, err))
+		}
+	}
+
+	if allErrors != nil {
+		return status.Error(codes.DeadlineExceeded, fmt.Sprintf("failed waiting for volume to be deleted: %v", allErrors))
+	}
+
 	return nil
+}
+
+func (p *Provider) WaitUntilVolumeDeleted(ctx context.Context, projectID, region, volumeID string) error {
+	return wait.PollUntilContextTimeout(ctx, p.pollingInterval, p.pollingTimeout, true, func(ctx context.Context) (bool, error) {
+		_, err := p.client.GetVolume(ctx, projectID, region, volumeID)
+		if err != nil {
+			// Volume is deleted if we get a not found error
+			if errors.Is(err, client.ErrVolumeNotFound) {
+				klog.V(2).Infof("Volume %q has been deleted", volumeID)
+				return true, nil
+			}
+		}
+
+		return false, err
+	})
 }
 
 func (p *Provider) WaitUntilServerDeleted(ctx context.Context, projectID, region, serverID string) error {

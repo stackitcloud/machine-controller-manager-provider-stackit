@@ -36,6 +36,9 @@ var _ = Describe("DeleteMachine", func() {
 			GetServerFunc: func(_ context.Context, _, _, _ string) (*client.Server, error) {
 				return nil, fmt.Errorf("%w: status 404", client.ErrServerNotFound)
 			},
+			GetVolumeFunc: func(_ context.Context, _, _, _ string) (*client.Volume, error) {
+				return nil, fmt.Errorf("%w: status 404", client.ErrVolumeNotFound)
+			},
 		}
 		provider = &Provider{
 			client:          mockClient,
@@ -275,6 +278,10 @@ var _ = Describe("DeleteMachine", func() {
 				executionOrder = append(executionOrder, "delete-volume:"+volumeID)
 				return nil
 			}
+			mockClient.GetVolumeFunc = func(_ context.Context, _, _, volumeID string) (*client.Volume, error) {
+				executionOrder = append(executionOrder, "wait-volume:"+volumeID)
+				return nil, fmt.Errorf("%w: status 404", client.ErrVolumeNotFound)
+			}
 
 			resp, err := provider.DeleteMachine(ctx, req)
 
@@ -287,6 +294,7 @@ var _ = Describe("DeleteMachine", func() {
 				"delete-nic:nic-1",
 				"list-volumes",
 				"delete-volume:volume-1",
+				"wait-volume:volume-1",
 			}))
 		})
 
@@ -406,6 +414,108 @@ var _ = Describe("DeleteMachine", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp).NotTo(BeNil())
 			Expect(listNICsCalled).To(BeFalse())
+		})
+
+		It("polls GetVolume until volume is deleted", func() {
+			machine.Spec.ProviderID = ""
+			machine.Annotations = map[string]string{migratedMachineAnnotation: "true"}
+
+			mockClient.ListServersFunc = func(_ context.Context, _, _ string, _ map[string]string) ([]*client.Server, error) {
+				return []*client.Server{
+					{ID: "server-1", Name: "test-machine"},
+				}, nil
+			}
+			mockClient.DeleteServerFunc = func(_ context.Context, _, _, _ string) error {
+				return nil
+			}
+			mockClient.ListVolumesFunc = func(_ context.Context, _, _ string) ([]*client.Volume, error) {
+				return []*client.Volume{
+					{ID: "volume-1", Name: "test-machine"},
+				}, nil
+			}
+			mockClient.DeleteVolumeFunc = func(_ context.Context, _, _, _ string) error {
+				return nil
+			}
+			getVolumeCallCount := 0
+			mockClient.GetVolumeFunc = func(_ context.Context, _, _, _ string) (*client.Volume, error) {
+				getVolumeCallCount++
+				if getVolumeCallCount == 1 {
+					return &client.Volume{ID: "volume-1", Name: "test-machine"}, nil
+				}
+				return nil, fmt.Errorf("%w: status 404", client.ErrVolumeNotFound)
+			}
+
+			resp, err := provider.DeleteMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp).NotTo(BeNil())
+			Expect(getVolumeCallCount).To(BeNumerically(">=", 2))
+		})
+
+		It("returns DeadlineExceeded when waiting for volume deletion times out", func() {
+			machine.Spec.ProviderID = ""
+			machine.Annotations = map[string]string{migratedMachineAnnotation: "true"}
+			provider.pollingTimeout = 20 * time.Millisecond
+
+			mockClient.ListServersFunc = func(_ context.Context, _, _ string, _ map[string]string) ([]*client.Server, error) {
+				return []*client.Server{
+					{ID: "server-1", Name: "test-machine"},
+				}, nil
+			}
+			mockClient.DeleteServerFunc = func(_ context.Context, _, _, _ string) error {
+				return nil
+			}
+			mockClient.ListVolumesFunc = func(_ context.Context, _, _ string) ([]*client.Volume, error) {
+				return []*client.Volume{
+					{ID: "volume-1", Name: "test-machine"},
+				}, nil
+			}
+			mockClient.DeleteVolumeFunc = func(_ context.Context, _, _, _ string) error {
+				return nil
+			}
+			mockClient.GetVolumeFunc = func(_ context.Context, _, _, volumeID string) (*client.Volume, error) {
+				return &client.Volume{ID: volumeID, Name: "test-machine"}, nil
+			}
+
+			_, err := provider.DeleteMachine(ctx, req)
+
+			Expect(err).To(HaveOccurred())
+			statusErr, ok := status.FromError(err)
+			Expect(ok).To(BeTrue())
+			Expect(statusErr.Code()).To(Equal(codes.DeadlineExceeded))
+		})
+
+		It("skips waiting when volume is already deleted on DeleteVolume (idempotent)", func() {
+			machine.Spec.ProviderID = ""
+			machine.Annotations = map[string]string{migratedMachineAnnotation: "true"}
+
+			mockClient.ListServersFunc = func(_ context.Context, _, _ string, _ map[string]string) ([]*client.Server, error) {
+				return []*client.Server{
+					{ID: "server-1", Name: "test-machine"},
+				}, nil
+			}
+			mockClient.DeleteServerFunc = func(_ context.Context, _, _, _ string) error {
+				return nil
+			}
+			mockClient.ListVolumesFunc = func(_ context.Context, _, _ string) ([]*client.Volume, error) {
+				return []*client.Volume{
+					{ID: "volume-1", Name: "test-machine"},
+				}, nil
+			}
+			mockClient.DeleteVolumeFunc = func(_ context.Context, _, _, _ string) error {
+				return fmt.Errorf("%w: status 404", client.ErrVolumeNotFound)
+			}
+			getVolumeCalled := false
+			mockClient.GetVolumeFunc = func(_ context.Context, _, _, _ string) (*client.Volume, error) {
+				getVolumeCalled = true
+				return nil, fmt.Errorf("%w: status 404", client.ErrVolumeNotFound)
+			}
+
+			resp, err := provider.DeleteMachine(ctx, req)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resp).NotTo(BeNil())
+			Expect(getVolumeCalled).To(BeFalse())
 		})
 	})
 
