@@ -38,6 +38,8 @@ func NewStackitClient(serviceAccountKey string) (*SdkStackitClient, error) {
 var (
 	// ErrServerNotFound indicates the server was not found (404)
 	ErrServerNotFound = errors.New("server not found")
+	ErrNicNotFound    = errors.New("nic not found")
+	ErrVolumeNotFound = errors.New("volume not found")
 )
 
 // createIAASClient creates a new STACKIT SDK IAAS API client
@@ -309,6 +311,36 @@ func (c *SdkStackitClient) GetNICsForServer(ctx context.Context, projectID, regi
 	return nics, nil
 }
 
+func (c *SdkStackitClient) ListNICs(ctx context.Context, projectID, region, networkID string) ([]*NIC, error) {
+	res, err := c.iaasClient.DefaultAPI.ListNics(ctx, projectID, region, networkID).Execute()
+	if err != nil {
+		return nil, fmt.Errorf("SDK ListNICs failed: %w", err)
+	}
+
+	if res.Items == nil {
+		return []*NIC{}, nil
+	}
+
+	nics := make([]*NIC, len(res.Items))
+	for i := range res.Items {
+		nics[i] = convertSDKNICtoNIC(&res.Items[i])
+	}
+
+	return nics, nil
+}
+
+func (c *SdkStackitClient) DeleteNIC(ctx context.Context, projectID, region, networkID, nicID string) error {
+	err := c.iaasClient.DefaultAPI.DeleteNic(ctx, projectID, region, networkID, nicID).Execute()
+	if err != nil {
+		// Check if error is 404 Not Found - this is OK (idempotent)
+		if isNotFoundError(err) {
+			return fmt.Errorf("%w: %v", ErrNicNotFound, err)
+		}
+		return fmt.Errorf("SDK DeleteNic failed: %w", err)
+	}
+	return nil
+}
+
 func (c *SdkStackitClient) UpdateNIC(ctx context.Context, projectID, region, networkID, nicID string, allowedAddresses []string) (*NIC, error) {
 	addresses := make([]iaas.AllowedAddressesInner, len(allowedAddresses))
 
@@ -336,6 +368,49 @@ func (c *SdkStackitClient) UpdateNIC(ctx context.Context, projectID, region, net
 	return convertSDKNICtoNIC(sdkNic), nil
 }
 
+func (c *SdkStackitClient) ListVolumes(ctx context.Context, projectID, region string) ([]*Volume, error) {
+	res, err := c.iaasClient.DefaultAPI.ListVolumes(ctx, projectID, region).Execute()
+	if err != nil {
+		return nil, fmt.Errorf("SDK ListVolumes failed: %w", err)
+	}
+
+	if res.Items == nil {
+		return []*Volume{}, nil
+	}
+
+	volumes := make([]*Volume, len(res.Items))
+	for i := range res.Items {
+		volumes[i] = convertSDKVolumeToVolume(&res.Items[i])
+	}
+
+	return volumes, nil
+}
+
+func (c *SdkStackitClient) GetVolume(ctx context.Context, projectID, region, volumeID string) (*Volume, error) {
+	sdkVolume, err := c.iaasClient.DefaultAPI.GetVolume(ctx, projectID, region, volumeID).Execute()
+	if err != nil {
+		// Check if error is 404 Not Found
+		if isNotFoundError(err) {
+			return nil, fmt.Errorf("%w: %v", ErrVolumeNotFound, err)
+		}
+		return nil, fmt.Errorf("SDK GetVolume failed: %w", err)
+	}
+
+	return convertSDKVolumeToVolume(sdkVolume), nil
+}
+
+func (c *SdkStackitClient) DeleteVolume(ctx context.Context, projectID, region, volumeID string) error {
+	err := c.iaasClient.DefaultAPI.DeleteVolume(ctx, projectID, region, volumeID).Execute()
+	if err != nil {
+		// Check if error is 404 Not Found - this is OK (idempotent)
+		if isNotFoundError(err) {
+			return fmt.Errorf("%w: %v", ErrVolumeNotFound, err)
+		}
+		return fmt.Errorf("SDK DeleteVolume failed: %w", err)
+	}
+	return nil
+}
+
 // Helper functions
 
 func convertSDKNICtoNIC(nic *iaas.NIC) *NIC {
@@ -352,6 +427,7 @@ func convertSDKNICtoNIC(nic *iaas.NIC) *NIC {
 		AllowedAddresses: addresses,
 		IPv4:             nic.GetIpv4(),
 		IPv6:             nic.GetIpv6(),
+		Name:             nic.GetName(),
 	}
 }
 
@@ -362,6 +438,13 @@ func convertSDKServerToServer(sdkServer *iaas.Server) *Server {
 		Status:       sdkServer.GetStatus(),
 		ErrorMessage: sdkServer.GetErrorMessage(),
 		Labels:       convertLabelsFromSDK(sdkServer.Labels),
+	}
+}
+
+func convertSDKVolumeToVolume(sdkVolume *iaas.Volume) *Volume {
+	return &Volume{
+		ID:   sdkVolume.GetId(),
+		Name: sdkVolume.GetName(),
 	}
 }
 

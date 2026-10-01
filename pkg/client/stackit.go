@@ -25,8 +25,18 @@ type StackitClient interface {
 	ListServers(ctx context.Context, projectID, region string, labelSelector map[string]string) ([]*Server, error)
 	// GetNICsForServer retrieves a network interfaces for a given server
 	GetNICsForServer(ctx context.Context, projectID, region, serverID string) ([]*NIC, error)
+	// ListNICs list all nics for a network
+	ListNICs(ctx context.Context, projectID, region, networkID string) ([]*NIC, error)
+	// DeleteNIC delete a given nic by ID
+	DeleteNIC(ctx context.Context, projectID, region, networkID, nicID string) error
 	// UpdateNIC updates a network interface
 	UpdateNIC(ctx context.Context, projectID, region, networkID, nicID string, allowedAddresses []string) (*NIC, error)
+	// ListVolumes list all volumes
+	ListVolumes(ctx context.Context, projectID, region string) ([]*Volume, error)
+	// GetVolume retrieves a volume by ID from STACKIT
+	GetVolume(ctx context.Context, projectID, region, volumeID string) (*Volume, error)
+	// DeleteVolume delete a given volume by ID
+	DeleteVolume(ctx context.Context, projectID, region, volumeID string) error
 }
 
 // CreateServerRequest represents the request to create a server
@@ -95,4 +105,10 @@ type NIC struct {
 	AllowedAddresses []string `json:"allowedAddresses,omitempty"`
 	IPv4             string   `json:"ipv4,omitempty"`
 	IPv6             string   `json:"ipv6,omitempty"`
+	Name             string   `json:"name"`
+}
+
+type Volume struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }

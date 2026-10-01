@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strconv"
 
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/codes"
@@ -41,10 +42,13 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	klog.V(2).Infof("Machine creation request has been received for %q", req.Machine.Name)
 	defer klog.V(2).Infof("Machine creation request has been processed for %q", req.Machine.Name)
 
-	// Check if incoming provider in the MachineClass is a provider we support
 	if req.MachineClass.Provider != StackitProviderName {
 		err := fmt.Errorf("requested for Provider '%s', we only support '%s'", req.MachineClass.Provider, StackitProviderName)
 		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	if m, _ := strconv.ParseBool(req.Machine.Annotations[migratedMachineAnnotation]); m {
+		return nil, status.Error(codes.Internal, fmt.Sprintf("creation of migrated machine %q is not supported", req.Machine.Name))
 	}
 
 	// Decode ProviderSpec from MachineClass
@@ -67,23 +71,9 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to initialize STACKIT client: %v", err))
 	}
 
-	// check if server already exists
-	server, err := p.getServerByName(ctx, projectID, providerSpec.Region, req.Machine.Name)
+	server, err := p.getOrCreateServer(ctx, req, projectID, providerSpec)
 	if err != nil {
-		klog.Errorf("Failed to fetch server for machine %q: %v", req.Machine.Name, err)
-		return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to fetch server: %v", err))
-	}
-
-	if server == nil {
-		// Call STACKIT API to create server
-		server, err = p.client.CreateServer(ctx, projectID, providerSpec.Region, p.createServerRequest(req, providerSpec))
-		if err != nil {
-			klog.Errorf("Failed to create server for machine %q: %v", req.Machine.Name, err)
-			if isResourceExhaustedError(err) {
-				return nil, status.Error(codes.ResourceExhausted, fmt.Sprintf("failed to create server: %v", err))
-			}
-			return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to create server: %v", err))
-		}
+		return nil, err
 	}
 
 	if err := p.WaitUntilServerRunning(ctx, projectID, providerSpec.Region, server.ID); err != nil {
@@ -109,6 +99,44 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 		NodeName:   req.Machine.Name,
 		Addresses:  nicAddresses(nics),
 	}, nil
+}
+
+func (p *Provider) getOrCreateServer(ctx context.Context, req *driver.CreateMachineRequest, projectID string, providerSpec *api.ProviderSpec) (*client.Server, error) {
+	servers, err := p.getServersByLabelSelector(ctx, projectID, providerSpec.Region, map[string]string{
+		StackitMachineLabel: req.Machine.Name,
+	})
+	if err != nil {
+		klog.Errorf("Failed to fetch server for machine %q: %v", req.Machine.Name, err)
+		return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to fetch server: %v", err))
+	}
+
+	if len(servers) > 1 {
+		serverNames := make([]string, len(servers))
+		for i, server := range servers {
+			serverNames[i] = fmt.Sprintf("%s (id: %s)", server.Name, server.ID)
+		}
+
+		klog.Errorf(
+			"Multiple servers already exist for this machine %q: servers=%v",
+			req.Machine.Name,
+			serverNames,
+		)
+		return nil, status.Error(codes.AlreadyExists, fmt.Sprintf("multiple servers %v already exist for machine %q", serverNames, req.Machine.Name))
+	}
+
+	if len(servers) == 1 {
+		return servers[0], nil
+	}
+
+	server, err := p.client.CreateServer(ctx, projectID, providerSpec.Region, p.createServerRequest(req, providerSpec))
+	if err != nil {
+		klog.Errorf("Failed to create server for machine %q: %v", req.Machine.Name, err)
+		if isResourceExhaustedError(err) {
+			return nil, status.Error(codes.ResourceExhausted, fmt.Sprintf("failed to create server: %v", err))
+		}
+		return nil, status.Error(codes.Unavailable, fmt.Sprintf("failed to create server: %v", err))
+	}
+	return server, nil
 }
 
 // nolint: gocyclo // this function is already pretty simple
@@ -233,26 +261,18 @@ func nicAddresses(nics []*client.NIC) []corev1.NodeAddress {
 	return addresses
 }
 
-func (p *Provider) getServerByName(ctx context.Context, projectID, region, serverName string) (*client.Server, error) {
+func (p *Provider) getServersByLabelSelector(ctx context.Context, projectID, region string, selector map[string]string) ([]*client.Server, error) {
 	// Check if the server got already created
-	labelSelector := map[string]string{
-		StackitMachineLabel: serverName,
-	}
-	servers, err := p.client.ListServers(ctx, projectID, region, labelSelector)
+	servers, err := p.client.ListServers(ctx, projectID, region, selector)
 	if err != nil {
-		return nil, fmt.Errorf("SDK ListServers with labelSelector: %v failed: %w", labelSelector, err)
+		return nil, fmt.Errorf("SDK ListServers with labelSelector: %v failed: %w", selector, err)
 	}
 
-	if len(servers) > 1 {
-		return nil, fmt.Errorf("%v servers found for server name %v", len(servers), serverName)
+	if len(servers) == 0 {
+		return nil, nil
 	}
 
-	if len(servers) == 1 {
-		return servers[0], nil
-	}
-
-	// no servers found len == 0
-	return nil, nil
+	return servers, nil
 }
 
 func (p *Provider) patchNetworkInterfaces(ctx context.Context, projectID, serverID string, providerSpec *api.ProviderSpec) ([]*client.NIC, error) {
