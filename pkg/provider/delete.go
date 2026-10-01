@@ -53,12 +53,17 @@ func (p *Provider) DeleteMachine(ctx context.Context, req *driver.DeleteMachineR
 	}
 
 	// Migrated servers are created with the openstack MCM.
-	// The openstack MCM creates a NIC and attaches it to a server.
-	// The STACKIT API unifies this in one call which results in IaaS deleting the NIC on server deletion aswell.
-	// This does not happen when NICs are created independently and were attached to the server.
-	// Therefore NICs get cleaned up for migrated machines.
-	if migrated && providerSpec.Networking != nil && providerSpec.Networking.NetworkID != "" {
-		if err := p.deleteMachineNICs(ctx, projectID, providerSpec.Region, providerSpec.Networking.NetworkID, req.Machine.Name); err != nil {
+	// The openstack MCM creates a NIC and Volumes separately and attaches it to a server.
+	// The STACKIT API unifies this in one call which results in IaaS deleting the NIC and Volume on server deletion aswell.
+	// This does not happen when NICs and Volumes are created independently and were attached to the server.
+	// Therefore, NICs and Volumes get cleaned up by name for migrated machines.
+	if migrated {
+		if providerSpec.Networking != nil && providerSpec.Networking.NetworkID != "" {
+			if err := p.deleteMachineNICs(ctx, projectID, providerSpec.Region, providerSpec.Networking.NetworkID, req.Machine.Name); err != nil {
+				return nil, err
+			}
+		}
+		if err := p.deleteMachineVolumes(ctx, projectID, providerSpec.Region, req.Machine.Name); err != nil {
 			return nil, err
 		}
 	}
@@ -172,6 +177,37 @@ func (p *Provider) deleteMachineNICs(ctx context.Context, projectID, region, net
 
 	if allErrors != nil {
 		return status.Error(codes.Internal, fmt.Sprintf("failed to delete NICs: %v", allErrors))
+	}
+
+	return nil
+}
+
+func (p *Provider) deleteMachineVolumes(ctx context.Context, projectID, region, machineName string) error {
+	volumes, err := p.client.ListVolumes(ctx, projectID, region)
+	if err != nil {
+		return status.Error(codes.Internal, fmt.Sprintf("failed to list volumes: %v", err))
+	}
+
+	var allErrors error
+
+	for _, volume := range volumes {
+		if volume.Name != machineName {
+			continue
+		}
+
+		if err = p.client.DeleteVolume(ctx, projectID, region, volume.ID); err != nil {
+			if errors.Is(err, client.ErrVolumeNotFound) {
+				klog.V(2).Infof("Volume %q already deleted for machine %q (idempotent)", volume.ID, machineName)
+				continue
+			}
+
+			klog.Errorf("Failed to delete volume %q for machine %q: %v", volume.ID, machineName, err)
+			allErrors = errors.Join(allErrors, fmt.Errorf("failed to delete volume %q: %w", volume.ID, err))
+		}
+	}
+
+	if allErrors != nil {
+		return status.Error(codes.Internal, fmt.Sprintf("failed to delete volumes: %v", allErrors))
 	}
 
 	return nil

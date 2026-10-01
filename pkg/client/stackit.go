@@ -31,6 +31,10 @@ type StackitClient interface {
 	DeleteNIC(ctx context.Context, projectID, region, networkID, nicID string) error
 	// UpdateNIC updates a network interface
 	UpdateNIC(ctx context.Context, projectID, region, networkID, nicID string, allowedAddresses []string) (*NIC, error)
+	// ListVolumes list all volumes
+	ListVolumes(ctx context.Context, projectID, region string) ([]*Volume, error)
+	// DeleteVolume delete a given volume by ID
+	DeleteVolume(ctx context.Context, projectID, region, volumeID string) error
 }
 
 // CreateServerRequest represents the request to create a server
@@ -100,4 +104,9 @@ type NIC struct {
 	IPv4             string   `json:"ipv4,omitempty"`
 	IPv6             string   `json:"ipv6,omitempty"`
 	Name             string   `json:"name"`
+}
+
+type Volume struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }

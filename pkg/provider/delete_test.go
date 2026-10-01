@@ -190,7 +190,7 @@ var _ = Describe("DeleteMachine", func() {
 		It("deletes all matching servers and NICs after an unfiltered lookup", func() {
 			machine.Spec.ProviderID = ""
 			machine.Annotations = map[string]string{migratedMachineAnnotation: "true"}
-			var deletedServerIDs, deletedNICIDs []string
+			var deletedServerIDs, deletedNICIDs, deletedVolumeIDs []string
 			mockClient.ListServersFunc = func(_ context.Context, _, _ string, selector map[string]string) ([]*client.Server, error) {
 				Expect(selector).To(BeNil())
 				return []*client.Server{
@@ -216,6 +216,17 @@ var _ = Describe("DeleteMachine", func() {
 				deletedNICIDs = append(deletedNICIDs, nicID)
 				return nil
 			}
+			mockClient.ListVolumesFunc = func(_ context.Context, _, _ string) ([]*client.Volume, error) {
+				return []*client.Volume{
+					{ID: "volume-1", Name: "test-machine"},
+					{ID: "volume-nic", Name: "another-machine"},
+					{ID: "volume-2", Name: "test-machine"},
+				}, nil
+			}
+			mockClient.DeleteVolumeFunc = func(_ context.Context, _, _, volumeID string) error {
+				deletedVolumeIDs = append(deletedVolumeIDs, volumeID)
+				return nil
+			}
 
 			resp, err := provider.DeleteMachine(ctx, req)
 
@@ -223,9 +234,10 @@ var _ = Describe("DeleteMachine", func() {
 			Expect(resp).NotTo(BeNil())
 			Expect(deletedServerIDs).To(ConsistOf("server-1", "server-2"))
 			Expect(deletedNICIDs).To(ConsistOf("nic-1", "nic-2"))
+			Expect(deletedVolumeIDs).To(ConsistOf("volume-1", "volume-2"))
 		})
 
-		It("waits for server deletion before deleting NICs", func() {
+		It("waits for server deletion before deleting NICs and volumes", func() {
 			machine.Spec.ProviderID = ""
 			machine.Annotations = map[string]string{migratedMachineAnnotation: "true"}
 
@@ -253,6 +265,16 @@ var _ = Describe("DeleteMachine", func() {
 				executionOrder = append(executionOrder, "delete-nic:"+nicID)
 				return nil
 			}
+			mockClient.ListVolumesFunc = func(_ context.Context, _, _ string) ([]*client.Volume, error) {
+				executionOrder = append(executionOrder, "list-volumes")
+				return []*client.Volume{
+					{ID: "volume-1", Name: "test-machine"},
+				}, nil
+			}
+			mockClient.DeleteVolumeFunc = func(_ context.Context, _, _, volumeID string) error {
+				executionOrder = append(executionOrder, "delete-volume:"+volumeID)
+				return nil
+			}
 
 			resp, err := provider.DeleteMachine(ctx, req)
 
@@ -263,10 +285,12 @@ var _ = Describe("DeleteMachine", func() {
 				"wait-server:server-1",
 				"list-nics",
 				"delete-nic:nic-1",
+				"list-volumes",
+				"delete-volume:volume-1",
 			}))
 		})
 
-		It("does not delete NICs if server deletion wait times out", func() {
+		It("does not delete NICs and volume if server deletion wait times out", func() {
 			machine.Spec.ProviderID = ""
 			machine.Annotations = map[string]string{migratedMachineAnnotation: "true"}
 			provider.pollingTimeout = 20 * time.Millisecond
@@ -283,8 +307,14 @@ var _ = Describe("DeleteMachine", func() {
 				return &client.Server{ID: serverID, Status: "SHUTTING_DOWN"}, nil
 			}
 			deleteNICCalled := false
+			deleteVolumesCalled := false
 			mockClient.DeleteNICFunc = func(_ context.Context, _, _, _, _ string) error {
 				deleteNICCalled = true
+				return nil
+			}
+
+			mockClient.DeleteVolumeFunc = func(_ context.Context, _, _, _ string) error {
+				deleteVolumesCalled = true
 				return nil
 			}
 
@@ -295,9 +325,10 @@ var _ = Describe("DeleteMachine", func() {
 			Expect(ok).To(BeTrue())
 			Expect(statusErr.Code()).To(Equal(codes.DeadlineExceeded))
 			Expect(deleteNICCalled).To(BeFalse())
+			Expect(deleteVolumesCalled).To(BeFalse())
 		})
 
-		It("safely skips NIC cleanup if Networking is nil", func() {
+		It("safely skips NIC cleanup if Networking is nil but still deletes volumes", func() {
 			machine.Spec.ProviderID = ""
 			machine.Annotations = map[string]string{migratedMachineAnnotation: "true"}
 
@@ -322,12 +353,23 @@ var _ = Describe("DeleteMachine", func() {
 				listNICsCalled = true
 				return nil, nil
 			}
+			var deletedVolumeIDs []string
+			mockClient.ListVolumesFunc = func(_ context.Context, _, _ string) ([]*client.Volume, error) {
+				return []*client.Volume{
+					{ID: "volume-1", Name: "test-machine"},
+				}, nil
+			}
+			mockClient.DeleteVolumeFunc = func(_ context.Context, _, _, volumeID string) error {
+				deletedVolumeIDs = append(deletedVolumeIDs, volumeID)
+				return nil
+			}
 
 			resp, err := provider.DeleteMachine(ctx, req)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp).NotTo(BeNil())
 			Expect(listNICsCalled).To(BeFalse())
+			Expect(deletedVolumeIDs).To(ConsistOf("volume-1"))
 		})
 
 		It("safely skips NIC cleanup if NetworkID is empty", func() {
