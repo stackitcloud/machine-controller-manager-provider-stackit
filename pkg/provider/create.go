@@ -48,7 +48,7 @@ func (p *Provider) CreateMachine(ctx context.Context, req *driver.CreateMachineR
 	}
 
 	if m, _ := strconv.ParseBool(req.Machine.Annotations[migratedMachineAnnotation]); m {
-		return nil, status.Error(codes.AlreadyExists, fmt.Sprintf("creation of migrated machine %q is not supported", req.Machine.Name))
+		return nil, status.Error(codes.Internal, fmt.Sprintf("creation of migrated machine %q is not supported", req.Machine.Name))
 	}
 
 	// Decode ProviderSpec from MachineClass
