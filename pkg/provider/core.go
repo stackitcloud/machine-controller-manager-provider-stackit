@@ -13,6 +13,11 @@ const (
 	StackitProviderName      = "stackit"
 	StackitMachineLabel      = "kubernetes.io/machine"
 	StackitMachineClassLabel = "kubernetes.io/machineclass"
+
+	// If a machine has this annotation, it was migrated from openstack
+	// In that case the controller cleans up the attached NIC on deletion
+	// and prevents calling the CreateMachine function for a migrated machine
+	migratedMachineAnnotation = "stackit.cloud/migrated-machine"
 )
 
 // GetVolumeIDs extracts volume IDs from PersistentVolume specs
