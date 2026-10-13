@@ -43,6 +43,7 @@
       ],
       matchPackageNames: [
         '/^k8s.io/',
+        'github.com/prometheus/client_golang',
       ],
     },
     {
