@@ -66,6 +66,7 @@ func generateRandomString(length int) string {
 	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
 	b := make([]byte, length)
 	for i := range b {
+		//nolint:gosec // G404: random string generator, not security-sensitive
 		b[i] = charset[rand.Intn(len(charset))]
 	}
 	return string(b)
